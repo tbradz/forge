@@ -118,6 +118,87 @@ def dungeon_backdrop():
     return img.resize((W * 2, H * 2), Image.NEAREST)
 
 
+def path_backdrop():
+    """Cave floor for the dungeon trail map: rough stone, scattered rocks, moss, torchlight."""
+    r = random.Random(23)
+    img = Image.new("RGB", (W, H), (30, 27, 30))
+    px = img.load()
+    for y in range(H):
+        for x in range(W):
+            n = r.random()
+            base = 34 if n > 0.5 else 30
+            if n > 0.97: base = 44
+            px[x, y] = (base, base - 3, base - 2)
+    d = ImageDraw.Draw(img)
+    for _ in range(140):  # rocks
+        x, y, s_ = r.randrange(W), r.randrange(40, H), r.choice([2, 3, 4, 5])
+        c = r.randint(40, 58)
+        d.ellipse((x, y, x + s_ + 2, y + s_), fill=(c, c - 4, c - 6))
+        d.line((x + 1, y + s_, x + s_ + 1, y + s_), fill=(18, 16, 18))
+    for _ in range(40):  # moss patches
+        x, y = r.randrange(W), r.randrange(40, H)
+        for _k in range(12):
+            px[min(W - 1, x + r.randint(-4, 4)), min(H - 1, max(0, y + r.randint(-2, 2)))] = (38, 52, 34)
+    for tx, ty in ((40, 60), (240, 50), (440, 60), (140, 250), (340, 250)):  # torch pools of light
+        for y in range(max(0, ty - 120), min(H, ty + 120)):
+            for x in range(max(0, tx - 120), min(W, tx + 120)):
+                dist = ((x - tx) ** 2 + (y - ty) ** 2) ** 0.5
+                if dist < 120:
+                    f = (1 - dist / 120) ** 2 * 0.55
+                    rr, gg, bb = px[x, y]
+                    px[x, y] = (min(255, int(rr + 110 * f)), min(255, int(gg + 60 * f)), min(255, int(bb + 15 * f)))
+    for y in range(H):
+        for x in range(W):
+            dx, dy = (x - W / 2) / (W / 2), (y - H / 2) / (H / 2)
+            f = max(0.4, 1 - 0.5 * (dx * dx + dy * dy))
+            rr, gg, bb = px[x, y]
+            px[x, y] = (int(rr * f), int(gg * f), int(bb * f))
+    return img.resize((W * 2, H * 2), Image.NEAREST)
+
+
+def plate(glow):
+    """Round stone platform a room stands on (24x12 base, scaled 4x)."""
+    img = Image.new("RGBA", (26, 14), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if glow:
+        d.ellipse((0, 0, 25, 13), fill=(255, 200, 90, 110))
+    d.ellipse((1, 3, 24, 13), fill=(20, 18, 22, 255))
+    d.ellipse((1, 1, 24, 11), fill=(88, 82, 90, 255))
+    d.ellipse((3, 2, 22, 9), fill=(112, 106, 114, 255))
+    d.arc((1, 1, 24, 11), 200, 340, fill=(140, 134, 142, 255))
+    return img.resize((img.width * 4, img.height * 4), Image.NEAREST)
+
+
+def dot(color):
+    img = Image.new("RGBA", (3, 3), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle((0, 0, 2, 2), fill=(0, 0, 0, 160))
+    d.point((1, 1), fill=color)
+    d.point((1, 0), fill=color)
+    return img.resize((12, 12), Image.NEAREST)
+
+
+def hud_bar():
+    img = Image.new("RGBA", (W, 26), (12, 10, 14, 215))
+    d = ImageDraw.Draw(img)
+    d.line((0, 25, W, 25), fill=(120, 96, 60, 255))
+    d.line((0, 24, W, 24), fill=(60, 48, 30, 255))
+    return img.resize((W * 2, 52), Image.NEAREST)
+
+
+def stairs():
+    """Dungeon entrance: stone steps descending into darkness (16x16)."""
+    img = Image.new("RGBA", (18, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.polygon([(1, 15), (4, 2), (13, 2), (16, 15)], fill=(10, 8, 12, 255))
+    for i, y in enumerate((12, 9, 6, 3)):
+        c = 110 - i * 22
+        d.rectangle((3 + i, y, 14 - i, y + 2), fill=(c, c - 6, c - 4, 255))
+    d.line((1, 15, 4, 2), fill=(70, 64, 72, 255))
+    d.line((16, 15, 13, 2), fill=(70, 64, 72, 255))
+    return img.resize((img.width * 4, img.height * 4), Image.NEAREST)
+
+
 # name -> crop box (x, y, w, h) in buildings.png
 SPRITES = {
     "castle": (384, 133, 64, 43),
@@ -142,5 +223,12 @@ if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     backdrop().save(f"{OUT}/town_bg.png")
     dungeon_backdrop().save(f"{OUT}/dungeon_bg.png")
+    path_backdrop().save(f"{OUT}/path_bg.png")
+    plate(False).save(f"{OUT}/plate.png")
+    plate(True).save(f"{OUT}/plate_glow.png")
+    dot((150, 140, 150, 255)).save(f"{OUT}/dot.png")
+    dot((255, 200, 80, 255)).save(f"{OUT}/dot_gold.png")
+    hud_bar().save(f"{OUT}/hud_bar.png")
+    stairs().save(f"{OUT}/stairs.png")
     sprites()
     print("wrote", sorted(os.listdir(OUT)))

@@ -3,6 +3,7 @@ package forge.delve;
 import com.badlogic.gdx.utils.Align;
 import com.github.tommyettinger.textra.TextraButton;
 import forge.Forge;
+import forge.adventure.character.CharacterSprite;
 import forge.delve.DelveRun.Node;
 import forge.delve.DelveRun.NodeType;
 import forge.item.PaperCard;
@@ -23,6 +24,10 @@ public class DelveMapScene extends DelveScene {
     private final List<Integer> chosen = new ArrayList<>();
     private DelveRun shownRun;
 
+    private DelveMapScene() {
+        super("ui/delve_path.json");
+    }
+
     public static DelveMapScene instance() {
         if (object == null)
             object = new DelveMapScene();
@@ -40,79 +45,243 @@ public class DelveMapScene extends DelveScene {
         super.enter();
     }
 
+    // ---- the trail map ----------------------------------------------------------------
+
+    private static final float ENTRANCE_X = 26, TRAIL_RIGHT = 436, TRAIL_MID = 150, ROW_GAP = 56;
+    private com.badlogic.gdx.scenes.scene2d.Group heroGroup;
+    private CharacterSprite heroSprite;
+    private boolean walking;
+
+    /** x of a map column; column 0 is the entrance, column s+1 is step s. */
+    private float colX(DelveRun run, int col) {
+        return ENTRANCE_X + col * (TRAIL_RIGHT - ENTRANCE_X) / run.layers.size();
+    }
+
+    /** y (top-down) of node k in a layer of n nodes: where its plate's centre sits. */
+    private static float rowY(int k, int n) {
+        return TRAIL_MID + (k - (n - 1) / 2f) * ROW_GAP;
+    }
+
+    private float nodeX(DelveRun run, int step) { return colX(run, step + 1); }
+
+    private float nodeY(DelveRun run, int step, int k) { return rowY(k, run.layers.get(step).size()); }
+
+    /** Where the hero currently stands: the entrance, or the room chosen on the last step. */
+    private float[] heroSpot(DelveRun run) {
+        if (run.step == 0 || chosen.isEmpty()) return new float[]{colX(run, 0), TRAIL_MID};
+        int s = run.step - 1, k = chosen.get(s);
+        return new float[]{nodeX(run, s), nodeY(run, s, k)};
+    }
+
     private void build() {
         clearScreen();
+        walking = false;
         DelveRun run = DelveRun.current();
         if (run == null) {
             Forge.switchScene(DelveHubScene.instance());
             return;
         }
-        title(run.day.themeName());
-        label("Life [GOLD]" + run.life + "/" + DelveRun.MAX_LIFE + "[]    Gold [GOLD]" + run.gold + "[]    Deck "
-                        + run.deckSize() + " cards (min " + DelveRun.MIN_DECK + ")    Fights won " + run.fightsWon,
-                0, 30, W, 16, Align.center);
+        // header bar
+        label("[%90][GOLD]" + run.day.themeName(), 8, 5, 150, 16, Align.left);
+        label("[%90][RED]Life[] " + run.life + "/" + DelveRun.MAX_LIFE + "    [GOLD]Gold[] " + run.gold
+                        + "    Deck " + run.deckSize() + "/" + DelveRun.MIN_DECK + "    Wins " + run.fightsWon,
+                150, 5, 322, 16, Align.right);
 
         int steps = run.layers.size();
-        float gap = 5, colW = (W - 16 - gap * (steps - 1)) / steps;
-        float startX = 8;
+        // trails: gold where you've walked, grey ahead, faint for roads not taken
         for (int s = 0; s < steps; s++) {
             List<Node> layer = run.layers.get(s);
-            float x = startX + s * (colW + gap);
-            label((s == steps - 1 ? "[%80]Final" : "[%80]Step " + (s + 1)), x, 54, colW, 12, Align.center);
-            float nodeH = 40, nodeGap = 8;
-            float totalH = layer.size() * nodeH + (layer.size() - 1) * nodeGap;
-            float y = 70 + (152 - totalH) / 2f;
-            for (int k = 0; k < layer.size(); k++) {
-                Node node = layer.get(k);
-                boolean done = s < run.step;
-                boolean wasChosen = done && s < chosen.size() && chosen.get(s) == k;
-                String text = nodeText(node, wasChosen);
-                final int step = s, idx = k;
-                TextraButton b = button(text, x, y, colW, nodeH, () -> choose(step, idx));
-                b.setDisabled(s != run.step || run.over);
-                if (done && !wasChosen) b.getColor().a = 0.35f;
-                y += nodeH + nodeGap;
+            List<float[]> from = new ArrayList<>();
+            List<Boolean> fromOnPath = new ArrayList<>();
+            if (s == 0) {
+                from.add(new float[]{colX(run, 0), TRAIL_MID});
+                fromOnPath.add(true);
+            } else {
+                List<Node> prev = run.layers.get(s - 1);
+                for (int j = 0; j < prev.size(); j++) {
+                    from.add(new float[]{nodeX(run, s - 1), nodeY(run, s - 1, j)});
+                    fromOnPath.add(s - 1 < chosen.size() && chosen.get(s - 1) == j);
+                }
+            }
+            for (int f = 0; f < from.size(); f++) {
+                for (int k = 0; k < layer.size(); k++) {
+                    boolean walked = fromOnPath.get(f) && s < run.step && s < chosen.size() && chosen.get(s) == k;
+                    boolean open = fromOnPath.get(f) && s == run.step;
+                    boolean ahead = s > run.step;
+                    float alpha = walked || open ? 1f : ahead ? 0.45f : 0.15f;
+                    trail(from.get(f)[0], from.get(f)[1], nodeX(run, s), nodeY(run, s, k), walked, alpha);
+                }
             }
         }
 
-        button("View deck", 110, 236, 110, 22, this::viewDeck);
-        button("Abandon run", 260, 236, 110, 22, () ->
+        // entrance
+        image("ui/delve/stairs.png", colX(run, 0) - 18, TRAIL_MID - 22, 36, 32);
+        label("[%55]Entrance", colX(run, 0) - 30, TRAIL_MID + 12, 60, 10, Align.center);
+
+        // rooms
+        for (int s = 0; s < steps; s++) {
+            List<Node> layer = run.layers.get(s);
+            for (int k = 0; k < layer.size(); k++)
+                room(run, s, k, layer.get(k));
+        }
+
+        // hero
+        float[] spot = heroSpot(run);
+        heroSprite = new CharacterSprite(DelveProfile.get().heroAtlas());
+        heroSprite.setAnimation(CharacterSprite.AnimationTypes.Idle);
+        heroSprite.setDirection(CharacterSprite.AnimationDirections.Right);
+        heroGroup = standing(heroSprite, 2f);
+        standAt(heroGroup, spot[0] + (run.step == 0 ? 16 : -20), spot[1] + 4);
+        track(heroGroup);
+
+        button("[%80]View deck", 300, 246, 80, 18, this::viewDeck);
+        button("[%80]Abandon run", 390, 246, 84, 18, () ->
                 confirm("Abandon run", "End this run now? You'll still get the reward for how far you got.",
                         () -> endRun(false)));
+        label("[%70]Step " + Math.min(run.step + 1, steps) + " of " + steps
+                + (run.step < steps ? "  -  choose a lit room" : ""), 8, 250, 280, 12, Align.left);
+    }
+
+    /** A dotted trail between two points. */
+    private void trail(float x1, float y1, float x2, float y2, boolean gold, float alpha) {
+        float dx = x2 - x1, dy = y2 - y1, len = (float) Math.sqrt(dx * dx + dy * dy);
+        int n = (int) (len / 7f);
+        for (int i = 2; i < n - 1; i++) {
+            float t = i / (float) n;
+            com.badlogic.gdx.scenes.scene2d.ui.Image d = image(gold ? "ui/delve/dot_gold.png" : "ui/delve/dot.png",
+                    x1 + dx * t - 2, y1 + dy * t - 2, 4, 4);
+            d.getColor().a = alpha;
+        }
+    }
+
+    /** One room: stone plate, whoever stands there, a label, and a click target. */
+    private void room(DelveRun run, int s, int k, Node node) {
+        float x = nodeX(run, s), y = nodeY(run, s, k);
+        boolean done = s < run.step;
+        boolean wasChosen = done && s < chosen.size() && chosen.get(s) == k;
+        boolean open = s == run.step && !run.over;
+        float dim = open || wasChosen ? 1f : done ? 0.3f : 0.6f;
+
+        com.badlogic.gdx.scenes.scene2d.ui.Image plate = image("ui/delve/plate.png", x - 18, y - 6, 36, 19);
+        com.badlogic.gdx.scenes.scene2d.ui.Image glow = image("ui/delve/plate_glow.png", x - 18, y - 6, 36, 19);
+        glow.setVisible(open);
+        glow.getColor().a = 0.55f;
+        plate.getColor().a = dim;
+
+        CharacterSprite who = roomSprite(node);
+        if (who != null && !wasChosen) { // the room's occupant is gone once you've been there
+            float scale = node.type == NodeType.BOSS ? 2.2f : 2f;
+            com.badlogic.gdx.scenes.scene2d.Group g = standing(who, scale);
+            standAt(g, x, y + 4);
+            g.getColor().a = dim;
+            who.getColor().a = dim;
+            track(g);
+        }
+
+        String type;
+        switch (node.type) {
+            case REST: type = "[SKY]Rest"; break;
+            case EVENT: type = "[#c080ff]? ? ?"; break;
+            case MERCHANT: type = "[GOLD]Merchant"; break;
+            case BOSS: type = "[RED]Boss"; break;
+            case ELITE: type = "[ORANGE]Elite"; break;
+            default: type = "Fight";
+        }
+        String name = node.enemy != null ? "\n[%50]" + shortName(node.enemy.getName()) : "";
+        com.github.tommyettinger.textra.TextraLabel l = label("[%60]" + type + "[]" + name, x - 32, y + 14, 64, 20, Align.center);
+        l.getColor().a = dim;
+
+        if (!open) return;
+        com.badlogic.gdx.scenes.scene2d.Actor hit = new com.badlogic.gdx.scenes.scene2d.Actor();
+        hit.setBounds(x - 22, H - (y + 16), 44, 58);
+        hit.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+            @Override
+            public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float ex, float ey, int pointer,
+                              com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                super.enter(event, ex, ey, pointer, fromActor);
+                glow.getColor().a = 1f;
+            }
+
+            @Override
+            public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float ex, float ey, int pointer,
+                             com.badlogic.gdx.scenes.scene2d.Actor toActor) {
+                super.exit(event, ex, ey, pointer, toActor);
+                glow.getColor().a = 0.55f;
+            }
+
+            @Override
+            public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float ex, float ey) {
+                choose(s, k);
+            }
+        });
+        track(hit);
+    }
+
+    private static CharacterSprite roomSprite(Node node) {
+        try {
+            switch (node.type) {
+                case REST: return idle(new CharacterSprite("sprites/3life.atlas"));
+                case EVENT: return idle(new CharacterSprite("sprites/scroll.atlas"));
+                case MERCHANT: return facing(new CharacterSprite("sprites/enemy/humanoid/human/peasant/inn_hermit.atlas"));
+                default: return facing(new forge.adventure.character.EnemySprite(node.enemy));
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // a missing sprite shouldn't break the map
+            return null;
+        }
+    }
+
+    private static CharacterSprite idle(CharacterSprite c) {
+        c.setAnimation(CharacterSprite.AnimationTypes.Idle);
+        return c;
+    }
+
+    /** Occupants face the entrance (left), toward the approaching hero. */
+    private static CharacterSprite facing(CharacterSprite c) {
+        c.setAnimation(CharacterSprite.AnimationTypes.Idle);
+        c.setDirection(CharacterSprite.AnimationDirections.Left);
+        return c;
+    }
+
+    /** Walk the hero to a room, then run {@code arrived}. */
+    private void walkTo(DelveRun run, int step, int k, Runnable arrived) {
+        walking = true;
+        float[] from = heroSpot(run);
+        float tx = nodeX(run, step) - 20, ty = nodeY(run, step, k) + 4;
+        float dx = tx - (heroGroup.getX()), dy = ty - (H - heroGroup.getY());
+        CharacterSprite.AnimationDirections dir = Math.abs(dy) < Math.abs(dx) * 0.4f
+                ? CharacterSprite.AnimationDirections.Right
+                : dy > 0 ? CharacterSprite.AnimationDirections.RightDown : CharacterSprite.AnimationDirections.RightUp;
+        heroSprite.setAnimation(CharacterSprite.AnimationTypes.Walk);
+        heroSprite.setDirection(dir);
+        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+        heroGroup.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+                com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(tx, H - ty, dist / 70f),
+                com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
+                    heroSprite.setAnimation(CharacterSprite.AnimationTypes.Idle);
+                    walking = false;
+                    arrived.run();
+                })));
     }
 
     private static String shortName(String s) {
-        return s.length() <= 13 ? s : s.substring(0, 12) + ".";
-    }
-
-    private static String nodeText(Node node, boolean chosen) {
-        String head, sub;
-        switch (node.type) {
-            case REST: head = "[SKY]Rest"; sub = "heal / trim"; break;
-            case EVENT: head = "[#c080ff]?  Event"; sub = "unknown"; break;
-            case MERCHANT: head = "[GOLD]Merchant"; sub = "buy / sell"; break;
-            case BOSS: head = "[RED]Boss"; sub = shortName(node.enemy.getName()); break;
-            case ELITE: head = "[ORANGE]Elite"; sub = shortName(node.enemy.getName()); break;
-            default: head = "Fight"; sub = shortName(node.enemy.getName());
-        }
-        if (chosen) head = "[GREEN]" + head.replaceAll("\\[[^\\]]*\\]", "");
-        return "[%75]" + head + "[]\n[%60]" + sub;
+        return s.length() <= 16 ? s : s.substring(0, 15) + ".";
     }
 
     private void choose(int step, int index) {
         DelveRun run = DelveRun.current();
-        if (run == null || step != run.step) return;
+        if (run == null || step != run.step || walking) return;
         Node node = run.layers.get(step).get(index);
         switch (node.type) {
-            case REST: rest(run, index); return;
-            case EVENT: event(run, node, index); return;
-            case MERCHANT: merchant(run, node, index); return;
+            case REST: walkTo(run, step, index, () -> rest(run, index)); return;
+            case EVENT: walkTo(run, step, index, () -> event(run, node, index)); return;
+            case MERCHANT: walkTo(run, step, index, () -> merchant(run, node, index)); return;
             default:
         }
         String what = node.type == NodeType.BOSS ? "the boss" : node.type == NodeType.ELITE ? "an elite" : "a fight";
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
                         + "They start at " + node.enemyLife + " life. You have " + run.life + ".",
-                () -> fight(run, node, index));
+                () -> walkTo(run, step, index, () -> fight(run, node, index)));
     }
 
     // ---- fights ---------------------------------------------------------------

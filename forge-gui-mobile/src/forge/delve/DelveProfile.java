@@ -72,6 +72,35 @@ public class DelveProfile {
         saveStats();
     }
 
+    // ---- character --------------------------------------------------------------
+
+    public boolean hasCharacter() {
+        return stats.containsKey("heroRace");
+    }
+
+    public int heroRace() {
+        try {
+            return Integer.parseInt(stats.getProperty("heroRace", "2")); // 2 = Human
+        } catch (NumberFormatException e) {
+            return 2;
+        }
+    }
+
+    public boolean heroFemale() {
+        return Boolean.parseBoolean(stats.getProperty("heroFemale", "false"));
+    }
+
+    public void setCharacter(int race, boolean female) {
+        stats.setProperty("heroRace", String.valueOf(race));
+        stats.setProperty("heroFemale", String.valueOf(female));
+        saveStats();
+    }
+
+    /** Atlas of the player's walking sprite. */
+    public String heroAtlas() {
+        return forge.adventure.data.HeroListData.instance().getHero(heroRace(), heroFemale());
+    }
+
     private void saveStats() {
         try (java.io.FileOutputStream out = new java.io.FileOutputStream(statsFile)) {
             stats.store(out, "Delve profile");

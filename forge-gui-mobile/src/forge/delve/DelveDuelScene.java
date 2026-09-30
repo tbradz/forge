@@ -46,6 +46,7 @@ import java.util.function.BiConsumer;
 public class DelveDuelScene extends DuelScene {
     private static DelveDuelScene object;
     private static final int ENEMY_AVATAR_KEY = 91001;
+    private static final int PLAYER_AVATAR_KEY = 91000;
 
     private HostedMatch match;
     private RegisteredPlayer human;
@@ -86,6 +87,17 @@ public class DelveDuelScene extends DuelScene {
         LobbyPlayer me = GamePlayerUtil.getGuiPlayer();
         if (me.getName() == null || me.getName().trim().isEmpty())
             me.setName("You");
+        try { // the Delve hero is your portrait
+            DelveProfile prof = DelveProfile.get();
+            TextureRegion heroAvatar = forge.adventure.data.HeroListData.instance()
+                    .getAvatar(prof.heroRace(), prof.heroFemale(), 0);
+            if (heroAvatar != null) {
+                FSkin.getAvatars().put(PLAYER_AVATAR_KEY, heroAvatar);
+                me.setAvatarIndex(PLAYER_AVATAR_KEY);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         human.setPlayer(me);
         human.setTeamNumber(0);
         human.setStartingLife(startingLife);

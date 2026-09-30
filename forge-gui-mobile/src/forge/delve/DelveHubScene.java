@@ -106,6 +106,13 @@ public class DelveHubScene extends UIScene {
     }
 
     private void openGate() {
+        if (!DelveProfile.get().hasCharacter()) { // first visit: make a character
+            DelveCharacterScene.instance().open(() -> {
+                Forge.switchScene(this);
+                openGate();
+            });
+            return;
+        }
         DelveRun run = DelveRun.current();
         if (run != null && !run.over)
             Forge.switchScene(DelveMapScene.instance()); // resume the run in progress
@@ -126,7 +133,7 @@ public class DelveHubScene extends UIScene {
             for (forge.deck.Deck d : p.lockedDecks())
                 sb.append("\n  ").append(d.getName()).append(" (").append(d.getMain().countAll()).append(" cards)");
         }
-        showDialog(createGenericDialog("Your House", sb.toString(), "View collection", "Close",
+        showDialog(createGenericDialog("Your House", sb.toString(), "View collection", "Change character",
                 () -> {
                     removeDialog();
                     java.util.List<forge.item.PaperCard> cards = new java.util.ArrayList<>(p.collection().toFlatList());
@@ -137,7 +144,10 @@ public class DelveHubScene extends UIScene {
                     if (unique.isEmpty()) return;
                     DelvePickScene.instance().show("Your collection", unique, 0, 0, "Back",
                             x -> Forge.switchScene(this));
-                }, this::removeDialog));
+                }, () -> {
+                    removeDialog();
+                    DelveCharacterScene.instance().open(() -> Forge.switchScene(this));
+                }, true, "Close"));
     }
 
     private String pendingTitle, pendingText;

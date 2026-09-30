@@ -21,7 +21,45 @@ abstract class DelveScene extends UIScene {
     private final List<Actor> dynamic = new ArrayList<>();
 
     DelveScene() {
-        super("ui/delve_panel.json");
+        this("ui/delve_panel.json");
+    }
+
+    DelveScene(String layout) {
+        super(layout);
+    }
+
+    /**
+     * An animated Adventure sprite (hero, enemy, item) drawn at {@code scale}, anchored at
+     * its bottom-centre so it can be placed by the point it stands on.
+     */
+    protected static com.badlogic.gdx.scenes.scene2d.Group standing(
+            forge.adventure.character.CharacterSprite sprite, float scale) {
+        com.badlogic.gdx.scenes.scene2d.Group g = new com.badlogic.gdx.scenes.scene2d.Group() {
+            @Override
+            public void act(float delta) {
+                super.act(delta);
+                sprite.setPosition(-sprite.getWidth() / 2f, 0);
+            }
+        };
+        g.setTransform(true);
+        g.setScale(scale);
+        g.addActor(sprite);
+        g.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
+        return g;
+    }
+
+    /** Place a standing() group so its feet are at (x, yTop) in top-down layout coordinates. */
+    protected static void standAt(com.badlogic.gdx.scenes.scene2d.Actor g, float x, float yTop) {
+        g.setPosition(x, H - yTop);
+    }
+
+    protected com.badlogic.gdx.scenes.scene2d.ui.Image image(String path, float x, float yTop, float w, float h) {
+        com.badlogic.gdx.graphics.Texture t = Forge.getAssets().getTexture(
+                forge.adventure.util.Config.instance().getFile(path), true, false);
+        com.badlogic.gdx.scenes.scene2d.ui.Image img = new com.badlogic.gdx.scenes.scene2d.ui.Image(t);
+        img.setBounds(x, H - yTop - h, w, h);
+        img.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
+        return track(img);
     }
 
     protected TextraButton button(String text, float x, float yTop, float w, float h, Runnable onClick) {
