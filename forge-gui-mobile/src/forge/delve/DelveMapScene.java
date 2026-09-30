@@ -21,8 +21,7 @@ public class DelveMapScene extends DelveScene {
     private static DelveMapScene object;
 
     /** which node was chosen on each completed step (index into that layer) */
-    private final List<Integer> chosen = new ArrayList<>();
-    private DelveRun shownRun;
+    private List<Integer> chosen = new ArrayList<>();
 
     private DelveMapScene() {
         super("ui/delve_path.json");
@@ -37,10 +36,7 @@ public class DelveMapScene extends DelveScene {
     @Override
     public void enter() {
         DelveRun run = DelveRun.current();
-        if (run != shownRun) {
-            chosen.clear();
-            shownRun = run;
-        }
+        if (run != null) chosen = run.chosen;
         build();
         super.enter();
     }
@@ -81,6 +77,8 @@ public class DelveMapScene extends DelveScene {
             Forge.switchScene(DelveHubScene.instance());
             return;
         }
+        chosen = run.chosen;
+        if (!run.over) DelveRunSave.save(run);
         // header bar
         label("[%90][GOLD]" + run.day.themeName(), 8, 5, 150, 16, Align.left);
         label("[%90][RED]Life[] " + run.life + "/" + DelveRun.MAX_LIFE + "    [GOLD]Gold[] " + run.gold

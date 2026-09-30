@@ -131,7 +131,7 @@ public class DelveGateScene extends DelveScene {
     }
 
     private void begin(Deck deck) {
-        DelveRun.start(DelveDay.today(), deck);
+        DelveRun.start(DelveDay.today(), deck, DelveRun.Size.STANDARD);
         Forge.switchScene(DelveMapScene.instance());
     }
 

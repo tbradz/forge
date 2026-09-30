@@ -60,8 +60,21 @@ public class DelveRun {
     public boolean over = false;
     public boolean cleared = false;
     public final List<PaperCard> picked = new ArrayList<>();
+    /** index of the room chosen on each completed step */
+    public final List<Integer> chosen = new ArrayList<>();
+    public final Size size;
 
-    private DelveRun(DelveDay day, Deck deck, long seed) {
+    /** Dungeon sizes: more steps, more fights, bigger rewards. */
+    public enum Size {
+        SHALLOW("Shallow", 3), STANDARD("Standard", 5), DEEP("Deep", 8);
+        public final String label;
+        /** cards kept for clearing it */
+        public final int clearKeeps;
+        Size(String label, int clearKeeps) { this.label = label; this.clearKeeps = clearKeeps; }
+    }
+
+    private DelveRun(DelveDay day, Deck deck, long seed, Size size) {
+        this.size = size;
         this.day = day;
         this.deck = deck;
         this.seed = seed;
@@ -69,8 +82,15 @@ public class DelveRun {
         DelveMapGen.build(this);
     }
 
-    public static DelveRun start(DelveDay day, Deck starter) {
-        current = new DelveRun(day, starter, day.seed ^ System.nanoTime());
+    public static DelveRun start(DelveDay day, Deck starter, Size size) {
+        current = new DelveRun(day, starter, day.seed ^ System.nanoTime(), size);
+        DelveRunSave.save(current);
+        return current;
+    }
+
+    /** Rebuild a run from its seed (same map) — used by DelveRunSave. */
+    static DelveRun restore(DelveDay day, Deck deck, long seed, Size size) {
+        current = new DelveRun(day, deck, seed, size);
         return current;
     }
 
@@ -80,6 +100,7 @@ public class DelveRun {
 
     public static void clear() {
         current = null;
+        DelveRunSave.delete();
     }
 
     public List<Node> nextChoices() {

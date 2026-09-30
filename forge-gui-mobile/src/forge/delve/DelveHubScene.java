@@ -114,6 +114,8 @@ public class DelveHubScene extends UIScene {
             return;
         }
         DelveRun run = DelveRun.current();
+        if (run == null && DelveRunSave.exists())
+            run = DelveRunSave.load(); // pick up a run saved before the game was closed
         if (run != null && !run.over)
             Forge.switchScene(DelveMapScene.instance()); // resume the run in progress
         else

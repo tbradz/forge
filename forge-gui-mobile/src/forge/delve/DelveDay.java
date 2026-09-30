@@ -41,9 +41,13 @@ public class DelveDay {
     private static DelveDay cached;
 
     public static DelveDay today() {
-        LocalDate now = LocalDate.now();
-        if (cached == null || !cached.date.equals(now))
-            cached = new DelveDay(now);
+        return forDate(LocalDate.now());
+    }
+
+    /** The dungeon for a given date (used to resume a saved run from an earlier day). */
+    public static DelveDay forDate(LocalDate date) {
+        if (cached == null || !cached.date.equals(date))
+            cached = new DelveDay(date);
         return cached;
     }
 
