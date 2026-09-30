@@ -1,40 +1,47 @@
 package forge.delve;
 
 import forge.adventure.data.EnemyData;
+import forge.card.CardRarity;
+import forge.card.ColorSet;
 import forge.deck.Deck;
 import forge.item.PaperCard;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
  * State of one Delve run: the deck being built, life carried between fights,
- * and the dungeon map. Phase 1 keeps runs in memory; only the collection is saved.
+ * gold, and the dungeon map. Runs are in memory; only the collection is saved.
  */
 public class DelveRun {
     public enum NodeType {
-        FIGHT("Fight"), ELITE("Elite"), REST("Rest"), BOSS("Boss");
+        FIGHT("Fight"), ELITE("Elite"), REST("Rest"), EVENT("Event"), MERCHANT("Merchant"), BOSS("Boss");
         public final String label;
         NodeType(String label) { this.label = label; }
     }
 
     public static class Node {
         public final NodeType type;
-        public final EnemyData enemy; // null for REST
+        public final EnemyData enemy;            // fights only
         public final int enemyLife;
-        Node(NodeType type, EnemyData enemy, int enemyLife) {
+        public final DelveEvents.Event event;    // events only
+        public List<PaperCard> stock;            // merchant only, filled on first visit
+        Node(NodeType type, EnemyData enemy, int enemyLife, DelveEvents.Event event) {
             this.type = type;
             this.enemy = enemy;
             this.enemyLife = enemyLife;
-        }
-        public String title() {
-            return enemy == null ? type.label : type.label + ": " + enemy.getName();
+            this.event = event;
         }
     }
 
     public static final int MAX_LIFE = 20;
     public static final int REST_HEAL = 7;
+    /** A run deck can never go below this many cards. */
+    public static final int MIN_DECK = 40;
+    /** Returned by an event choice to ask the map to show a pick-1-of-3. */
+    public static final String PICK_CARD = "\u0000pick";
 
     private static DelveRun current;
 
@@ -43,6 +50,7 @@ public class DelveRun {
     public final DelveDay day;
     public final Deck deck;
     public int life = MAX_LIFE;
+    public int gold = 0;
     /** layers.get(i) = the choices on step i of the map */
     public final List<List<Node>> layers = new ArrayList<>();
     /** index of the layer the player is about to choose from */
@@ -78,21 +86,124 @@ public class DelveRun {
         return step < layers.size() ? layers.get(step) : new ArrayList<>();
     }
 
-    public boolean atEnd() {
-        return step >= layers.size();
+    public int deckSize() {
+        return deck.getMain().countAll();
+    }
+
+    /** How many cards can be removed before hitting the minimum. */
+    public int removableCount() {
+        return Math.max(0, deckSize() - MIN_DECK);
     }
 
     /** Colors of the non-land cards in the deck (what reward picks lean toward). */
-    public forge.card.ColorSet deckColors() {
+    public ColorSet deckColors() {
         int mask = 0;
-        for (java.util.Map.Entry<PaperCard, Integer> e : deck.getMain()) {
+        for (Map.Entry<PaperCard, Integer> e : deck.getMain()) {
             if (!e.getKey().getRules().getType().isLand())
                 mask |= e.getKey().getRules().getColor().getColor();
         }
-        return forge.card.ColorSet.fromMask(mask);
+        return ColorSet.fromMask(mask);
     }
 
-    public int deckSize() {
-        return deck.getMain().countAll();
+    // ---- effects used by events, rests and the merchant -------------------------------
+
+    public String heal(int amount) {
+        int before = life;
+        life = Math.min(MAX_LIFE, life + amount);
+        return "You heal " + (life - before) + " (life " + life + ").";
+    }
+
+    /** Events can hurt but never kill: life stops at 1. */
+    public String damage(int amount) {
+        int before = life;
+        life = Math.max(1, life - amount);
+        return "You lose " + (before - life) + " life (life " + life + ").";
+    }
+
+    public String gainGold(int amount) {
+        gold += amount;
+        return "+" + amount + " gold.";
+    }
+
+    public String spendGold(int amount) {
+        gold = Math.max(0, gold - amount);
+        return "-" + amount + " gold.";
+    }
+
+    public String gainRandomCard(DelveEvents.RarityTier tier) {
+        PaperCard pc = randomCard(tier, true);
+        if (pc == null) return "";
+        deck.getMain().add(pc);
+        picked.add(pc);
+        return "You gain " + pc.getName() + ".";
+    }
+
+    /** Removes a random non-basic card; if the deck is at the minimum it is replaced instead. */
+    public String loseRandomCard() {
+        PaperCard lost = randomDeckCard();
+        if (lost == null) return "";
+        deck.getMain().remove(lost);
+        if (deckSize() < MIN_DECK) {
+            PaperCard replacement = randomCard(DelveEvents.RarityTier.COMMON, true);
+            deck.getMain().add(replacement);
+            return "You lose " + lost.getName() + ". Your deck can't drop below " + MIN_DECK
+                    + ", so " + replacement.getName() + " takes its place.";
+        }
+        return "You lose " + lost.getName() + ".";
+    }
+
+    /** Swap a random non-basic card for a random card of the same or better rarity. */
+    public String transformRandomCard() {
+        PaperCard old = randomDeckCard();
+        if (old == null) return "Nothing happens.";
+        DelveEvents.RarityTier tier = old.getRarity() == CardRarity.Common
+                ? DelveEvents.RarityTier.UNCOMMON : DelveEvents.RarityTier.RARE;
+        PaperCard neu = randomCard(tier, false);
+        deck.getMain().remove(old);
+        deck.getMain().add(neu);
+        return old.getName() + " becomes " + neu.getName() + ".";
+    }
+
+    PaperCard randomDeckCard() {
+        List<PaperCard> flat = new ArrayList<>();
+        for (PaperCard pc : deck.getMain().toFlatList())
+            if (!pc.getRules().getType().isBasicLand()) flat.add(pc);
+        return flat.isEmpty() ? null : flat.get(rng.nextInt(flat.size()));
+    }
+
+    /** A random card from today's pool at the given rarity, preferring the deck's colors. */
+    PaperCard randomCard(DelveEvents.RarityTier tier, boolean onColor) {
+        List<PaperCard> pool = DelveEvents.tierPool(day, tier);
+        if (pool.isEmpty()) pool = day.commons;
+        if (pool.isEmpty()) return null;
+        ColorSet colors = deckColors();
+        for (int i = 0; i < 60; i++) {
+            PaperCard pc = pool.get(rng.nextInt(pool.size()));
+            ColorSet id = pc.getRules().getColorIdentity();
+            if (!onColor || id.isColorless() || colors.containsAllColorsFrom(id.getColor()))
+                return pc;
+        }
+        return pool.get(rng.nextInt(pool.size()));
+    }
+
+    // ---- merchant prices ------------------------------------------------------------
+
+    public static int sellPrice(PaperCard pc) {
+        if (pc.getRules().getType().isBasicLand()) return 1;
+        switch (pc.getRarity()) {
+            case MythicRare: return 40;
+            case Rare: return 25;
+            case Uncommon: return 12;
+            default: return 5;
+        }
+    }
+
+    public static int buyPrice(PaperCard pc) {
+        switch (pc.getRarity()) {
+            case MythicRare: return 100;
+            case Rare: return 75;
+            case Uncommon: return 40;
+            default: return 20;
+        }
     }
 }

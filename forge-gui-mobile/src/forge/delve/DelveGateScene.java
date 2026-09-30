@@ -18,8 +18,8 @@ import java.util.Random;
 public class DelveGateScene extends DelveScene {
     private static DelveGateScene object;
 
-    static final int DRAFT_PICKS = 16;
-    static final int DRAFT_LANDS = 14;
+    static final int DRAFT_PICKS = 23;
+    static final int DRAFT_LANDS = 17; // 23 + 17 = the 40-card minimum
 
     public static DelveGateScene instance() {
         if (object == null)

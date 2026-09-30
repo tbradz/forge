@@ -28,6 +28,7 @@ public class DelvePickScene extends DelveScene {
     private int minPick, maxPick;
     private String skipText;
     private Consumer<List<PaperCard>> onDone;
+    private java.util.function.Function<PaperCard, String> buttonLabel; // null = Take/Keep
     private final List<Integer> selected = new ArrayList<>();
     private final List<TextraButton> takeButtons = new ArrayList<>();
     private TextraButton confirm;
@@ -45,6 +46,13 @@ public class DelvePickScene extends DelveScene {
      */
     public void show(String header, List<PaperCard> cards, int minPick, int maxPick,
                      String skipText, Consumer<List<PaperCard>> onDone) {
+        show(header, cards, minPick, maxPick, skipText, null, onDone);
+    }
+
+    /** @param buttonLabel per-card button text (e.g. "Buy 20g"); null for Take/Keep */
+    public void show(String header, List<PaperCard> cards, int minPick, int maxPick, String skipText,
+                     java.util.function.Function<PaperCard, String> buttonLabel, Consumer<List<PaperCard>> onDone) {
+        this.buttonLabel = buttonLabel;
         this.header = header;
         this.cards = new ArrayList<>(cards);
         this.minPick = Math.min(minPick, cards.size());
@@ -99,7 +107,7 @@ public class DelvePickScene extends DelveScene {
 
             if (maxPick == 0) continue; // view only
             final int index = i;
-            TextraButton take = button(maxPick == 1 && minPick == 1 ? "Take" : "Keep",
+            TextraButton take = button(labelFor(i),
                     x, yTop + cardH + 1, cardW, buttonH, () -> toggle(index));
             takeButtons.add(take);
         }
@@ -120,6 +128,11 @@ public class DelvePickScene extends DelveScene {
         refresh();
     }
 
+    private String labelFor(int i) {
+        if (buttonLabel != null) return buttonLabel.apply(cards.get(i));
+        return maxPick == 1 && minPick == 1 ? "Take" : "Keep";
+    }
+
     private void toggle(int index) {
         if (maxPick == 1 && minPick == 1) {
             selected.clear();
@@ -134,7 +147,7 @@ public class DelvePickScene extends DelveScene {
 
     private void refresh() {
         for (int i = 0; i < takeButtons.size(); i++)
-            takeButtons.get(i).setText(selected.contains(i) ? "[GOLD]Kept" : (maxPick == 1 && minPick == 1 ? "Take" : "Keep"));
+            takeButtons.get(i).setText(selected.contains(i) ? "[GOLD]" + (buttonLabel != null ? "Selected" : "Kept") : labelFor(i));
         String count = maxPick > 1 ? "  (" + selected.size() + "/" + maxPick + ")" : "";
         // recreate rather than setText so the centred layout is recomputed
         if (headerLabel != null) headerLabel.remove();

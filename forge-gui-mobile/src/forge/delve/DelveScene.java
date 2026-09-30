@@ -66,6 +66,27 @@ abstract class DelveScene extends UIScene {
                 }, null));
     }
 
+    /** A dialog with one button per choice; each button closes the dialog and runs its action. */
+    protected void choose(String title, String text, List<String> labels, List<Boolean> enabled, List<Runnable> actions) {
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog dialog =
+                new com.badlogic.gdx.scenes.scene2d.ui.Dialog(title == null ? "" : title, Controls.getSkin());
+        TextraLabel body = Controls.newTextraLabel(text);
+        body.setWrap(true);
+        body.setAlignment(Align.center);
+        dialog.getContentTable().add(body).width(300f);
+        for (int i = 0; i < labels.size(); i++) {
+            final Runnable action = actions.get(i);
+            TextraButton b = Controls.newTextButton(labels.get(i), () -> {
+                removeDialog();
+                action.run();
+            });
+            if (enabled != null && !enabled.get(i)) b.setDisabled(true);
+            dialog.getButtonTable().row();
+            dialog.getButtonTable().add(b).width(260f).pad(2f);
+        }
+        showDialog(dialog);
+    }
+
     protected void confirm(String title, String text, Runnable yes) {
         showDialog(createGenericDialog(title, text, "Yes", "No",
                 () -> {

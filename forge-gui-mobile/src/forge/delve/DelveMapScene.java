@@ -13,8 +13,8 @@ import java.util.Map;
 
 /**
  * The dungeon map for the current run: steps left to right, pick one room per
- * step. Handles fights (via DelveDuelScene), rests, card rewards and the end of
- * the run (keep picks or Locked Deck).
+ * step. Handles fights (via DelveDuelScene), events, the merchant, rests, card
+ * rewards and the end of the run (keep picks or Locked Deck).
  */
 public class DelveMapScene extends DelveScene {
     private static DelveMapScene object;
@@ -48,30 +48,29 @@ public class DelveMapScene extends DelveScene {
             return;
         }
         title(run.day.themeName());
-        label("Life [GOLD]" + run.life + "/" + DelveRun.MAX_LIFE + "[]     Deck " + run.deckSize()
-                        + " cards     Fights won " + run.fightsWon,
+        label("Life [GOLD]" + run.life + "/" + DelveRun.MAX_LIFE + "[]    Gold [GOLD]" + run.gold + "[]    Deck "
+                        + run.deckSize() + " cards (min " + DelveRun.MIN_DECK + ")    Fights won " + run.fightsWon,
                 0, 30, W, 16, Align.center);
 
         int steps = run.layers.size();
-        float colW = 88, gap = 6;
-        float startX = (W - steps * colW - (steps - 1) * gap) / 2f;
+        float gap = 5, colW = (W - 16 - gap * (steps - 1)) / steps;
+        float startX = 8;
         for (int s = 0; s < steps; s++) {
             List<Node> layer = run.layers.get(s);
             float x = startX + s * (colW + gap);
-            label((s == steps - 1 ? "[%90]Final" : "[%90]Step " + (s + 1)), x, 58, colW, 12, Align.center);
-            float nodeH = 44, nodeGap = 10;
+            label((s == steps - 1 ? "[%80]Final" : "[%80]Step " + (s + 1)), x, 54, colW, 12, Align.center);
+            float nodeH = 40, nodeGap = 8;
             float totalH = layer.size() * nodeH + (layer.size() - 1) * nodeGap;
-            float y = 76 + (140 - totalH) / 2f;
+            float y = 70 + (152 - totalH) / 2f;
             for (int k = 0; k < layer.size(); k++) {
                 Node node = layer.get(k);
-                String text = nodeText(node);
                 boolean done = s < run.step;
                 boolean wasChosen = done && s < chosen.size() && chosen.get(s) == k;
-                if (wasChosen) text = "[GREEN]" + text;
+                String text = nodeText(node, wasChosen);
                 final int step = s, idx = k;
                 TextraButton b = button(text, x, y, colW, nodeH, () -> choose(step, idx));
                 b.setDisabled(s != run.step || run.over);
-                if (done && !wasChosen) b.getColor().a = 0.4f;
+                if (done && !wasChosen) b.getColor().a = 0.35f;
                 y += nodeH + nodeGap;
             }
         }
@@ -82,22 +81,33 @@ public class DelveMapScene extends DelveScene {
                         () -> endRun(false)));
     }
 
-    private static String nodeText(Node node) {
+    private static String shortName(String s) {
+        return s.length() <= 13 ? s : s.substring(0, 12) + ".";
+    }
+
+    private static String nodeText(Node node, boolean chosen) {
+        String head, sub;
         switch (node.type) {
-            case REST: return "[%90]Rest\n[%75]heal or trim";
-            case BOSS: return "[%90][RED]Boss[]\n[%75]" + node.enemy.getName();
-            case ELITE: return "[%90][ORANGE]Elite[]\n[%75]" + node.enemy.getName();
-            default: return "[%90]Fight\n[%75]" + node.enemy.getName();
+            case REST: head = "[SKY]Rest"; sub = "heal / trim"; break;
+            case EVENT: head = "[#c080ff]?  Event"; sub = "unknown"; break;
+            case MERCHANT: head = "[GOLD]Merchant"; sub = "buy / sell"; break;
+            case BOSS: head = "[RED]Boss"; sub = shortName(node.enemy.getName()); break;
+            case ELITE: head = "[ORANGE]Elite"; sub = shortName(node.enemy.getName()); break;
+            default: head = "Fight"; sub = shortName(node.enemy.getName());
         }
+        if (chosen) head = "[GREEN]" + head.replaceAll("\\[[^\\]]*\\]", "");
+        return "[%75]" + head + "[]\n[%60]" + sub;
     }
 
     private void choose(int step, int index) {
         DelveRun run = DelveRun.current();
         if (run == null || step != run.step) return;
         Node node = run.layers.get(step).get(index);
-        if (node.type == NodeType.REST) {
-            rest(run, index);
-            return;
+        switch (node.type) {
+            case REST: rest(run, index); return;
+            case EVENT: event(run, node, index); return;
+            case MERCHANT: merchant(run, node, index); return;
+            default:
         }
         String what = node.type == NodeType.BOSS ? "the boss" : node.type == NodeType.ELITE ? "an elite" : "a fight";
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
@@ -122,22 +132,28 @@ public class DelveMapScene extends DelveScene {
         }
         run.life = Math.max(1, life);
         run.fightsWon++;
+        boolean elite = node.type == NodeType.ELITE;
+        int gold = elite ? 45 : 20 + run.rng.nextInt(11);
+        run.gainGold(gold);
         completeStep(run, index);
         if (node.type == NodeType.BOSS) {
             info("Dungeon cleared!", "You defeated " + node.enemy.getName() + " and cleared today's dungeon.",
                     () -> endRun(true));
             return;
         }
-        boolean elite = node.type == NodeType.ELITE;
         List<PaperCard> offer = run.day.rewardChoices(run.rng, run.deckColors(), elite);
-        DelvePickScene.instance().show((elite ? "Elite reward" : "Victory") + ": add one card to your deck",
+        DelvePickScene.instance().show((elite ? "Elite reward" : "Victory") + " (+" + gold + " gold): add one card to your deck",
                 offer, 1, 1, "Skip", picks -> {
-                    for (PaperCard pc : picks) {
-                        run.deck.getMain().add(pc);
-                        run.picked.add(pc);
-                    }
+                    addPicks(run, picks);
                     Forge.switchScene(this);
                 });
+    }
+
+    private static void addPicks(DelveRun run, List<PaperCard> picks) {
+        for (PaperCard pc : picks) {
+            run.deck.getMain().add(pc);
+            run.picked.add(pc);
+        }
     }
 
     private void completeStep(DelveRun run, int index) {
@@ -147,28 +163,119 @@ public class DelveMapScene extends DelveScene {
         build();
     }
 
+    // ---- events -----------------------------------------------------------------
+
+    private void event(DelveRun run, Node node, int index) {
+        DelveEvents.Event e = node.event;
+        List<String> labels = new ArrayList<>();
+        List<Boolean> enabled = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        for (DelveEvents.Choice c : e.choices) {
+            labels.add(c.label);
+            enabled.add(c.available.test(run));
+            actions.add(() -> {
+                String result = c.apply.apply(run);
+                completeStep(run, index);
+                if (DelveRun.PICK_CARD.equals(result)) {
+                    DelvePickScene.instance().show(e.title + ": choose a card", run.day.rewardChoices(run.rng, run.deckColors(), true),
+                            1, 1, "Skip", picks -> {
+                                addPicks(run, picks);
+                                Forge.switchScene(this);
+                            });
+                } else {
+                    info(e.title, result, null);
+                }
+            });
+        }
+        choose(e.title, e.text, labels, enabled, actions);
+    }
+
+    // ---- merchant -----------------------------------------------------------------
+
+    private void merchant(DelveRun run, Node node, int index) {
+        if (node.stock == null) {
+            node.stock = new ArrayList<>();
+            List<PaperCard> a = run.day.rewardChoices(run.rng, run.deckColors(), false);
+            List<PaperCard> b = run.day.rewardChoices(run.rng, run.deckColors(), true);
+            node.stock.addAll(a.subList(0, Math.min(2, a.size())));
+            if (!b.isEmpty() && !node.stock.contains(b.get(0))) node.stock.add(b.get(0));
+        }
+        int removable = run.removableCount();
+        String text = "\"Cards bought, cards sold. Coin is coin.\"\n\nYou have " + run.gold + " gold. Your deck has "
+                + run.deckSize() + " cards" + (removable > 0 ? " (you can sell up to " + removable + ")." : " (at the minimum, nothing to sell).");
+        choose("Merchant", text,
+                List.of("Buy a card (" + node.stock.size() + " for sale)", "Sell cards from your deck", "Leave"),
+                List.of(!node.stock.isEmpty(), removable > 0, true),
+                List.of(() -> merchantBuy(run, node, index),
+                        () -> merchantSell(run, node, index),
+                        () -> completeStep(run, index)));
+    }
+
+    private void merchantBuy(DelveRun run, Node node, int index) {
+        DelvePickScene.instance().show("Merchant: buy a card   (you have " + run.gold + " gold)", node.stock, 1, 1, "Back",
+                pc -> "Buy " + DelveRun.buyPrice(pc) + "g", picks -> {
+                    Forge.switchScene(this);
+                    if (picks.isEmpty()) {
+                        merchant(run, node, index);
+                        return;
+                    }
+                    PaperCard pc = picks.get(0);
+                    int price = DelveRun.buyPrice(pc);
+                    if (run.gold < price) {
+                        info("Merchant", "\"That's " + price + " gold, friend. Come back richer.\"", () -> merchant(run, node, index));
+                        return;
+                    }
+                    run.spendGold(price);
+                    node.stock.remove(pc);
+                    addPicks(run, List.of(pc));
+                    build();
+                    info("Merchant", "You buy " + pc.getName() + " for " + price + " gold.", () -> merchant(run, node, index));
+                });
+    }
+
+    private void merchantSell(DelveRun run, Node node, int index) {
+        int removable = run.removableCount();
+        DelvePickScene.instance().show("Merchant: sell up to " + removable + (removable == 1 ? " card" : " cards")
+                        + " (your deck can't go below " + DelveRun.MIN_DECK + ")",
+                uniqueCards(run, true), 0, removable, "Back", pc -> "Sell " + DelveRun.sellPrice(pc) + "g", sold -> {
+                    Forge.switchScene(this);
+                    int total = 0;
+                    for (PaperCard pc : sold) {
+                        if (run.removableCount() <= 0) break;
+                        run.deck.getMain().remove(pc);
+                        total += DelveRun.sellPrice(pc);
+                    }
+                    if (total > 0) {
+                        run.gainGold(total);
+                        build();
+                        info("Merchant", "You sell " + sold.size() + (sold.size() == 1 ? " card" : " cards") + " for " + total + " gold.",
+                                () -> merchant(run, node, index));
+                    } else {
+                        merchant(run, node, index);
+                    }
+                });
+    }
+
     // ---- rest -------------------------------------------------------------------
 
     private void rest(DelveRun run, int index) {
-        showDialog(createGenericDialog("Rest",
-                "Rest to heal " + DelveRun.REST_HEAL + " life, or train to remove one card from your deck.",
-                "Heal", "Remove a card",
-                () -> {
-                    removeDialog();
-                    run.life = Math.min(DelveRun.MAX_LIFE, run.life + DelveRun.REST_HEAL);
-                    completeStep(run, index);
-                },
-                () -> {
-                    removeDialog();
-                    DelvePickScene.instance().show("Choose a card to remove from your deck", uniqueCards(run, true),
-                            1, 1, "Cancel", picks -> {
-                                if (!picks.isEmpty()) {
-                                    run.deck.getMain().remove(picks.get(0));
-                                    completeStep(run, index);
-                                }
-                                Forge.switchScene(this);
-                            });
-                }));
+        boolean canTrim = run.removableCount() > 0;
+        choose("Rest", "A quiet corner to catch your breath."
+                        + (canTrim ? "" : "\n\n(Your deck is at the " + DelveRun.MIN_DECK + "-card minimum, so you can't remove a card.)"),
+                List.of("Heal " + DelveRun.REST_HEAL + " life", "Remove a card from your deck"),
+                List.of(true, canTrim),
+                List.of(() -> {
+                            run.heal(DelveRun.REST_HEAL);
+                            completeStep(run, index);
+                        },
+                        () -> DelvePickScene.instance().show("Choose a card to remove from your deck", uniqueCards(run, true),
+                                1, 1, "Cancel", pc -> "Remove", picks -> {
+                                    if (!picks.isEmpty()) {
+                                        run.deck.getMain().remove(picks.get(0));
+                                        completeStep(run, index);
+                                    }
+                                    Forge.switchScene(this);
+                                })));
     }
 
     // ---- deck -------------------------------------------------------------------
