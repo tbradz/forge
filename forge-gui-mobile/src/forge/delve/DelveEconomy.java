@@ -1,0 +1,55 @@
+package forge.delve;
+
+import forge.item.PaperCard;
+
+import java.util.Random;
+
+/**
+ * Every gold number in Delve, in one place so balance can be tuned later.
+ *
+ * Model: you enter the dungeon with nothing, and all gold found inside comes
+ * home with you (even if you die) into your town wallet. A typical Standard run
+ * earns roughly 150-250 gold: ~5 fights at 20-30, an elite at ~45, and a little
+ * from events and selling cards.
+ *
+ * Prices are set so a merchant purchase is a real choice against saving for the
+ * town: a good run affords one rare or two or three commons, not everything.
+ * Sell prices are well under buy prices so buying and re-selling can't farm gold.
+ */
+public final class DelveEconomy {
+    private DelveEconomy() {}
+
+    // ---- earning ------------------------------------------------------------------
+    public static final int FIGHT_GOLD_MIN = 20;
+    public static final int FIGHT_GOLD_MAX = 30;
+    public static final int ELITE_GOLD = 45;
+    public static final int BOSS_GOLD = 75;
+
+    public static int fightGold(DelveRun.NodeType type, Random rng) {
+        switch (type) {
+            case BOSS: return BOSS_GOLD;
+            case ELITE: return ELITE_GOLD;
+            default: return FIGHT_GOLD_MIN + rng.nextInt(FIGHT_GOLD_MAX - FIGHT_GOLD_MIN + 1);
+        }
+    }
+
+    // ---- dungeon merchant ---------------------------------------------------------
+    public static int buyPrice(PaperCard pc) {
+        switch (pc.getRarity()) {
+            case MythicRare: return 110;
+            case Rare: return 80;
+            case Uncommon: return 40;
+            default: return 18;
+        }
+    }
+
+    public static int sellPrice(PaperCard pc) {
+        if (pc.getRules().getType().isBasicLand()) return 1;
+        switch (pc.getRarity()) {
+            case MythicRare: return 35;
+            case Rare: return 22;
+            case Uncommon: return 10;
+            default: return 4;
+        }
+    }
+}

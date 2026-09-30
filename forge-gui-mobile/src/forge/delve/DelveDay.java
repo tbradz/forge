@@ -3,7 +3,6 @@ package forge.delve;
 import com.badlogic.gdx.utils.Array;
 import forge.adventure.data.EnemyData;
 import forge.adventure.data.WorldData;
-import forge.adventure.util.CardUtil;
 import forge.card.CardEdition;
 import forge.card.CardRarity;
 import forge.card.ColorSet;
@@ -73,7 +72,24 @@ public class DelveDay {
             candidates.add(e);
         }
         candidates.sort(Comparator.comparing(CardEdition::getCode));
+        // Lean toward newer sets: 70% of days use a set from the last RECENT_YEARS years.
+        List<CardEdition> recent = new ArrayList<>();
+        for (CardEdition e : candidates)
+            if (isRecent(e)) recent.add(e);
+        if (!recent.isEmpty() && rng.nextDouble() < RECENT_SET_CHANCE)
+            return recent.get(rng.nextInt(recent.size()));
         return candidates.get(rng.nextInt(candidates.size()));
+    }
+
+    /** How far back counts as "newer cards" for daily sets and starter decks. */
+    static final int RECENT_YEARS = 6;
+    static final double RECENT_SET_CHANCE = 0.7;
+
+    static boolean isRecent(CardEdition e) {
+        if (e.getDate() == null) return false;
+        java.util.Calendar cut = java.util.Calendar.getInstance();
+        cut.add(java.util.Calendar.YEAR, -RECENT_YEARS);
+        return e.getDate().after(cut.getTime()) && e.getDate().before(new java.util.Date());
     }
 
     private void buildPool() {
@@ -124,12 +140,90 @@ public class DelveDay {
         return edition.getName();
     }
 
+    // ---- starter decks ---------------------------------------------------------
+
+    private static final java.util.Map<String, String> GUILD_COLORS = java.util.Map.of(
+            "Azorius", "WU", "Dimir", "UB", "Rakdos", "BR", "Gruul", "RG", "Selesnya", "GW",
+            "Orzhov", "WB", "Izzet", "UR", "Golgari", "BG", "Boros", "RW", "Simic", "GU");
+
+    private final java.util.Map<String, Deck> starters = new java.util.HashMap<>();
+    private List<PaperCard> starterPool;
+
+    /**
+     * Today's fixed starter for a guild: 23 commons/uncommons from recent sets in the
+     * guild's colors (plus today's set) and 17 basics. Seeded by the date, so everyone
+     * gets the same three starters on a given day and new ones tomorrow.
+     */
     public Deck loadStarter(String guildName) {
-        Deck d = CardUtil.getDeck("decks/starter/Adventure - Low " + guildName + ".dck",
-                false, false, "", false, false);
+        Deck cached = starters.get(guildName);
+        if (cached == null) {
+            cached = buildStarter(guildName, new Random(seed ^ guildName.hashCode()));
+            starters.put(guildName, cached);
+        }
         Deck copy = new Deck(guildName + " Starter");
-        copy.getMain().addAll(d.getMain());
+        copy.getMain().addAll(cached.getMain());
         return copy;
+    }
+
+    private List<PaperCard> starterPool() {
+        if (starterPool != null) return starterPool;
+        java.util.Set<String> codes = new java.util.HashSet<>();
+        codes.add(edition.getCode());
+        for (CardEdition e : FModel.getMagicDb().getEditions())
+            if ((e.getType() == CardEdition.Type.EXPANSION || e.getType() == CardEdition.Type.CORE) && isRecent(e))
+                codes.add(e.getCode());
+        List<PaperCard> pool = FModel.getMagicDb().getCommonCards().getAllCards(pc ->
+                codes.contains(pc.getEdition())
+                        && (pc.getRarity() == CardRarity.Common || pc.getRarity() == CardRarity.Uncommon)
+                        && !pc.getRules().getType().isLand()
+                        && pc.getRules().getManaCost().getCMC() >= 1
+                        && pc.getRules().getManaCost().getCMC() <= 6);
+        dedupe(pool);
+        starterPool = pool;
+        return pool;
+    }
+
+    private Deck buildStarter(String guild, Random rng) {
+        ColorSet colors = ColorSet.fromNames(GUILD_COLORS.get(guild).toCharArray());
+        List<PaperCard> creatures = new ArrayList<>(), spells = new ArrayList<>();
+        for (PaperCard pc : starterPool()) {
+            ColorSet id = pc.getRules().getColorIdentity();
+            if (id.isColorless() || !colors.containsAllColorsFrom(id.getColor())) continue; // colored, on-guild
+            (pc.getRules().getType().isCreature() ? creatures : spells).add(pc);
+        }
+        Collections.shuffle(creatures, rng);
+        Collections.shuffle(spells, rng);
+
+        List<PaperCard> picks = new ArrayList<>();
+        // creature curve: 1-drop x1, 2 x5, 3 x4, 4 x3, 5+ x2
+        int[][] curve = {{1, 1}, {2, 5}, {3, 4}, {4, 3}, {5, 2}};
+        int uncommons = 0;
+        for (int[] slot : curve) {
+            int need = slot[1];
+            for (PaperCard pc : creatures) {
+                if (need == 0) break;
+                int cmc = pc.getRules().getManaCost().getCMC();
+                boolean fits = slot[0] == 5 ? cmc >= 5 : cmc == slot[0];
+                if (!fits || picks.contains(pc)) continue;
+                if (pc.getRarity() == CardRarity.Uncommon && uncommons >= 3) continue;
+                if (pc.getRarity() == CardRarity.Uncommon) uncommons++;
+                picks.add(pc);
+                need--;
+            }
+        }
+        for (PaperCard pc : spells) {
+            if (picks.size() >= 23) break;
+            if (pc.getRarity() == CardRarity.Uncommon && uncommons >= 5) continue;
+            if (pc.getRarity() == CardRarity.Uncommon) uncommons++;
+            picks.add(pc);
+        }
+        for (PaperCard pc : creatures) { // top up if the spell pool ran short
+            if (picks.size() >= 23) break;
+            if (!picks.contains(pc)) picks.add(pc);
+        }
+        Deck d = DelveGateScene.buildDraftDeck(picks);
+        d.setName(guild + " Starter");
+        return d;
     }
 
     // ---- reward generation --------------------------------------------------

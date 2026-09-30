@@ -41,7 +41,7 @@ public class DelveGateScene extends DelveScene {
                 + day.themeName() + "[]\nCards found today come from this set. Choose how to begin.",
                 40, 34, W - 80, 36, Align.center);
 
-        label("[%110]Fixed starter", 40, 80, 190, 16, Align.center);
+        label("[%110]Today's starters", 40, 80, 190, 16, Align.center);
         float y = 100;
         for (String guild : day.starterNames) {
             button(guild + " starter", 60, y, 150, 26, () -> startFixed(guild));
@@ -59,8 +59,22 @@ public class DelveGateScene extends DelveScene {
     private void startFixed(String guild) {
         DelveDay day = DelveDay.today();
         Deck deck = day.loadStarter(guild);
-        confirm(guild + " starter", deck.getMain().countAll() + " cards. Start today's dungeon with this deck?",
-                () -> begin(deck));
+        choose(guild + " starter", "Today's " + guild + " starter: " + deck.getMain().countAll()
+                        + " cards, mostly commons from recent sets. A new one is built every day.",
+                java.util.List.of("Start with this deck", "View the cards", "Back"),
+                null,
+                java.util.List.of(() -> begin(deck), () -> viewStarter(guild, deck), () -> { }));
+    }
+
+    private void viewStarter(String guild, Deck deck) {
+        java.util.List<PaperCard> cards = new ArrayList<>();
+        for (java.util.Map.Entry<PaperCard, Integer> e : deck.getMain())
+            if (!e.getKey().getRules().getType().isBasicLand()) cards.add(e.getKey());
+        cards.sort(java.util.Comparator.comparingInt(pc -> pc.getRules().getManaCost().getCMC()));
+        DelvePickScene.instance().show(guild + " starter (plus basic lands)", cards, 0, 0, "Back", x -> {
+            Forge.switchScene(this);
+            startFixed(guild);
+        });
     }
 
     private void startDraft() {

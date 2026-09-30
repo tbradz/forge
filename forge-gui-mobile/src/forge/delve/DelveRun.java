@@ -186,24 +186,13 @@ public class DelveRun {
         return pool.get(rng.nextInt(pool.size()));
     }
 
-    // ---- merchant prices ------------------------------------------------------------
+    // ---- merchant prices (see DelveEconomy) ------------------------------------------
 
     public static int sellPrice(PaperCard pc) {
-        if (pc.getRules().getType().isBasicLand()) return 1;
-        switch (pc.getRarity()) {
-            case MythicRare: return 40;
-            case Rare: return 25;
-            case Uncommon: return 12;
-            default: return 5;
-        }
+        return DelveEconomy.sellPrice(pc);
     }
 
     public static int buyPrice(PaperCard pc) {
-        switch (pc.getRarity()) {
-            case MythicRare: return 100;
-            case Rare: return 75;
-            case Uncommon: return 40;
-            default: return 20;
-        }
+        return DelveEconomy.buyPrice(pc);
     }
 }

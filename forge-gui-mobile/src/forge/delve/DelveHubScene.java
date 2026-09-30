@@ -116,6 +116,7 @@ public class DelveHubScene extends UIScene {
     private void openHouse() {
         DelveProfile p = DelveProfile.get();
         StringBuilder sb = new StringBuilder();
+        sb.append("Gold: ").append(p.gold()).append("\n");
         sb.append("Collection: ").append(p.collection().countAll()).append(" cards (")
                 .append(p.collection().countDistinct()).append(" different)\n\n");
         if (p.lockedDecks().isEmpty()) {

@@ -23,6 +23,8 @@ public class DelveProfile {
     private final File lockedDir;
     private final Deck collection;
     private final List<Deck> lockedDecks = new ArrayList<>();
+    private final File statsFile;
+    private final java.util.Properties stats = new java.util.Properties();
 
     public static DelveProfile get() {
         if (instance == null)
@@ -34,7 +36,15 @@ public class DelveProfile {
         root = new File(ForgeProfileProperties.getUserDir(), "delve");
         lockedDir = new File(root, "locked");
         collectionFile = new File(root, "collection.dck");
+        statsFile = new File(root, "profile.properties");
         lockedDir.mkdirs();
+        if (statsFile.exists()) {
+            try (java.io.FileInputStream in = new java.io.FileInputStream(statsFile)) {
+                stats.load(in);
+            } catch (java.io.IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         Deck loaded = collectionFile.exists() ? DeckSerializer.fromFile(collectionFile) : null;
         collection = loaded != null ? loaded : new Deck("Delve Collection");
@@ -45,6 +55,28 @@ public class DelveProfile {
                 Deck d = DeckSerializer.fromFile(f);
                 if (d != null) lockedDecks.add(d);
             }
+        }
+    }
+
+    /** Town gold: everything brought out of the dungeon. */
+    public int gold() {
+        try {
+            return Integer.parseInt(stats.getProperty("gold", "0"));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public void addGold(int amount) {
+        stats.setProperty("gold", String.valueOf(Math.max(0, gold() + amount)));
+        saveStats();
+    }
+
+    private void saveStats() {
+        try (java.io.FileOutputStream out = new java.io.FileOutputStream(statsFile)) {
+            stats.store(out, "Delve profile");
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
         }
     }
 

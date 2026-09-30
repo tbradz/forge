@@ -133,12 +133,12 @@ public class DelveMapScene extends DelveScene {
         run.life = Math.max(1, life);
         run.fightsWon++;
         boolean elite = node.type == NodeType.ELITE;
-        int gold = elite ? 45 : 20 + run.rng.nextInt(11);
+        int gold = DelveEconomy.fightGold(node.type, run.rng);
         run.gainGold(gold);
         completeStep(run, index);
         if (node.type == NodeType.BOSS) {
-            info("Dungeon cleared!", "You defeated " + node.enemy.getName() + " and cleared today's dungeon.",
-                    () -> endRun(true));
+            info("Dungeon cleared!", "You defeated " + node.enemy.getName() + " and cleared today's dungeon. (+"
+                    + gold + " gold)", () -> endRun(true));
             return;
         }
         List<PaperCard> offer = run.day.rewardChoices(run.rng, run.deckColors(), elite);
@@ -313,9 +313,14 @@ public class DelveMapScene extends DelveScene {
         if (run == null) return;
         run.over = true;
         run.cleared = cleared;
+        // all gold found in the dungeon comes home, win or lose
+        int banked = run.gold;
+        DelveProfile.get().addGold(banked);
+        run.gold = 0;
         int picks = keepPicks(run, cleared);
         String summary = (cleared ? "You cleared the dungeon" : "Your run ended") + " after winning "
                 + run.fightsWon + (run.fightsWon == 1 ? " fight." : " fights.")
+                + "\nYou bring " + banked + " gold home (town gold: " + DelveProfile.get().gold() + ")."
                 + "\n\nKeep " + picks + (picks == 1 ? " card" : " cards") + " from your run deck for your collection"
                 + (cleared ? ", or lock the whole deck exactly as it is (it can never be changed)." : ".");
         if (cleared) {
