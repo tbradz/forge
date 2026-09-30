@@ -64,7 +64,27 @@ import java.util.*;
 public class DuelScene extends ForgeScene {
     private static DuelScene object;
 
+    // Delve: lets another mode (the Delve roguelike) supply its own duel scene so the
+    // existing end-of-match hooks (MatchController, AdventureWinLose) route to it.
+    private static DuelScene override;
+
+    public static void setOverride(DuelScene scene) {
+        override = scene;
+    }
+
+    /** Label for the win/lose screen's exit button. */
+    public String returnButtonLabel() {
+        return Forge.getLocalizer().getMessage("lblBackToAdventure");
+    }
+
+    /** Battle background for the match screen; null = use the player's world location. */
+    public forge.assets.FSkinTexture matchBackground() {
+        return null;
+    }
+
     public static DuelScene instance() {
+        if (override != null)
+            return override;
         if (object == null)
             object = new DuelScene();
         return object;
@@ -127,7 +147,7 @@ public class DuelScene extends ForgeScene {
         }
     }
 
-    private DuelScene() {
+    protected DuelScene() { // Delve: protected so DelveDuelScene can extend it
     }
 
 

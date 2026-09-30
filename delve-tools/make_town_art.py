@@ -82,6 +82,42 @@ def backdrop():
     return img.resize((W * 2, H * 2), Image.NEAREST)
 
 
+def dungeon_backdrop():
+    """Dark stone-brick wall with two torches, for the dungeon/menu screens."""
+    img = Image.new("RGB", (W, H), (20, 18, 24))
+    d = ImageDraw.Draw(img)
+    r = random.Random(11)
+    bh, bw = 12, 28
+    for row in range(0, H // bh + 1):
+        off = (row % 2) * (bw // 2)
+        for col in range(-1, W // bw + 2):
+            x0, y0 = col * bw + off, row * bh
+            shade = r.randint(30, 44)
+            d.rectangle((x0 + 1, y0 + 1, x0 + bw - 1, y0 + bh - 1),
+                        fill=(shade, shade - 3, shade + 4))
+    px = img.load()
+    # torch glow
+    for tx in (60, W - 60):
+        for y in range(H):
+            for x in range(W):
+                dist = ((x - tx) ** 2 + (y - 70) ** 2) ** 0.5
+                if dist < 110:
+                    f = (1 - dist / 110) ** 2 * 0.9
+                    rr, gg, bb = px[x, y]
+                    px[x, y] = (min(255, int(rr + 120 * f)), min(255, int(gg + 60 * f)), min(255, int(bb + 10 * f)))
+        d.rectangle((tx - 2, 70, tx + 2, 92), fill=(70, 50, 34))
+        d.polygon([(tx - 5, 70), (tx, 56), (tx + 5, 70)], fill=(255, 170, 60))
+        d.polygon([(tx - 2, 70), (tx, 62), (tx + 2, 70)], fill=(255, 236, 150))
+    # darken for readable text
+    for y in range(H):
+        for x in range(W):
+            dx, dy = (x - W / 2) / (W / 2), (y - H / 2) / (H / 2)
+            f = max(0.35, 0.8 - 0.45 * (dx * dx + dy * dy))
+            rr, gg, bb = px[x, y]
+            px[x, y] = (int(rr * f), int(gg * f), int(bb * f))
+    return img.resize((W * 2, H * 2), Image.NEAREST)
+
+
 # name -> crop box (x, y, w, h) in buildings.png
 SPRITES = {
     "castle": (384, 133, 64, 43),
@@ -105,5 +141,6 @@ if __name__ == "__main__":
     import os
     os.makedirs(OUT, exist_ok=True)
     backdrop().save(f"{OUT}/town_bg.png")
+    dungeon_backdrop().save(f"{OUT}/dungeon_bg.png")
     sprites()
     print("wrote", sorted(os.listdir(OUT)))

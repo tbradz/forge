@@ -817,6 +817,10 @@ public class MatchScreen extends FScreen {
 
     FSkinTexture getBG() {
         if (Forge.isMobileAdventureMode) {
+            // Delve: a mode's duel scene may pick its own battle background
+            FSkinTexture custom = forge.adventure.scene.DuelScene.instance().matchBackground();
+            if (custom != null)
+                return custom;
             return switch (GameScene.instance().getAdventurePlayerLocation(false, true)) {
                 case "green" -> FSkinTexture.ADV_BG_FOREST;
                 case "black" -> FSkinTexture.ADV_BG_SWAMP;

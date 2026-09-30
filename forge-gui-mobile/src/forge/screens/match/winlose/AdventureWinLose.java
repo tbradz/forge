@@ -13,7 +13,7 @@ public class AdventureWinLose extends ControlWinLose {
         super(v, game);
 
         if (lastGame.isMatchOver()) {
-            v.getBtnQuit().setText(Forge.getLocalizer().getMessage("lblBackToAdventure"));
+            v.getBtnQuit().setText(DuelScene.instance().returnButtonLabel());
             //v.getBtnContinue().setVisible(false);
         }
         else{

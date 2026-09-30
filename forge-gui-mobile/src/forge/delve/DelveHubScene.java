@@ -38,10 +38,8 @@ public class DelveHubScene extends UIScene {
         nameplate.setAlignment(Align.center);
         nameplate.setVisible(false);
 
-        building("b_house", "Your House",
-                "Your collection, deck editor, trophies, and cosmetic loadout.", 1);
-        building("b_dungeon", "Dungeon Gate",
-                "Today's dungeon: pick a size and a starter (fixed or drafted), then delve.", 1);
+        building("b_house", "Your House", this::openHouse);
+        building("b_dungeon", "Dungeon Gate", this::openGate);
         building("b_shop", "Card Shop",
                 "A small stock of singles and packs that restocks every day.", 2);
         building("b_tavern", "Tavern",
@@ -55,8 +53,12 @@ public class DelveHubScene extends UIScene {
         ui.onButtonPress("leave", this::returnToStart);
     }
 
-    /** Wire a building picture as a button: dim at rest, lit and named on hover. */
     private void building(String actorName, String title, String description, int phase) {
+        building(actorName, title, () -> openBuilding(title, description, phase));
+    }
+
+    /** Wire a building picture as a button: dim at rest, lit and named on hover. */
+    private void building(String actorName, String title, Runnable onClick) {
         Actor b = ui.findActor(actorName);
         if (b == null)
             return;
@@ -83,7 +85,7 @@ public class DelveHubScene extends UIScene {
 
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                openBuilding(title, description, phase);
+                onClick.run();
             }
         });
     }
@@ -101,6 +103,68 @@ public class DelveHubScene extends UIScene {
         showDialog(createGenericDialog(title,
                 description + "\n\nComing in Phase " + phase + ".",
                 Forge.getLocalizer().getMessage("lblOK"), null, this::removeDialog, null));
+    }
+
+    private void openGate() {
+        DelveRun run = DelveRun.current();
+        if (run != null && !run.over)
+            Forge.switchScene(DelveMapScene.instance()); // resume the run in progress
+        else
+            Forge.switchScene(DelveGateScene.instance());
+    }
+
+    private void openHouse() {
+        DelveProfile p = DelveProfile.get();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Collection: ").append(p.collection().countAll()).append(" cards (")
+                .append(p.collection().countDistinct()).append(" different)\n\n");
+        if (p.lockedDecks().isEmpty()) {
+            sb.append("Locked Decks: none yet. Clear a dungeon and choose to lock your deck.");
+        } else {
+            sb.append("Locked Decks:");
+            for (forge.deck.Deck d : p.lockedDecks())
+                sb.append("\n  ").append(d.getName()).append(" (").append(d.getMain().countAll()).append(" cards)");
+        }
+        showDialog(createGenericDialog("Your House", sb.toString(), "View collection", "Close",
+                () -> {
+                    removeDialog();
+                    java.util.List<forge.item.PaperCard> cards = new java.util.ArrayList<>(p.collection().toFlatList());
+                    java.util.List<forge.item.PaperCard> unique = new java.util.ArrayList<>();
+                    for (forge.item.PaperCard pc : cards) if (!unique.contains(pc)) unique.add(pc);
+                    unique.sort(java.util.Comparator.comparing(forge.item.PaperCard::getName));
+                    if (unique.size() > 40) unique = unique.subList(0, 40);
+                    if (unique.isEmpty()) return;
+                    DelvePickScene.instance().show("Your collection", unique, 0, 0, "Back",
+                            x -> Forge.switchScene(this));
+                }, this::removeDialog));
+    }
+
+    private String pendingTitle, pendingText;
+
+    /** Show a message the next time the town is on screen (e.g. after a run). */
+    public void notice(String title, String text) {
+        pendingTitle = title;
+        pendingText = text;
+        if (Forge.getCurrentScene() == this)
+            showPending();
+    }
+
+    private void showPending() {
+        if (pendingText == null) return;
+        String t = pendingTitle, m = pendingText;
+        pendingTitle = pendingText = null;
+        openInfo(t, m);
+    }
+
+    private void openInfo(String title, String text) {
+        showDialog(createGenericDialog(title, text,
+                Forge.getLocalizer().getMessage("lblOK"), null, this::removeDialog, null));
+    }
+
+    @Override
+    public void enter() {
+        super.enter();
+        showPending();
     }
 
     private void returnToStart() {

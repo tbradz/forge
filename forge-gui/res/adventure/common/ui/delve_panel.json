@@ -1,0 +1,8 @@
+{
+  "width": 480,
+  "height": 270,
+  "yDown": true,
+  "elements": [
+    { "type": "Image", "name": "bg", "image": "ui/delve/dungeon_bg.png", "width": 480, "height": 270 }
+  ]
+}
