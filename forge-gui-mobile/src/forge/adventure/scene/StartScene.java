@@ -44,8 +44,9 @@ public class StartScene extends UIScene {
         ui.onButtonPress("Backup", StartScene.this::backup);
         ui.onButtonPress("Exit", StartScene.this::Exit);
         ui.onButtonPress("Switch", StartScene.this::switchToClassic);
-        ui.onButtonPress("Delve", StartScene.this::delve);
 
+
+        addDelveButton();
 
         saveButton = ui.findActor("Save");
         resumeButton = ui.findActor("Resume");
@@ -121,6 +122,21 @@ public class StartScene extends UIScene {
         }
 
         return true;
+    }
+
+    /**
+     * Delve: adds the entry button in code so the stock start_menu layouts stay untouched
+     * (keeps merges with upstream Forge clean). Placed top-right of the landscape menu.
+     */
+    private void addDelveButton() {
+        if (!Forge.isLandscapeMode())
+            return; // phone layouts come later
+        TextraButton delveButton = Controls.newTextButton("Delve", StartScene.this::delve);
+        delveButton.setName("Delve");
+        // layout is 480x270; libGDX y runs upward
+        delveButton.setBounds(360, 270 - 20 - 30, 100, 30);
+        ui.addActor(delveButton);
+        addToSelectable(delveButton);
     }
 
     public boolean delve() {
