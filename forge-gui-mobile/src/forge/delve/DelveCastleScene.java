@@ -92,7 +92,7 @@ public class DelveCastleScene extends DelveScene {
         label(sized("[%80]", "Eight duelists, single elimination, best of three. "
                         + "Bring a deck from Your House or a Locked Deck (40+ cards).\n\n"
                         + "Entry [GOLD]" + DelveEconomy.CASTLE_ENTRY + "g[]\n"
-                        + "Champion [GOLD]" + DelveEconomy.CASTLE_CHAMPION + "g[] + booster\n"
+                        + "Champion [GOLD]" + DelveEconomy.CASTLE_CHAMPION + "g[] + booster + token\n"
                         + "Finalist [GOLD]" + DelveEconomy.CASTLE_FINALIST + "g[]   Semifinal [GOLD]"
                         + DelveEconomy.CASTLE_SEMIFINAL + "g[]"),
                 24, 62, 200, 130, Align.center);
@@ -105,7 +105,7 @@ public class DelveCastleScene extends DelveScene {
         label(sized("[%80]", "Four players, one game, everyone for themselves. 40 life, commanders in the command zone. "
                         + "Bring a Commander deck from Your House, or borrow one of tonight's house decks.\n\n"
                         + "Entry [GOLD]" + DelveEconomy.POD_ENTRY + "g[]\n"
-                        + "Last one standing [GOLD]" + DelveEconomy.POD_WIN + "g[] + booster"),
+                        + "Last one standing [GOLD]" + DelveEconomy.POD_WIN + "g[] + booster + token"),
                 256, 62, 200, 130, Align.center);
         if (!done)
             button("[GOLD]Join a pod", 266, 200, 180, 22, this::choosePodDeck)
@@ -220,8 +220,8 @@ public class DelveCastleScene extends DelveScene {
             prof.addCastleTitle();
             List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, new Random());
             prof.addToCollection(pack);
-            msg = "Last one standing! +" + DelveEconomy.POD_WIN + " gold and a " + DelveDay.today().themeName()
-                    + " booster (added to your collection).";
+            msg = "Last one standing! +" + DelveEconomy.POD_WIN + " gold, a " + DelveDay.today().themeName()
+                    + " booster (added to your collection) and " + DelveTokens.grant(1, new Random()) + ".";
         } else {
             msg = "You were knocked out of the pod. Better luck next time.";
         }
@@ -374,8 +374,9 @@ public class DelveCastleScene extends DelveScene {
                 prof.addCastleTitle();
                 List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, t.rng);
                 prof.addToCollection(pack);
-                msg = "You are the Castle champion! +" + DelveEconomy.CASTLE_CHAMPION + " gold and a "
-                        + DelveDay.today().themeName() + " booster (added to your collection).";
+                msg = "You are the Castle champion! +" + DelveEconomy.CASTLE_CHAMPION + " gold, a "
+                        + DelveDay.today().themeName() + " booster (added to your collection) and "
+                        + DelveTokens.grant(1, t.rng) + ".";
                 break;
             }
             case 2:

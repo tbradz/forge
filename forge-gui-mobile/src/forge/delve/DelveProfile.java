@@ -168,6 +168,36 @@ public class DelveProfile {
         saveStats();
     }
 
+    // ---- run tokens ---------------------------------------------------------------
+
+    public int tokens(DelveTokens t) {
+        return Integer.parseInt(stats.getProperty("token." + t.name(), "0"));
+    }
+
+    public void addToken(DelveTokens t, int n) {
+        stats.setProperty("token." + t.name(), String.valueOf(Math.max(0, tokens(t) + n)));
+        saveStats();
+    }
+
+    /** Spend one token; returns false if the player has none. */
+    public boolean useToken(DelveTokens t) {
+        if (tokens(t) <= 0) return false;
+        addToken(t, -1);
+        return true;
+    }
+
+    /** "Keepsake 1, Reroll 2" or "none". */
+    public String tokenSummary() {
+        StringBuilder sb = new StringBuilder();
+        for (DelveTokens t : DelveTokens.values()) {
+            int n = tokens(t);
+            if (n <= 0) continue;
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(t.title).append(' ').append(n);
+        }
+        return sb.length() == 0 ? "none" : sb.toString();
+    }
+
     // ---- character --------------------------------------------------------------
 
     public boolean hasCharacter() {

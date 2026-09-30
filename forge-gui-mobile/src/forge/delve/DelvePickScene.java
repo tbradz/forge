@@ -28,6 +28,15 @@ public class DelvePickScene extends DelveScene {
     private int minPick, maxPick;
     private String skipText;
     private Consumer<List<PaperCard>> onDone;
+    private String extraLabel, pendingExtraLabel;
+    private Runnable extraAction, pendingExtraAction;
+
+    /** Add one extra button (e.g. "Reroll") to the next {@link #show} call only. */
+    public DelvePickScene withExtra(String label, Runnable action) {
+        pendingExtraLabel = label;
+        pendingExtraAction = action;
+        return this;
+    }
     private java.util.function.Function<PaperCard, String> buttonLabel; // null = Take/Keep
     private final List<Integer> selected = new ArrayList<>();
     private final List<TextraButton> takeButtons = new ArrayList<>();
@@ -53,6 +62,10 @@ public class DelvePickScene extends DelveScene {
     public void show(String header, List<PaperCard> cards, int minPick, int maxPick, String skipText,
                      java.util.function.Function<PaperCard, String> buttonLabel, Consumer<List<PaperCard>> onDone) {
         this.buttonLabel = buttonLabel;
+        this.extraLabel = pendingExtraLabel;
+        this.extraAction = pendingExtraAction;
+        pendingExtraLabel = null;
+        pendingExtraAction = null;
         this.header = header;
         this.cards = new ArrayList<>(cards);
         this.minPick = Math.min(minPick, cards.size());
@@ -123,6 +136,13 @@ public class DelvePickScene extends DelveScene {
             button(skipText, single ? W / 2f - 50 : W / 2f + 10, by, 100, 20, () -> {
                 selected.clear();
                 finish();
+            });
+        }
+        if (extraLabel != null) {
+            Runnable action = extraAction;
+            button(extraLabel, single ? W / 2f - 160 : W / 2f - 220, by, 100, 20, () -> {
+                onDone = null; // the extra action replaces the normal outcome
+                action.run();
             });
         }
         refresh();

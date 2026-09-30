@@ -120,7 +120,7 @@ abstract class DelveScene extends UIScene {
             });
             if (enabled != null && !enabled.get(i)) b.setDisabled(true);
             dialog.getButtonTable().row();
-            dialog.getButtonTable().add(b).width(260f).pad(2f);
+            dialog.getButtonTable().add(b).width(260f).height(labels.size() > 4 ? 17f : 20f).pad(1f);
         }
         showDialog(dialog);
     }

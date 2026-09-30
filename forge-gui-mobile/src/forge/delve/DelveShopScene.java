@@ -71,6 +71,7 @@ public class DelveShopScene extends DelveScene {
         packButton(0, day.edition, px, 70, pw);
         packButton(1, day.recentPackSet(), px, 116, pw);
         label("[%70]Singles and packs go straight into your collection.", px, 168, pw, 24, Align.center);
+        button("[GOLD]Run tokens", px + 24, 208, pw - 48, 22, this::tokenCounter);
 
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }
@@ -81,6 +82,31 @@ public class DelveShopScene extends DelveScene {
         TextraButton b = button("[%85]" + set.getName() + "\n[%70]" + (left > 0 ? left + " left" : "sold out"),
                 x, y, w, 38, () -> buyPack(type, set));
         b.setDisabled(left <= 0 || prof.gold() < DelveEconomy.PACK_PRICE);
+    }
+
+    /** The token counter: buy run tokens with town gold (no daily limit). */
+    private void tokenCounter() {
+        DelveProfile prof = DelveProfile.get();
+        List<String> labels = new java.util.ArrayList<>();
+        List<Boolean> enabled = new java.util.ArrayList<>();
+        List<Runnable> actions = new java.util.ArrayList<>();
+        StringBuilder text = new StringBuilder("[%70]Tokens are offered when they apply; you're always asked first.");
+        for (DelveTokens t : DelveTokens.values()) {
+            text.append("\n[%65][GOLD]").append(t.title).append("[WHITE] (have ").append(prof.tokens(t)).append("): ")
+                    .append(t.description);
+            labels.add("Buy " + t.title + "  " + t.price + "g");
+            enabled.add(prof.gold() >= t.price);
+            actions.add(() -> {
+                if (!prof.spendGold(t.price)) return;
+                prof.addToken(t, 1);
+                build();
+                tokenCounter();
+            });
+        }
+        labels.add("Done");
+        enabled.add(true);
+        actions.add(this::build);
+        choose("Run tokens   (gold " + prof.gold() + ")", text.toString(), labels, enabled, actions);
     }
 
     private void buySingle(int index, PaperCard pc, int price) {

@@ -312,12 +312,22 @@ public class DelveMapScene extends DelveScene {
                     + gold + " gold)", () -> endRun(true));
             return;
         }
-        List<PaperCard> offer = run.day.rewardChoices(run.rng, run.deckColors(), elite);
-        DelvePickScene.instance().show((elite ? "Elite reward" : "Victory") + " (+" + gold + " gold): add one card to your deck",
-                offer, 1, 1, "Skip", picks -> {
-                    addPicks(run, picks);
-                    Forge.switchScene(this);
-                });
+        offerCard(run, (elite ? "Elite reward" : "Victory") + " (+" + gold + " gold): add one card to your deck", elite);
+    }
+
+    /** Pick 1 of 3 cards for the run deck, with a Reroll button while the player has Reroll tokens. */
+    private void offerCard(DelveRun run, String header, boolean strong) {
+        List<PaperCard> offer = run.day.rewardChoices(run.rng, run.deckColors(), strong);
+        int rerolls = DelveProfile.get().tokens(DelveTokens.REROLL);
+        if (rerolls > 0)
+            DelvePickScene.instance().withExtra("Reroll (" + rerolls + ")", () -> {
+                DelveProfile.get().useToken(DelveTokens.REROLL);
+                offerCard(run, header, strong);
+            });
+        DelvePickScene.instance().show(header, offer, 1, 1, "Skip", picks -> {
+            addPicks(run, picks);
+            Forge.switchScene(this);
+        });
     }
 
     private static void addPicks(DelveRun run, List<PaperCard> picks) {
@@ -348,11 +358,7 @@ public class DelveMapScene extends DelveScene {
                 String result = c.apply.apply(run);
                 completeStep(run, index);
                 if (DelveRun.PICK_CARD.equals(result)) {
-                    DelvePickScene.instance().show(e.title + ": choose a card", run.day.rewardChoices(run.rng, run.deckColors(), true),
-                            1, 1, "Skip", picks -> {
-                                addPicks(run, picks);
-                                Forge.switchScene(this);
-                            });
+                    offerCard(run, e.title + ": choose a card", true);
                 } else {
                     info(e.title, result, null);
                 }
@@ -484,43 +490,106 @@ public class DelveMapScene extends DelveScene {
         if (run == null) return;
         run.over = true;
         run.cleared = cleared;
-        DelveProfile.get().makeEvening(); // the run is done: the Castle opens tonight
+        DelveProfile prof = DelveProfile.get();
+        prof.makeEvening(); // the run is done: the Castle opens tonight
         // all gold found in the dungeon comes home, win or lose
         int banked = run.gold;
-        DelveProfile.get().addGold(banked);
+        prof.addGold(banked);
         run.gold = 0;
+        String tokenLine = "";
+        if (cleared && run.size != DelveRun.Size.SHALLOW) // bigger dungeons also pay out run tokens
+            tokenLine = "\nYou also find " + DelveTokens.grant(run.size == DelveRun.Size.DEEP ? 2 : 1, run.rng) + ".";
         int picks = keepPicks(run, cleared);
         String summary = (cleared ? "You cleared the dungeon" : "Your run ended") + " after winning "
                 + run.fightsWon + (run.fightsWon == 1 ? " fight." : " fights.")
-                + "\nYou bring " + banked + " gold home (town gold: " + DelveProfile.get().gold() + ")."
-                + "\n\nKeep " + picks + (picks == 1 ? " card" : " cards") + " from your run deck for your collection"
-                + (cleared ? ", or lock the whole deck exactly as it is (it can never be changed)." : ".");
-        if (cleared) {
-            showDialog(createGenericDialog("Choose your reward", summary, "Keep " + picks + " cards", "Lock the deck",
-                    () -> {
-                        removeDialog();
-                        chooseKeeps(run, picks);
-                    },
-                    () -> {
-                        removeDialog();
-                        lockDeck(run);
-                    }));
-        } else {
-            info("Run over", summary, () -> chooseKeeps(run, picks));
+                + "\nYou bring " + banked + " gold home (town gold: " + prof.gold() + ")." + tokenLine;
+        if (!cleared && prof.tokens(DelveTokens.INSURANCE) > 0 && run.size.clearKeeps > picks) {
+            int insured = run.size.clearKeeps;
+            List<String> labels = List.of("Use Insurance: keep " + insured + " cards", "Keep " + picks);
+            List<Runnable> actions = List.of(() -> {
+                prof.useToken(DelveTokens.INSURANCE);
+                chooseKeeps(run, insured, false);
+            }, () -> chooseKeeps(run, picks, false));
+            choose("Run over", summary + "\n\nYou have " + prof.tokens(DelveTokens.INSURANCE)
+                    + " Insurance. Use one to keep as many cards as a clear would?", labels, null, actions);
+            return;
         }
+        if (!cleared) {
+            info("Run over", summary + "\n\nKeep " + picks + (picks == 1 ? " card" : " cards")
+                    + " from your run deck for your collection.", () -> chooseKeeps(run, picks, false));
+            return;
+        }
+        List<String> labels = new ArrayList<>();
+        List<Boolean> enabled = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        labels.add("Keep " + picks + " cards");
+        enabled.add(true);
+        actions.add(() -> chooseKeeps(run, picks, false));
+        labels.add("Lock the deck");
+        enabled.add(true);
+        actions.add(() -> lockDeck(run));
+        int vaults = prof.tokens(DelveTokens.VAULT);
+        labels.add("Vault the deck (" + vaults + " Vault)");
+        enabled.add(vaults > 0);
+        actions.add(() -> vaultDeck(run));
+        choose("Choose your reward", summary + "\n\nKeep " + picks + " cards from your run deck, lock the whole deck"
+                + " exactly as it is (it can never be changed), or spend a Vault token to add every card to your collection.",
+                labels, enabled, actions);
     }
 
-    private void chooseKeeps(DelveRun run, int picks) {
+    /**
+     * Let the player keep cards from the run deck. Offers a Keepsake first (one more card),
+     * then a Duplicate afterwards (a second copy of one kept card).
+     */
+    private void chooseKeeps(DelveRun run, int picks, boolean keepsakeAsked) {
         List<PaperCard> options = uniqueCards(run, false);
         if (options.isEmpty()) {
             finishRun("Nothing to keep this time.");
             return;
         }
+        DelveProfile prof = DelveProfile.get();
+        if (!keepsakeAsked && prof.tokens(DelveTokens.KEEPSAKE) > 0 && picks < options.size()) {
+            choose("Keepsake", "You have " + prof.tokens(DelveTokens.KEEPSAKE) + " Keepsake. Use one to keep "
+                            + (picks + 1) + " cards instead of " + picks + "?",
+                    List.of("Use a Keepsake", "No thanks"), null, List.of(() -> {
+                        prof.useToken(DelveTokens.KEEPSAKE);
+                        chooseKeeps(run, picks + 1, true);
+                    }, () -> chooseKeeps(run, picks, true)));
+            return;
+        }
         DelvePickScene.instance().show("Keep " + picks + (picks == 1 ? " card" : " cards") + " for your collection",
                 options, Math.min(picks, options.size()), picks, null, kept -> {
-                    DelveProfile.get().addToCollection(kept);
-                    finishRun(kept.size() + (kept.size() == 1 ? " card" : " cards") + " added to your collection.");
+                    prof.addToCollection(kept);
+                    String msg = kept.size() + (kept.size() == 1 ? " card" : " cards") + " added to your collection.";
+                    if (!kept.isEmpty() && prof.tokens(DelveTokens.DUPLICATE) > 0)
+                        offerDuplicate(kept, msg);
+                    else
+                        finishRun(msg);
                 });
+    }
+
+    private void offerDuplicate(List<PaperCard> kept, String msg) {
+        DelveProfile prof = DelveProfile.get();
+        DelvePickScene.instance().show("Use a Duplicate? Take a second copy of one card  (you have "
+                        + prof.tokens(DelveTokens.DUPLICATE) + ")", kept, 0, 1, "No thanks", pc -> "Copy", chosen -> {
+            if (!chosen.isEmpty() && prof.useToken(DelveTokens.DUPLICATE)) {
+                prof.addToCollection(chosen);
+                finishRun(msg + " Duplicate: a second " + chosen.get(0).getName() + " too.");
+            } else {
+                finishRun(msg);
+            }
+        });
+    }
+
+    private void vaultDeck(DelveRun run) {
+        if (!DelveProfile.get().useToken(DelveTokens.VAULT)) return;
+        List<PaperCard> all = new ArrayList<>();
+        for (java.util.Map.Entry<PaperCard, Integer> e : run.deck.getMain()) {
+            if (e.getKey().getRules().getType().isBasicLand()) continue; // basics are free anyway
+            for (int i = 0; i < e.getValue(); i++) all.add(e.getKey());
+        }
+        DelveProfile.get().addToCollection(all);
+        finishRun("Vault: all " + all.size() + " cards (besides basic lands) from your run deck were added to your collection.");
     }
 
     private void lockDeck(DelveRun run) {

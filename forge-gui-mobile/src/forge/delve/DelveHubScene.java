@@ -120,7 +120,7 @@ public class DelveHubScene extends UIScene {
         if (p.delvedToday() || p.isEvening()) {
             openInfo("Dungeon Gate", "The gate is sealed until morning. You get one delve per day.\n\n"
                     + (p.castleToday() ? "Sleep at Your House to start a new day."
-                    : "The Castle tournament is open tonight, or sleep at Your House to start a new day."));
+                    : "The Castle is open tonight (1v1 tournament or Commander pod), or sleep at Your House to start a new day."));
             return;
         }
         Forge.switchScene(DelveGateScene.instance());
@@ -183,7 +183,7 @@ public class DelveHubScene extends UIScene {
         DelveProfile p = DelveProfile.get();
         String when = p.isEvening() ? "Evening" : "Morning";
         String hint = !p.isEvening() ? "the dungeon awaits"
-                : !p.castleToday() ? "the Castle tournament is open" : "time to rest at Your House";
+                : !p.castleToday() ? "the Castle is open" : "time to rest at Your House";
         if (timeLabel == null) {
             timeLabel = forge.adventure.util.Controls.newTextraLabel("");
             timeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
@@ -208,7 +208,8 @@ public class DelveHubScene extends UIScene {
                 .append("    Gold ").append(p.gold()).append("    Castle titles ").append(p.castleTitles()).append("\n");
         sb.append("Collection ").append(p.collection().countAll()).append(" cards (")
                 .append(p.collection().countDistinct()).append(" different)    Locked Decks ")
-                .append(p.lockedDecks().size());
+                .append(p.lockedDecks().size()).append("\n");
+        sb.append("Tokens: ").append(p.tokenSummary());
         houseMenu(sb.toString());
     }
 
