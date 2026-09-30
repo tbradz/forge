@@ -19,6 +19,15 @@ public class DelveGateScene extends DelveScene {
     private static DelveGateScene object;
 
     static final int DRAFT_PICKS = 23;
+    private DelveRun.Size size = DelveRun.Size.STANDARD;
+
+    private static String sizeText(DelveRun.Size s) {
+        switch (s) {
+            case SHALLOW: return "Shallow: 4 steps, a quick run. Clear it to keep 3 cards.";
+            case DEEP: return "Deep: 10 steps, three elites and a tougher boss. Clear it to keep 8 cards.";
+            default: return "Standard: 7 steps with an elite and a boss. Clear it to keep 5 cards.";
+        }
+    }
     static final int DRAFT_LANDS = 17; // 23 + 17 = the 40-card minimum
 
     public static DelveGateScene instance() {
@@ -41,19 +50,28 @@ public class DelveGateScene extends DelveScene {
                 + day.themeName() + "[]\nCards found today come from this set. Choose how to begin.",
                 40, 34, W - 80, 36, Align.center);
 
-        label("[%110]Today's starters", 40, 80, 190, 16, Align.center);
-        float y = 100;
+        // dungeon size
+        float sx = 60;
+        for (DelveRun.Size s : DelveRun.Size.values()) {
+            boolean sel = s == size;
+            button((sel ? "[GOLD]" : "") + s.label, sx, 72, 116, 20, () -> { size = s; build(); });
+            sx += 122;
+        }
+        label("[%70]" + sizeText(size), 40, 94, W - 80, 12, Align.center);
+
+        label("[%110]Today's starters", 40, 112, 190, 16, Align.center);
+        float y = 130;
         for (String guild : day.starterNames) {
-            button(guild + " starter", 60, y, 150, 26, () -> startFixed(guild));
-            y += 32;
+            button(guild + " starter", 60, y, 150, 24, () -> startFixed(guild));
+            y += 29;
         }
 
-        label("[%110]Draft your starter", 250, 80, 190, 16, Align.center);
+        label("[%110]Draft your starter", 250, 112, 190, 16, Align.center);
         label("Pick " + DRAFT_PICKS + " cards, one from each pack of three. Basic lands are added for you.",
-                260, 100, 170, 50, Align.center);
-        button("Draft a starter", 270, 164, 150, 26, this::startDraft);
+                260, 130, 170, 44, Align.center);
+        button("Draft a starter", 270, 188, 150, 24, this::startDraft);
 
-        button("Back", 190, 232, 100, 24, () -> Forge.switchScene(DelveHubScene.instance()));
+        button("Back", 190, 240, 100, 22, () -> Forge.switchScene(DelveHubScene.instance()));
     }
 
     private void startFixed(String guild) {
@@ -131,7 +149,7 @@ public class DelveGateScene extends DelveScene {
     }
 
     private void begin(Deck deck) {
-        DelveRun.start(DelveDay.today(), deck, DelveRun.Size.STANDARD);
+        DelveRun.start(DelveDay.today(), deck, size);
         Forge.switchScene(DelveMapScene.instance());
     }
 

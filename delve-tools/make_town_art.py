@@ -199,6 +199,14 @@ def stairs():
     return img.resize((img.width * 4, img.height * 4), Image.NEAREST)
 
 
+def panel():
+    """Dark translucent panel with a thin bronze border, for text over busy art."""
+    img = Image.new("RGBA", (40, 40), (12, 10, 14, 205))
+    d = ImageDraw.Draw(img)
+    d.rectangle((0, 0, 39, 39), outline=(120, 96, 60, 255))
+    return img.resize((160, 160), Image.NEAREST)
+
+
 # name -> crop box (x, y, w, h) in buildings.png
 SPRITES = {
     "castle": (384, 133, 64, 43),
@@ -230,5 +238,6 @@ if __name__ == "__main__":
     dot((255, 200, 80, 255)).save(f"{OUT}/dot_gold.png")
     hud_bar().save(f"{OUT}/hud_bar.png")
     stairs().save(f"{OUT}/stairs.png")
+    panel().save(f"{OUT}/panel.png")
     sprites()
     print("wrote", sorted(os.listdir(OUT)))

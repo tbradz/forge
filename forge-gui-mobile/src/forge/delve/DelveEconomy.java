@@ -26,8 +26,13 @@ public final class DelveEconomy {
     public static final int BOSS_GOLD = 75;
 
     public static int fightGold(DelveRun.NodeType type, Random rng) {
+        return fightGold(type, rng, DelveRun.Size.STANDARD);
+    }
+
+    /** Bigger dungeons pay more for their boss. */
+    public static int fightGold(DelveRun.NodeType type, Random rng, DelveRun.Size size) {
         switch (type) {
-            case BOSS: return BOSS_GOLD;
+            case BOSS: return size == DelveRun.Size.SHALLOW ? 50 : size == DelveRun.Size.DEEP ? 120 : BOSS_GOLD;
             case ELITE: return ELITE_GOLD;
             default: return FIGHT_GOLD_MIN + rng.nextInt(FIGHT_GOLD_MAX - FIGHT_GOLD_MIN + 1);
         }
@@ -40,6 +45,19 @@ public final class DelveEconomy {
             case Rare: return 80;
             case Uncommon: return 40;
             default: return 18;
+        }
+    }
+
+    // ---- town Card Shop (paid from town gold) ---------------------------------------
+    public static final int PACK_PRICE = 60;
+    public static final int PACKS_PER_DAY = 3; // of each pack type
+
+    public static int shopPrice(PaperCard pc) {
+        switch (pc.getRarity()) {
+            case MythicRare: return 100;
+            case Rare: return 70;
+            case Uncommon: return 35;
+            default: return 15;
         }
     }
 

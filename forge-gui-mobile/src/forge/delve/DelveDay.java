@@ -230,6 +230,74 @@ public class DelveDay {
         return d;
     }
 
+    // ---- town Card Shop stock ----------------------------------------------------
+
+    private List<PaperCard> shopSingles;
+    private CardEdition recentPackSet;
+
+    /** Today's 8 singles: 5 from today's set (2C 2U 1R), 3 from recent sets (1U 1R 1R/M). */
+    public List<PaperCard> shopSingles() {
+        if (shopSingles != null) return shopSingles;
+        Random rng = new Random(seed ^ 0x5409L);
+        List<PaperCard> out = new ArrayList<>();
+        addRandom(out, commons, 2, rng);
+        addRandom(out, uncommons, 2, rng);
+        addRandom(out, rares, 1, rng);
+        List<PaperCard> recentUnc = new ArrayList<>(), recentRare = new ArrayList<>();
+        java.util.Set<String> codes = new java.util.HashSet<>();
+        for (CardEdition e : FModel.getMagicDb().getEditions())
+            if ((e.getType() == CardEdition.Type.EXPANSION || e.getType() == CardEdition.Type.CORE) && isRecent(e))
+                codes.add(e.getCode());
+        for (PaperCard pc : FModel.getMagicDb().getCommonCards().getAllCards(c -> codes.contains(c.getEdition()))) {
+            if (pc.getRules().getType().isBasicLand()) continue;
+            if (pc.getRarity() == CardRarity.Uncommon) recentUnc.add(pc);
+            else if (pc.getRarity() == CardRarity.Rare || pc.getRarity() == CardRarity.MythicRare) recentRare.add(pc);
+        }
+        dedupe(recentUnc);
+        dedupe(recentRare);
+        addRandom(out, recentUnc, 1, rng);
+        addRandom(out, recentRare, 2, rng);
+        shopSingles = out;
+        return out;
+    }
+
+    private static void addRandom(List<PaperCard> out, List<PaperCard> from, int n, Random rng) {
+        for (int i = 0, guard = 0; i < n && !from.isEmpty() && guard < 50; guard++) {
+            PaperCard pc = from.get(rng.nextInt(from.size()));
+            if (out.contains(pc)) continue;
+            out.add(pc);
+            i++;
+        }
+    }
+
+    /** The second pack type on sale today: a random recent set. */
+    public CardEdition recentPackSet() {
+        if (recentPackSet == null) {
+            List<CardEdition> recent = new ArrayList<>();
+            for (CardEdition e : FModel.getMagicDb().getEditions())
+                if ((e.getType() == CardEdition.Type.EXPANSION || e.getType() == CardEdition.Type.CORE) && isRecent(e)
+                        && forge.StaticData.instance().getBoosters().contains(e.getCode()))
+                    recent.add(e);
+            recent.sort(Comparator.comparing(CardEdition::getCode));
+            recentPackSet = recent.isEmpty() ? edition : recent.get(new Random(seed ^ 0xB00L).nextInt(recent.size()));
+        }
+        return recentPackSet;
+    }
+
+    /** Open a booster of a set (Forge's real booster template when there is one). */
+    public List<PaperCard> openPack(CardEdition set, Random rng) {
+        forge.item.SealedTemplate t = forge.StaticData.instance().getBoosters().get(set.getCode());
+        if (t != null) {
+            List<PaperCard> cards = forge.item.generation.BoosterGenerator.getBoosterPack(t);
+            if (cards != null && !cards.isEmpty()) return cards;
+        }
+        List<PaperCard> out = new ArrayList<>(); // fallback: 10C 3U 1R from today's pools
+        for (int i = 0; i < 10 && !commons.isEmpty(); i++) out.add(commons.get(rng.nextInt(commons.size())));
+        for (int i = 0; i < 3 && !uncommons.isEmpty(); i++) out.add(uncommons.get(rng.nextInt(uncommons.size())));
+        if (!rares.isEmpty()) out.add(rares.get(rng.nextInt(rares.size())));
+        return out;
+    }
+
     // ---- reward generation --------------------------------------------------
 
     /** Three cards to choose from after a fight; two lean toward the deck's colors. */

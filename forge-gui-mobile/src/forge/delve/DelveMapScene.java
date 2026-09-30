@@ -80,7 +80,7 @@ public class DelveMapScene extends DelveScene {
         chosen = run.chosen;
         if (!run.over) DelveRunSave.save(run);
         // header bar
-        label("[%90][GOLD]" + run.day.themeName(), 8, 5, 150, 16, Align.left);
+        label("[%90][GOLD]" + run.day.themeName() + "[]  [%70]" + run.size.label, 8, 5, 180, 16, Align.left);
         label("[%90][RED]Life[] " + run.life + "/" + DelveRun.MAX_LIFE + "    [GOLD]Gold[] " + run.gold
                         + "    Deck " + run.deckSize() + "/" + DelveRun.MIN_DECK + "    Wins " + run.fightsWon,
                 150, 5, 322, 16, Align.right);
@@ -185,8 +185,12 @@ public class DelveMapScene extends DelveScene {
             case ELITE: type = "[ORANGE]Elite"; break;
             default: type = "Fight";
         }
-        String name = node.enemy != null ? "\n[%50]" + shortName(node.enemy.getName()) : "";
-        com.github.tommyettinger.textra.TextraLabel l = label("[%60]" + type + "[]" + name, x - 32, y + 14, 64, 20, Align.center);
+        float spacing = (TRAIL_RIGHT - ENTRANCE_X) / run.layers.size();
+        boolean roomy = spacing >= 50;
+        String name = node.enemy != null && roomy ? "\n[%50]" + shortName(node.enemy.getName()) : "";
+        float lw = Math.min(64, spacing + 4);
+        com.github.tommyettinger.textra.TextraLabel l = label("[%" + (roomy ? 60 : 50) + "]" + type + "[]" + name,
+                x - lw / 2f, y + 14, lw, 20, Align.center);
         l.getColor().a = dim;
 
         if (!open) return;
@@ -300,7 +304,7 @@ public class DelveMapScene extends DelveScene {
         run.life = Math.max(1, life);
         run.fightsWon++;
         boolean elite = node.type == NodeType.ELITE;
-        int gold = DelveEconomy.fightGold(node.type, run.rng);
+        int gold = DelveEconomy.fightGold(node.type, run.rng, run.size);
         run.gainGold(gold);
         completeStep(run, index);
         if (node.type == NodeType.BOSS) {
@@ -470,7 +474,7 @@ public class DelveMapScene extends DelveScene {
 
     /** Keep picks by result: 1 if you fell at the first fight, more the further you got. */
     static int keepPicks(DelveRun run, boolean cleared) {
-        if (cleared) return 5;
+        if (cleared) return run.size.clearKeeps;
         if (run.fightsWon == 0) return 1;
         return run.fightsWon >= 3 ? 3 : 2;
     }

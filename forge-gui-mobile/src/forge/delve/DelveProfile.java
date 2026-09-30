@@ -72,6 +72,47 @@ public class DelveProfile {
         saveStats();
     }
 
+    // ---- today's shop purchases (limited stock) ----------------------------------
+
+    private void rollShopDay() {
+        String today = java.time.LocalDate.now().toString();
+        if (!today.equals(stats.getProperty("shop.date"))) {
+            stats.setProperty("shop.date", today);
+            stats.setProperty("shop.bought", "");
+            stats.setProperty("shop.packs.0", "0");
+            stats.setProperty("shop.packs.1", "0");
+        }
+    }
+
+    public boolean shopBought(int index) {
+        rollShopDay();
+        return ("," + stats.getProperty("shop.bought", "") + ",").contains("," + index + ",");
+    }
+
+    public void markShopBought(int index) {
+        rollShopDay();
+        String b = stats.getProperty("shop.bought", "");
+        stats.setProperty("shop.bought", b.isEmpty() ? String.valueOf(index) : b + "," + index);
+        saveStats();
+    }
+
+    public int packsBought(int type) {
+        rollShopDay();
+        return Integer.parseInt(stats.getProperty("shop.packs." + type, "0"));
+    }
+
+    public void markPackBought(int type) {
+        stats.setProperty("shop.packs." + type, String.valueOf(packsBought(type) + 1));
+        saveStats();
+    }
+
+    /** Spend town gold; returns false (and spends nothing) if there isn't enough. */
+    public boolean spendGold(int amount) {
+        if (gold() < amount) return false;
+        addGold(-amount);
+        return true;
+    }
+
     // ---- character --------------------------------------------------------------
 
     public boolean hasCharacter() {

@@ -1,0 +1,110 @@
+package forge.delve;
+
+import com.badlogic.gdx.utils.Align;
+import com.github.tommyettinger.textra.TextraButton;
+import forge.Forge;
+import forge.adventure.scene.RewardScene;
+import forge.adventure.util.Reward;
+import forge.adventure.util.RewardActor;
+import forge.card.CardEdition;
+import forge.item.PaperCard;
+
+import java.util.List;
+import java.util.Random;
+
+/**
+ * The town Card Shop: today's small stock of singles plus two kinds of booster
+ * packs, paid for with town gold. Stock is limited and resets each day.
+ */
+public class DelveShopScene extends DelveScene {
+    private static DelveShopScene object;
+    private final Random rng = new Random();
+
+    private DelveShopScene() {
+        super("ui/delve_shop.json");
+    }
+
+    public static DelveShopScene instance() {
+        if (object == null)
+            object = new DelveShopScene();
+        return object;
+    }
+
+    @Override
+    public void enter() {
+        build();
+        super.enter();
+    }
+
+    private void build() {
+        clearScreen();
+        DelveDay day = DelveDay.today();
+        DelveProfile prof = DelveProfile.get();
+        label("[%90][GOLD]Card Shop", 8, 5, 200, 16, Align.left);
+        label("[%90][GOLD]Gold[] " + prof.gold(), 280, 5, 192, 16, Align.right);
+
+        // singles: two rows of four on the left
+        List<PaperCard> stock = day.shopSingles();
+        float cardH = 82, cardW = cardH * 0.716f, gap = 6, left = 10, top = 34;
+        for (int i = 0; i < stock.size(); i++) {
+            int r = i / 4, c = i % 4;
+            float x = left + c * (cardW + gap), y = top + r * (cardH + 20);
+            PaperCard pc = stock.get(i);
+            boolean sold = prof.shopBought(i);
+            RewardActor card = new RewardActor(new Reward(pc, true), false, RewardScene.Type.Loot, false);
+            card.setBounds(x, H - y - cardH, cardW, cardH);
+            if (sold) card.getColor().a = 0.25f;
+            track(card);
+            final int index = i;
+            int price = DelveEconomy.shopPrice(pc);
+            TextraButton buy = button(sold ? "[GRAY]Sold" : "[%85]Buy " + price + "g", x, y + cardH + 1, cardW, 15,
+                    () -> buySingle(index, pc, price));
+            buy.setDisabled(sold || prof.gold() < price);
+        }
+
+        // packs on the right
+        float px = 272, pw = 198;
+        image("ui/delve/panel.png", px - 6, 30, pw + 12, 170);
+        label("[%100]Booster packs", px, 36, pw, 14, Align.center);
+        label("[%70]" + DelveEconomy.PACK_PRICE + " gold each, " + DelveEconomy.PACKS_PER_DAY + " of each per day",
+                px, 50, pw, 12, Align.center);
+        packButton(0, day.edition, px, 70, pw);
+        packButton(1, day.recentPackSet(), px, 116, pw);
+        label("[%70]Singles and packs go straight into your collection.", px, 168, pw, 24, Align.center);
+
+        button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+    }
+
+    private void packButton(int type, CardEdition set, float x, float y, float w) {
+        DelveProfile prof = DelveProfile.get();
+        int left = DelveEconomy.PACKS_PER_DAY - prof.packsBought(type);
+        TextraButton b = button("[%85]" + set.getName() + "\n[%70]" + (left > 0 ? left + " left" : "sold out"),
+                x, y, w, 38, () -> buyPack(type, set));
+        b.setDisabled(left <= 0 || prof.gold() < DelveEconomy.PACK_PRICE);
+    }
+
+    private void buySingle(int index, PaperCard pc, int price) {
+        DelveProfile prof = DelveProfile.get();
+        if (prof.shopBought(index) || !prof.spendGold(price)) return;
+        prof.markShopBought(index);
+        prof.addToCollection(List.of(pc));
+        build();
+        info("Card Shop", "You buy " + pc.getName() + " for " + price + " gold.", null);
+    }
+
+    private void buyPack(int type, CardEdition set) {
+        DelveProfile prof = DelveProfile.get();
+        if (prof.packsBought(type) >= DelveEconomy.PACKS_PER_DAY || !prof.spendGold(DelveEconomy.PACK_PRICE)) return;
+        prof.markPackBought(type);
+        List<PaperCard> cards = DelveDay.today().openPack(set, rng);
+        prof.addToCollection(cards);
+        DelvePickScene.instance().show("You open a " + set.getName() + " booster", cards, 0, 0, "Back",
+                x -> Forge.switchScene(this));
+    }
+
+    @Override
+    public boolean back() {
+        Forge.switchScene(DelveHubScene.instance());
+        return true;
+    }
+}

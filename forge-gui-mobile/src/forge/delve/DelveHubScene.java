@@ -40,8 +40,7 @@ public class DelveHubScene extends UIScene {
 
         building("b_house", "Your House", this::openHouse);
         building("b_dungeon", "Dungeon Gate", this::openGate);
-        building("b_shop", "Card Shop",
-                "A small stock of singles and packs that restocks every day.", 2);
+        building("b_shop", "Card Shop", () -> Forge.switchScene(DelveShopScene.instance()));
         building("b_tavern", "Tavern",
                 "Talk to locals, pick up rumors, and play casual games to test decks.", 2);
         building("b_outfitter", "Outfitter",
