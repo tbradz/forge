@@ -68,15 +68,21 @@ public class DelveCastleScene extends DelveScene {
     private void buildLobby() {
         image("ui/delve/panel.png", 60, 40, 360, 180);
         label("[%130]1v1 Tournament", 60, 50, 360, 22, Align.center);
-        label("Eight duelists, single elimination, best of three.\n"
+        label("One tournament each evening. Eight duelists, single elimination, best of three.\n"
                         + "Bring a deck you built in Your House or a Locked Deck (40+ cards).\n\n"
                         + "Entry: [GOLD]" + DelveEconomy.CASTLE_ENTRY + " gold[]\n"
                         + "Champion: [GOLD]" + DelveEconomy.CASTLE_CHAMPION + " gold[] + a booster\n"
                         + "Finalist: [GOLD]" + DelveEconomy.CASTLE_FINALIST + " gold[]    Semifinalist: [GOLD]"
                         + DelveEconomy.CASTLE_SEMIFINAL + " gold[]",
                 76, 78, 328, 110, Align.center);
-        button("[GOLD]Enter the tournament", 150, 192, 180, 22, this::chooseDeck)
-                .setDisabled(DelveProfile.get().gold() < DelveEconomy.CASTLE_ENTRY);
+        DelveProfile prof = DelveProfile.get();
+        if (prof.castleToday()) {
+            label("[%80][GOLD]You've competed tonight. Sleep at Your House for tomorrow's tournament.",
+                    70, 194, 340, 20, Align.center);
+        } else {
+            button("[GOLD]Enter tonight's tournament", 140, 192, 200, 22, this::chooseDeck)
+                    .setDisabled(prof.gold() < DelveEconomy.CASTLE_ENTRY);
+        }
         button("Leave", 190, 240, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }
 
@@ -110,6 +116,7 @@ public class DelveCastleScene extends DelveScene {
 
     private void start(Deck deck) {
         if (!DelveProfile.get().spendGold(DelveEconomy.CASTLE_ENTRY)) return;
+        DelveProfile.get().markCastle();
         t = new Tournament(deck);
         DelveDay day = DelveDay.today();
         List<EnemyData> pool = new ArrayList<>(day.eliteEnemies);
@@ -177,8 +184,7 @@ public class DelveCastleScene extends DelveScene {
     private void playMatch() {
         EnemyData foe = enemyNamed(currentOpponent());
         if (foe == null) return;
-        Deck foeDeck = foe.generateDeck(false, false);
-        if (foeDeck == null) foeDeck = (Deck) t.deck.copyTo("Mirror");
+        Deck foeDeck = DelveDay.today().enemyDeck(foe, DelveDay.Tier.CASTLE);
         DelveDuelScene.instance().setup(t.deck, 20, foe, foeDeck, 20, 3, t.round == 2,
                 (won, life) -> afterMatch(won));
         Forge.switchScene(DelveDuelScene.instance());

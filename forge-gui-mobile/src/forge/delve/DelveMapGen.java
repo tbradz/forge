@@ -76,9 +76,9 @@ final class DelveMapGen {
         EnemyData e = p.next();
         int life;
         switch (type) {
-            case ELITE: life = clamp(e.life, 16, 20); break;
+            case ELITE: life = 20; break;
             case BOSS: life = 25; break;
-            default: life = clamp(e.life, 8, 14);
+            default: life = 15;
         }
         return new Node(type, e, life, null);
     }

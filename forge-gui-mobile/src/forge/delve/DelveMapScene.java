@@ -484,6 +484,7 @@ public class DelveMapScene extends DelveScene {
         if (run == null) return;
         run.over = true;
         run.cleared = cleared;
+        DelveProfile.get().makeEvening(); // the run is done: the Castle opens tonight
         // all gold found in the dungeon comes home, win or lose
         int banked = run.gold;
         DelveProfile.get().addGold(banked);

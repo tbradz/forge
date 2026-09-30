@@ -72,10 +72,56 @@ public class DelveProfile {
         saveStats();
     }
 
+    // ---- the in-game calendar ------------------------------------------------------
+    //
+    // Each day: morning = one dungeon run; evening = one Castle tournament; then sleep
+    // at Your House to start the next day. Finishing (or skipping) the run makes it evening.
+
+    public int day() {
+        return Integer.parseInt(stats.getProperty("day", "1"));
+    }
+
+    public boolean isEvening() {
+        return Boolean.parseBoolean(stats.getProperty("evening", "false"));
+    }
+
+    public boolean delvedToday() {
+        return Boolean.parseBoolean(stats.getProperty("delvedToday", "false"));
+    }
+
+    public boolean castleToday() {
+        return Boolean.parseBoolean(stats.getProperty("castleToday", "false"));
+    }
+
+    public void markDelved() {
+        stats.setProperty("delvedToday", "true");
+        saveStats();
+    }
+
+    /** The run is over (or skipped): the Castle opens. */
+    public void makeEvening() {
+        stats.setProperty("evening", "true");
+        saveStats();
+    }
+
+    public void markCastle() {
+        stats.setProperty("castleToday", "true");
+        saveStats();
+    }
+
+    /** Sleep: advance to the next morning. */
+    public void sleep() {
+        stats.setProperty("day", String.valueOf(day() + 1));
+        stats.setProperty("evening", "false");
+        stats.setProperty("delvedToday", "false");
+        stats.setProperty("castleToday", "false");
+        saveStats();
+    }
+
     // ---- today's shop purchases (limited stock) ----------------------------------
 
     private void rollShopDay() {
-        String today = java.time.LocalDate.now().toString();
+        String today = String.valueOf(day());
         if (!today.equals(stats.getProperty("shop.date"))) {
             stats.setProperty("shop.date", today);
             stats.setProperty("shop.bought", "");

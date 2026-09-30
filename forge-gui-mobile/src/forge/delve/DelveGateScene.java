@@ -6,7 +6,6 @@ import forge.deck.Deck;
 import forge.item.PaperCard;
 import forge.model.FModel;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -46,7 +45,7 @@ public class DelveGateScene extends DelveScene {
         clearScreen();
         DelveDay day = DelveDay.today();
         title("Dungeon Gate");
-        label("Today's dungeon (" + day.date.format(DateTimeFormatter.ofPattern("MMM d")) + "): [GOLD]"
+        label("Day " + day.dayNumber + " (" + day.eraYear() + " era): [GOLD]"
                 + day.themeName() + "[]\nCards found today come from this set. Choose how to begin.",
                 40, 34, W - 80, 36, Align.center);
 

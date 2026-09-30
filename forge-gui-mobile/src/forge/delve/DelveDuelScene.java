@@ -70,9 +70,9 @@ public class DelveDuelScene extends DuelScene {
 
     /** Prepare a dungeon duel. Call before Forge.switchScene(DelveDuelScene.instance()). */
     public void setup(DelveRun run, DelveRun.Node node, BiConsumer<Boolean, Integer> onFinished) {
-        Deck enemyDeck = node.enemy.generateDeck(false, false);
-        if (enemyDeck == null)
-            enemyDeck = (Deck) run.deck.copyTo("Mirror"); // missing deck data: mirror match
+        DelveDay.Tier tier = node.type == DelveRun.NodeType.BOSS ? DelveDay.Tier.BOSS
+                : node.type == DelveRun.NodeType.ELITE ? DelveDay.Tier.ELITE : DelveDay.Tier.FIGHT;
+        Deck enemyDeck = run.day.enemyDeck(node.enemy, tier); // era cards in the enemy's colors
         setup(run.deck, run.life, node.enemy, enemyDeck, node.enemyLife, 1,
                 node.type == DelveRun.NodeType.BOSS, onFinished);
     }

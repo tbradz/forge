@@ -26,10 +26,12 @@ def lerp(a, b, t):
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
-def backdrop():
+def backdrop(daytime=False):
+    rng.seed(7)
     img = Image.new("RGB", (W, H))
     px = img.load()
-    top, mid, low = (22, 18, 44), (74, 44, 78), (196, 104, 74)
+    top, mid, low = ((78, 132, 196), (128, 176, 222), (214, 222, 206)) if daytime \
+        else ((22, 18, 44), (74, 44, 78), (196, 104, 74))
     bands = 14  # banded gradient reads as pixel art
     for y in range(HORIZON + 10):
         t = y / (HORIZON + 10)
@@ -38,14 +40,18 @@ def backdrop():
         for x in range(W):
             px[x, y] = c
     d = ImageDraw.Draw(img)
-    # stars
-    for _ in range(90):
-        x, y = rng.randrange(W), rng.randrange(0, 90)
-        b = rng.choice([150, 190, 230])
-        px[x, y] = (b, b, min(255, b + 20))
-    # moon
-    d.ellipse((392, 22, 420, 50), fill=(236, 226, 196))
-    d.ellipse((398, 20, 426, 48), fill=lerp(top, mid, 0.3))  # crescent bite
+    if daytime:
+        d.ellipse((396, 22, 424, 50), fill=(255, 236, 170))  # sun
+        for cx, cy in ((80, 40), (170, 28), (300, 50)):  # clouds
+            for dx in (0, 10, 20):
+                d.ellipse((cx + dx, cy, cx + dx + 22, cy + 12), fill=(236, 242, 248))
+    else:
+        for _ in range(90):  # stars
+            x, y = rng.randrange(W), rng.randrange(0, 90)
+            b = rng.choice([150, 190, 230])
+            px[x, y] = (b, b, min(255, b + 20))
+        d.ellipse((392, 22, 420, 50), fill=(236, 226, 196))  # moon
+        d.ellipse((398, 20, 426, 48), fill=lerp(top, mid, 0.3))  # crescent bite
     # far mountains
     def ridge(base, amp, color, step, seed):
         r = random.Random(seed)
@@ -55,28 +61,31 @@ def backdrop():
             pts.append((x, y))
         pts.append((W, H))
         d.polygon(pts, fill=color)
-    ridge(118, 30, (58, 40, 72), 12, 1)
-    ridge(138, 22, (40, 30, 56), 8, 2)
+    ridge(118, 30, (96, 120, 150) if daytime else (58, 40, 72), 12, 1)
+    ridge(138, 22, (74, 100, 110) if daytime else (40, 30, 56), 8, 2)
     # castle hill
-    d.ellipse((150, 96, 330, 210), fill=(34, 28, 46))
+    d.ellipse((150, 96, 330, 210), fill=(62, 96, 58) if daytime else (34, 28, 46))
     # ground
     for y in range(160, H):
         for x in range(W):
             n = rng.random()
-            base = (40, 52, 38) if n > 0.12 else (34, 44, 32)
+            base = ((76, 122, 60) if n > 0.12 else (66, 108, 52)) if daytime else \
+                ((40, 52, 38) if n > 0.12 else (34, 44, 32))
             px[x, y] = base
     # road up to the castle and plaza
-    d.polygon([(226, 150), (254, 150), (300, H), (180, H)], fill=(92, 78, 64))
-    d.ellipse((120, 196, 360, 290), fill=(88, 76, 66))
+    road = (150, 128, 96) if daytime else (92, 78, 64)
+    d.polygon([(226, 150), (254, 150), (300, H), (180, H)], fill=road)
+    d.ellipse((120, 196, 360, 290), fill=(142, 122, 96) if daytime else (88, 76, 66))
     for _ in range(420):  # cobbles
         x, y = rng.randrange(126, 354), rng.randrange(200, H)
         if ((x - 240) / 120) ** 2 + ((y - 243) / 47) ** 2 < 1:
-            px[x, y] = (106, 94, 80) if rng.random() > 0.5 else (72, 62, 54)
+            px[x, y] = ((168, 148, 118) if rng.random() > 0.5 else (122, 104, 80)) if daytime else \
+                ((106, 94, 80) if rng.random() > 0.5 else (72, 62, 54))
     # vignette
     for y in range(H):
         for x in range(W):
             dx, dy = (x - W / 2) / (W / 2), (y - H / 2) / (H / 2)
-            f = max(0.45, 1 - 0.55 * (dx * dx + dy * dy) ** 1.2)
+            f = max(0.7 if daytime else 0.45, 1 - (0.3 if daytime else 0.55) * (dx * dx + dy * dy) ** 1.2)
             r, g, b = px[x, y]
             px[x, y] = (int(r * f), int(g * f), int(b * f))
     return img.resize((W * 2, H * 2), Image.NEAREST)
@@ -230,6 +239,7 @@ if __name__ == "__main__":
     import os
     os.makedirs(OUT, exist_ok=True)
     backdrop().save(f"{OUT}/town_bg.png")
+    backdrop(daytime=True).save(f"{OUT}/town_bg_day.png")
     dungeon_backdrop().save(f"{OUT}/dungeon_bg.png")
     path_backdrop().save(f"{OUT}/path_bg.png")
     plate(False).save(f"{OUT}/plate.png")

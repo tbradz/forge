@@ -45,7 +45,7 @@ public class DelveHubScene extends UIScene {
                 "Talk to locals, pick up rumors, and play casual games to test decks.", 2);
         building("b_outfitter", "Outfitter",
                 "Sleeves, playmats, dice, and other cosmetics.", 3);
-        building("b_castle", "Castle", () -> Forge.switchScene(DelveCastleScene.instance()));
+        building("b_castle", "Castle", this::openCastle);
 
         ui.addActor(nameplate); // on top of the buildings
         ui.onButtonPress("leave", this::returnToStart);
@@ -111,28 +111,104 @@ public class DelveHubScene extends UIScene {
             });
             return;
         }
+        DelveRun run = currentRun();
+        if (run != null && !run.over) {
+            Forge.switchScene(DelveMapScene.instance()); // resume the run in progress
+            return;
+        }
+        DelveProfile p = DelveProfile.get();
+        if (p.delvedToday() || p.isEvening()) {
+            openInfo("Dungeon Gate", "The gate is sealed until morning. You get one delve per day.\n\n"
+                    + (p.castleToday() ? "Sleep at Your House to start a new day."
+                    : "The Castle tournament is open tonight, or sleep at Your House to start a new day."));
+            return;
+        }
+        Forge.switchScene(DelveGateScene.instance());
+    }
+
+    /** The run in progress, loading a saved one if the game was closed mid-run. */
+    private static DelveRun currentRun() {
         DelveRun run = DelveRun.current();
         if (run == null && DelveRunSave.exists())
-            run = DelveRunSave.load(); // pick up a run saved before the game was closed
-        if (run != null && !run.over)
-            Forge.switchScene(DelveMapScene.instance()); // resume the run in progress
-        else
-            Forge.switchScene(DelveGateScene.instance());
+            run = DelveRunSave.load();
+        return run;
+    }
+
+    private void openCastle() {
+        DelveProfile p = DelveProfile.get();
+        DelveRun run = currentRun();
+        if (run != null && !run.over) {
+            openInfo("Castle", "You're in the middle of a dungeon run. Finish it (or abandon it) first; "
+                    + "the tournament starts in the evening.");
+            return;
+        }
+        if (!p.isEvening()) {
+            showDialog(createGenericDialog("Castle", "The tournament begins at dusk. Skip today's dungeon run and "
+                            + "head to the Castle now?", "Go to the Castle", "Not yet",
+                    () -> {
+                        removeDialog();
+                        p.markDelved();
+                        p.makeEvening();
+                        refreshTime();
+                        Forge.switchScene(DelveCastleScene.instance());
+                    }, this::removeDialog));
+            return;
+        }
+        Forge.switchScene(DelveCastleScene.instance());
+    }
+
+    private void sleep() {
+        DelveRun run = currentRun();
+        if (run != null && !run.over) {
+            openInfo("Sleep", "You can't sleep with a run in progress. Finish or abandon it first.");
+            return;
+        }
+        DelveProfile p = DelveProfile.get();
+        String warn = !p.delvedToday() ? "You haven't delved today. " : !p.castleToday() ? "You skipped tonight's tournament. " : "";
+        showDialog(createGenericDialog("Sleep", warn + "Sleep until tomorrow morning?", "Sleep", "Stay up",
+                () -> {
+                    removeDialog();
+                    p.sleep();
+                    refreshTime();
+                    DelveDay d = DelveDay.today();
+                    openInfo("Day " + d.dayNumber, "A new day. Today's dungeon draws from " + d.themeName()
+                            + " (" + d.eraYear() + " era).");
+                }, this::removeDialog));
+    }
+
+    private com.github.tommyettinger.textra.TextraLabel timeLabel;
+
+    /** Header text and town lighting for the time of day. */
+    private void refreshTime() {
+        DelveProfile p = DelveProfile.get();
+        String when = p.isEvening() ? "Evening" : "Morning";
+        String hint = !p.isEvening() ? "the dungeon awaits"
+                : !p.castleToday() ? "the Castle tournament is open" : "time to rest at Your House";
+        if (timeLabel == null) {
+            timeLabel = forge.adventure.util.Controls.newTextraLabel("");
+            timeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
+            timeLabel.setBounds(90, 270 - 8 - 16, 300, 16);
+            ui.addActor(timeLabel);
+        }
+        timeLabel.setText("[%90]Day " + p.day() + "  -  " + when + ":  [GOLD]" + hint);
+        timeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
+        com.badlogic.gdx.scenes.scene2d.Actor bg = ui.findActor("bg");
+        if (bg instanceof com.badlogic.gdx.scenes.scene2d.ui.Image) { // daylight town in the morning, night in the evening
+            com.badlogic.gdx.graphics.Texture tex = Forge.getAssets().getTexture(forge.adventure.util.Config.instance()
+                    .getFile(p.isEvening() ? "ui/delve/town_bg.png" : "ui/delve/town_bg_day.png"), true, false);
+            ((com.badlogic.gdx.scenes.scene2d.ui.Image) bg).setDrawable(
+                    new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(tex)));
+        }
     }
 
     private void openHouse() {
         DelveProfile p = DelveProfile.get();
         StringBuilder sb = new StringBuilder();
-        sb.append("Gold: ").append(p.gold()).append("    Castle titles: ").append(p.castleTitles()).append("\n");
-        sb.append("Collection: ").append(p.collection().countAll()).append(" cards (")
-                .append(p.collection().countDistinct()).append(" different)\n\n");
-        if (p.lockedDecks().isEmpty()) {
-            sb.append("Locked Decks: none yet. Clear a dungeon and choose to lock your deck.");
-        } else {
-            sb.append("Locked Decks:");
-            for (forge.deck.Deck d : p.lockedDecks())
-                sb.append("\n  ").append(d.getName()).append(" (").append(d.getMain().countAll()).append(" cards)");
-        }
+        sb.append("Day ").append(p.day()).append(p.isEvening() ? " (evening)" : " (morning)")
+                .append("    Gold ").append(p.gold()).append("    Castle titles ").append(p.castleTitles()).append("\n");
+        sb.append("Collection ").append(p.collection().countAll()).append(" cards (")
+                .append(p.collection().countDistinct()).append(" different)    Locked Decks ")
+                .append(p.lockedDecks().size());
         houseMenu(sb.toString());
     }
 
@@ -147,6 +223,7 @@ public class DelveHubScene extends UIScene {
                 action.run();
             })).width(220f).pad(2f);
         };
+        add.accept("[GOLD]Sleep until tomorrow", this::sleep);
         add.accept("Build a deck", this::chooseDeckToEdit);
         add.accept("View collection", this::viewCollection);
         add.accept("Change character", () -> DelveCharacterScene.instance().open(() -> Forge.switchScene(this)));
@@ -222,6 +299,8 @@ public class DelveHubScene extends UIScene {
 
     @Override
     public void enter() {
+        DelveDevExport.maybeExport();
+        refreshTime();
         super.enter();
         showPending();
     }

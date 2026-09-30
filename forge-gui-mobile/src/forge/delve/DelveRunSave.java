@@ -9,7 +9,6 @@ import forge.model.FModel;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -45,7 +44,7 @@ public final class DelveRunSave {
         if (run == null) return;
         try {
             Properties p = new Properties();
-            p.setProperty("date", run.day.date.toString());
+            p.setProperty("day", Integer.toString(run.day.dayNumber));
             p.setProperty("seed", Long.toString(run.seed));
             p.setProperty("size", run.size.name());
             p.setProperty("life", Integer.toString(run.life));
@@ -86,7 +85,7 @@ public final class DelveRunSave {
             Deck deck = DeckSerializer.fromFile(deckFile());
             if (deck == null) return null;
             deck.setName(p.getProperty("deckName", deck.getName()));
-            DelveDay day = DelveDay.forDate(LocalDate.parse(p.getProperty("date")));
+            DelveDay day = DelveDay.forDay(Integer.parseInt(p.getProperty("day", "1")));
             DelveRun run = DelveRun.restore(day, deck, Long.parseLong(p.getProperty("seed")),
                     DelveRun.Size.valueOf(p.getProperty("size", "STANDARD")));
             run.life = Integer.parseInt(p.getProperty("life", "20"));

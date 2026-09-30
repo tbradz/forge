@@ -84,6 +84,7 @@ public class DelveRun {
 
     public static DelveRun start(DelveDay day, Deck starter, Size size) {
         current = new DelveRun(day, starter, day.seed ^ System.nanoTime(), size);
+        DelveProfile.get().markDelved();
         DelveRunSave.save(current);
         return current;
     }
