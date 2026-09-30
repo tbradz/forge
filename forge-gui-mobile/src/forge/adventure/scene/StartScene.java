@@ -44,6 +44,7 @@ public class StartScene extends UIScene {
         ui.onButtonPress("Backup", StartScene.this::backup);
         ui.onButtonPress("Exit", StartScene.this::Exit);
         ui.onButtonPress("Switch", StartScene.this::switchToClassic);
+        ui.onButtonPress("Delve", StartScene.this::delve);
 
 
         saveButton = ui.findActor("Save");
@@ -119,6 +120,11 @@ public class StartScene extends UIScene {
             }
         }
 
+        return true;
+    }
+
+    public boolean delve() {
+        Forge.switchScene(forge.delve.DelveHubScene.instance());
         return true;
     }
 

@@ -1,0 +1,94 @@
+{
+  "width": 480,
+  "height": 270,
+  "yDown": true,
+  "elements": [
+    {
+      "type": "Image",
+      "image": "ui/title_bg.png",
+      "width": 480,
+      "height": 270
+    },
+    {
+      "type": "Label",
+      "name": "title",
+      "text": "Delve - Town Square",
+      "font": "default",
+      "width": 300,
+      "height": 30,
+      "x": 90,
+      "y": 20
+    },
+    {
+      "type": "TextButton",
+      "name": "house",
+      "text": "Your House",
+      "selectable": true,
+      "width": 140,
+      "height": 30,
+      "x": 90,
+      "y": 70
+    },
+    {
+      "type": "TextButton",
+      "name": "dungeon",
+      "text": "Dungeon Gate",
+      "selectable": true,
+      "width": 140,
+      "height": 30,
+      "x": 250,
+      "y": 70
+    },
+    {
+      "type": "TextButton",
+      "name": "shop",
+      "text": "Card Shop",
+      "selectable": true,
+      "width": 140,
+      "height": 30,
+      "x": 90,
+      "y": 110
+    },
+    {
+      "type": "TextButton",
+      "name": "tavern",
+      "text": "Tavern",
+      "selectable": true,
+      "width": 140,
+      "height": 30,
+      "x": 250,
+      "y": 110
+    },
+    {
+      "type": "TextButton",
+      "name": "outfitter",
+      "text": "Outfitter",
+      "selectable": true,
+      "width": 140,
+      "height": 30,
+      "x": 90,
+      "y": 150
+    },
+    {
+      "type": "TextButton",
+      "name": "castle",
+      "text": "Castle",
+      "selectable": true,
+      "width": 140,
+      "height": 30,
+      "x": 250,
+      "y": 150
+    },
+    {
+      "type": "TextButton",
+      "name": "leave",
+      "text": "Back",
+      "binding": "Back",
+      "selectable": true,
+      "width": 100,
+      "height": 30,
+      "x": 190,
+      "y": 210
+    }
+  ]
+}
