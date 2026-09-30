@@ -61,6 +61,12 @@ public final class DelveEconomy {
         }
     }
 
+    // ---- Castle tournaments ------------------------------------------------------
+    public static final int CASTLE_ENTRY = 25;
+    public static final int CASTLE_SEMIFINAL = 30;   // lost in the semifinal
+    public static final int CASTLE_FINALIST = 75;    // lost in the final
+    public static final int CASTLE_CHAMPION = 150;   // plus a booster of today's set
+
     public static int sellPrice(PaperCard pc) {
         if (pc.getRules().getType().isBasicLand()) return 1;
         switch (pc.getRarity()) {

@@ -45,8 +45,7 @@ public class DelveHubScene extends UIScene {
                 "Talk to locals, pick up rumors, and play casual games to test decks.", 2);
         building("b_outfitter", "Outfitter",
                 "Sleeves, playmats, dice, and other cosmetics.", 3);
-        building("b_castle", "Castle",
-                "1v1 and Commander tournaments for your saved and Locked Decks.", 3);
+        building("b_castle", "Castle", () -> Forge.switchScene(DelveCastleScene.instance()));
 
         ui.addActor(nameplate); // on top of the buildings
         ui.onButtonPress("leave", this::returnToStart);
@@ -124,7 +123,7 @@ public class DelveHubScene extends UIScene {
     private void openHouse() {
         DelveProfile p = DelveProfile.get();
         StringBuilder sb = new StringBuilder();
-        sb.append("Gold: ").append(p.gold()).append("\n");
+        sb.append("Gold: ").append(p.gold()).append("    Castle titles: ").append(p.castleTitles()).append("\n");
         sb.append("Collection: ").append(p.collection().countAll()).append(" cards (")
                 .append(p.collection().countDistinct()).append(" different)\n\n");
         if (p.lockedDecks().isEmpty()) {

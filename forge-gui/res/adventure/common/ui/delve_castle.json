@@ -1,0 +1,9 @@
+{
+  "width": 480,
+  "height": 270,
+  "yDown": true,
+  "elements": [
+    { "type": "Image", "name": "bg", "image": "ui/arena_bg.png", "width": 480, "height": 270 },
+    { "type": "Image", "name": "hud", "image": "ui/delve/hud_bar.png", "width": 480, "height": 26 }
+  ]
+}

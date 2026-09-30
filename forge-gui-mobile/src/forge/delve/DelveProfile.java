@@ -113,6 +113,15 @@ public class DelveProfile {
         return true;
     }
 
+    public int castleTitles() {
+        return Integer.parseInt(stats.getProperty("castleTitles", "0"));
+    }
+
+    public void addCastleTitle() {
+        stats.setProperty("castleTitles", String.valueOf(castleTitles() + 1));
+        saveStats();
+    }
+
     // ---- character --------------------------------------------------------------
 
     public boolean hasCharacter() {

@@ -52,7 +52,11 @@ public class DelveDuelScene extends DuelScene {
     private RegisteredPlayer human;
     private Deck playerDeck;
     private Deck enemyDeck;
-    private DelveRun.Node node;
+    private forge.adventure.data.EnemyData enemy;
+    private int enemyLife;
+    private boolean boss;
+    private int gamesPerMatch = 1;
+    private String returnLabel = "Back to the Dungeon";
     private int startingLife;
     private BiConsumer<Boolean, Integer> onFinished; // (won, lifeRemaining)
     private boolean finished;
@@ -64,16 +68,34 @@ public class DelveDuelScene extends DuelScene {
         return object;
     }
 
-    /** Prepare a duel. Call before Forge.switchScene(DelveDuelScene.instance()). */
+    /** Prepare a dungeon duel. Call before Forge.switchScene(DelveDuelScene.instance()). */
     public void setup(DelveRun run, DelveRun.Node node, BiConsumer<Boolean, Integer> onFinished) {
-        this.node = node;
-        this.playerDeck = (Deck) run.deck.copyTo("Delve Run Deck");
-        this.startingLife = run.life;
-        this.onFinished = onFinished;
-        this.enemyDeck = node.enemy.generateDeck(false, false);
+        Deck enemyDeck = node.enemy.generateDeck(false, false);
         if (enemyDeck == null)
             enemyDeck = (Deck) run.deck.copyTo("Mirror"); // missing deck data: mirror match
+        setup(run.deck, run.life, node.enemy, enemyDeck, node.enemyLife, 1,
+                node.type == DelveRun.NodeType.BOSS, onFinished);
+    }
+
+    /**
+     * Prepare any duel (dungeon fight or Castle match).
+     *
+     * @param enemy        supplies the opponent's name and portrait
+     * @param games        games per match (Castle matches are best of 3)
+     * @param onFinished   (won, human life at the end)
+     */
+    public void setup(Deck playerDeck, int playerLife, forge.adventure.data.EnemyData enemy, Deck enemyDeck,
+                      int enemyLife, int games, boolean boss, BiConsumer<Boolean, Integer> onFinished) {
+        this.playerDeck = (Deck) playerDeck.copyTo("Delve Deck");
+        this.startingLife = playerLife;
+        this.enemy = enemy;
+        this.enemyDeck = enemyDeck;
+        this.enemyLife = enemyLife;
+        this.gamesPerMatch = games;
+        this.boss = boss;
+        this.onFinished = onFinished;
         this.finished = false;
+        this.returnLabel = games > 1 ? "Back to the Castle" : "Back to the Dungeon";
         DuelScene.setOverride(this);
     }
 
@@ -103,9 +125,9 @@ public class DelveDuelScene extends DuelScene {
         human.setStartingLife(startingLife);
 
         RegisteredPlayer ai = RegisteredPlayer.forVariants(2, variants, enemyDeck, null, false, null, null);
-        LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(node.enemy.getName(), "");
+        LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(enemy.getName(), "");
         try {
-            TextureRegion avatar = new EnemySprite(node.enemy).getAvatar();
+            TextureRegion avatar = new EnemySprite(enemy).getAvatar();
             if (avatar != null) {
                 avatar = new TextureRegion(avatar);
                 avatar.flip(true, false);
@@ -118,7 +140,7 @@ public class DelveDuelScene extends DuelScene {
         }
         ai.setPlayer(aiLobby);
         ai.setTeamNumber(1);
-        ai.setStartingLife(node.enemyLife);
+        ai.setStartingLife(enemyLife);
 
         List<RegisteredPlayer> players = new ArrayList<>();
         players.add(ai);
@@ -128,14 +150,14 @@ public class DelveDuelScene extends DuelScene {
         guiMap.put(human, MatchController.instance);
 
         GameRules rules = new GameRules(GameType.Adventure);
-        rules.setGamesPerMatch(1);
+        rules.setGamesPerMatch(gamesPerMatch);
         rules.setPlayForAnte(false);
         rules.setManaBurn(false);
         rules.setWarnAboutAICards(false);
 
         match = MatchController.hostMatch();
         match.startMatch(rules, variants, players, guiMap,
-                node.type == DelveRun.NodeType.BOSS ? MusicPlaylist.BOSS : MusicPlaylist.MATCH);
+                boss ? MusicPlaylist.BOSS : MusicPlaylist.MATCH);
         MatchController.instance.setGameView(match.getGameView());
         for (Player p : match.getGame().getPlayers()) {
             if (p.getController() instanceof PlayerControllerHuman) {
@@ -186,12 +208,12 @@ public class DelveDuelScene extends DuelScene {
 
     @Override
     public String returnButtonLabel() {
-        return "Back to the Dungeon";
+        return returnLabel;
     }
 
     @Override
     public forge.assets.FSkinTexture matchBackground() {
-        return node != null && node.type == DelveRun.NodeType.BOSS
+        return boss
                 ? forge.assets.FSkinTexture.ADV_BG_CASTLE : forge.assets.FSkinTexture.ADV_BG_DUNGEON;
     }
 
