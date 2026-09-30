@@ -135,21 +135,69 @@ public class DelveHubScene extends UIScene {
             for (forge.deck.Deck d : p.lockedDecks())
                 sb.append("\n  ").append(d.getName()).append(" (").append(d.getMain().countAll()).append(" cards)");
         }
-        showDialog(createGenericDialog("Your House", sb.toString(), "View collection", "Change character",
-                () -> {
-                    removeDialog();
-                    java.util.List<forge.item.PaperCard> cards = new java.util.ArrayList<>(p.collection().toFlatList());
-                    java.util.List<forge.item.PaperCard> unique = new java.util.ArrayList<>();
-                    for (forge.item.PaperCard pc : cards) if (!unique.contains(pc)) unique.add(pc);
-                    unique.sort(java.util.Comparator.comparing(forge.item.PaperCard::getName));
-                    if (unique.size() > 40) unique = unique.subList(0, 40);
-                    if (unique.isEmpty()) return;
-                    DelvePickScene.instance().show("Your collection", unique, 0, 0, "Back",
-                            x -> Forge.switchScene(this));
-                }, () -> {
-                    removeDialog();
-                    DelveCharacterScene.instance().open(() -> Forge.switchScene(this));
-                }, true, "Close"));
+        houseMenu(sb.toString());
+    }
+
+    private void houseMenu(String summary) {
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d =
+                new com.badlogic.gdx.scenes.scene2d.ui.Dialog("Your House", forge.adventure.util.Controls.getSkin());
+        d.getContentTable().add(forge.adventure.util.Controls.newTextraLabel(summary));
+        java.util.function.BiConsumer<String, Runnable> add = (text, action) -> {
+            d.getButtonTable().row();
+            d.getButtonTable().add(forge.adventure.util.Controls.newTextButton(text, () -> {
+                removeDialog();
+                action.run();
+            })).width(220f).pad(2f);
+        };
+        add.accept("Build a deck", this::chooseDeckToEdit);
+        add.accept("View collection", this::viewCollection);
+        add.accept("Change character", () -> DelveCharacterScene.instance().open(() -> Forge.switchScene(this)));
+        add.accept("Close", () -> { });
+        showDialog(d);
+    }
+
+    private void chooseDeckToEdit() {
+        if (DelveProfile.get().collection().isEmpty()) {
+            openInfo("Build a deck", "Your collection is empty. Keep cards at the end of a dungeon run first.");
+            return;
+        }
+        java.util.List<forge.deck.Deck> decks = DelveDeckEditScene.deckList();
+        if (decks.isEmpty()) {
+            DelveDeckEditScene.instance().open(null);
+            return;
+        }
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d =
+                new com.badlogic.gdx.scenes.scene2d.ui.Dialog("Your decks", forge.adventure.util.Controls.getSkin());
+        d.getContentTable().add(forge.adventure.util.Controls.newTextraLabel("Edit a deck or start a new one."));
+        for (forge.deck.Deck deck : decks) {
+            d.getButtonTable().row();
+            d.getButtonTable().add(forge.adventure.util.Controls.newTextButton(deck.getName() + " (" + deck.getMain().countAll() + ")", () -> {
+                removeDialog();
+                DelveDeckEditScene.instance().open(deck);
+            })).width(240f).pad(2f);
+        }
+        d.getButtonTable().row();
+        d.getButtonTable().add(forge.adventure.util.Controls.newTextButton("[GOLD]New deck", () -> {
+            removeDialog();
+            DelveDeckEditScene.instance().open(null);
+        })).width(240f).pad(2f);
+        d.getButtonTable().row();
+        d.getButtonTable().add(forge.adventure.util.Controls.newTextButton("Cancel", this::removeDialog)).width(240f).pad(2f);
+        showDialog(d);
+    }
+
+    private void viewCollection() {
+        DelveProfile p = DelveProfile.get();
+        java.util.List<forge.item.PaperCard> unique = new java.util.ArrayList<>();
+        for (forge.item.PaperCard pc : p.collection().toFlatList()) if (!unique.contains(pc)) unique.add(pc);
+        unique.sort(java.util.Comparator.comparing(forge.item.PaperCard::getName));
+        if (unique.size() > 40) unique = unique.subList(0, 40);
+        if (unique.isEmpty()) {
+            openInfo("Your collection", "Empty so far. Keep cards at the end of a dungeon run.");
+            return;
+        }
+        DelvePickScene.instance().show("Your collection" + (p.collection().countDistinct() > 40 ? " (first 40)" : ""),
+                unique, 0, 0, "Back", x -> Forge.switchScene(this));
     }
 
     private String pendingTitle, pendingText;
