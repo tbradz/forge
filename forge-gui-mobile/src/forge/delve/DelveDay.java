@@ -307,6 +307,139 @@ public class DelveDay {
         return false;
     }
 
+    // ---- Commander decks ----------------------------------------------------------
+
+    private final java.util.Map<String, Deck> commanderDecks = new java.util.HashMap<>();
+
+    /** Legendary creatures from this era that can lead a deck, 1-2 colors. */
+    private List<PaperCard> eraCommanders(boolean forAI) {
+        loadEraPool();
+        List<PaperCard> out = new ArrayList<>();
+        for (List<PaperCard> src : List.of(eraRares, eraUncommons, eraCommons))
+            for (PaperCard pc : src) {
+                if (!pc.getRules().canBeCommander() || !pc.getRules().getType().isCreature()) continue;
+                int n = pc.getRules().getColorIdentity().countColors();
+                if (n < 1 || n > 2) continue;
+                if (forAI && pc.getRules().getAiHints().getRemAIDecks()) continue;
+                out.add(pc);
+            }
+        out.sort(Comparator.comparing(PaperCard::getName));
+        return out;
+    }
+
+    /** Today's three borrowable Commander decks (same for everyone on a given day). */
+    public List<Deck> loanerCommanders() {
+        List<Deck> out = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            Deck d = commanderDeck("loaner" + i, null, false, i);
+            if (d != null) out.add(d);
+        }
+        return out;
+    }
+
+    /** A Commander deck for a Castle pod opponent, led by a legend in (or near) the enemy's colors. */
+    public Deck enemyCommanderDeck(EnemyData enemy) {
+        Deck d = commanderDeck("pod|" + enemy.getName(), enemyColors(enemy, new Random(seed ^ enemy.getName().hashCode())),
+                true, 0);
+        if (d != null) d.setName(enemy.getName());
+        return d;
+    }
+
+    /**
+     * 100-card singleton Commander deck from this era's cards: a legendary creature,
+     * 62 spells in its color identity (about 30 creatures on a curve) and 37 basics.
+     *
+     * @param preferred colors to look for in a commander first (null = any)
+     * @param variant   distinguishes decks that would otherwise share a seed
+     */
+    Deck commanderDeck(String key, ColorSet preferred, boolean forAI, int variant) {
+        String cacheKey = key + "|" + forAI;
+        Deck cached = commanderDecks.get(cacheKey);
+        if (cached != null) return cached;
+        Random rng = new Random(seed ^ cacheKey.hashCode() ^ (variant * 7919L));
+        List<PaperCard> legends = eraCommanders(forAI);
+        if (legends.isEmpty()) return null;
+        Collections.shuffle(legends, rng);
+        PaperCard commander = legends.get(0);
+        if (preferred != null) {
+            for (PaperCard pc : legends) { // exact colors first, then a subset
+                if (pc.getRules().getColorIdentity().getColor() == preferred.getColor()) { commander = pc; break; }
+            }
+            if (commander.getRules().getColorIdentity().getColor() != preferred.getColor())
+                for (PaperCard pc : legends)
+                    if (preferred.containsAllColorsFrom(pc.getRules().getColorIdentity().getColor())) { commander = pc; break; }
+            if ((commander.getRules().getColorIdentity().getColor() & preferred.getColor()) == 0)
+                for (PaperCard pc : legends) // at least share a color
+                    if ((pc.getRules().getColorIdentity().getColor() & preferred.getColor()) != 0) { commander = pc; break; }
+        }
+        final ColorSet identity = commander.getRules().getColorIdentity();
+        final String commanderName = commander.getName();
+        java.util.function.Predicate<PaperCard> fits = pc -> {
+            if (pc.getRules().getType().isLand() || pc.getName().equals(commanderName)) return false;
+            int cmc = pc.getRules().getManaCost().getCMC();
+            if (cmc > 8) return false;
+            if (!identity.containsAllColorsFrom(pc.getRules().getColorIdentity().getColor())) return false;
+            return !forAI || !pc.getRules().getAiHints().getRemAIDecks();
+        };
+        List<List<PaperCard>> byRarity = new ArrayList<>();
+        for (List<PaperCard> src : List.of(eraRares, eraUncommons, eraCommons)) {
+            List<PaperCard> l = new ArrayList<>();
+            for (PaperCard pc : src) if (fits.test(pc)) l.add(pc);
+            Collections.shuffle(l, rng);
+            byRarity.add(l);
+        }
+        int[] quota = {10, 22, 30}; // rares, uncommons, commons among the 62 spells
+        List<PaperCard> picks = new ArrayList<>();
+        int[][] curve = {{1, 2}, {2, 7}, {3, 7}, {4, 6}, {5, 4}, {6, 4}}; // 30 creatures
+        for (int[] slot : curve)
+            for (int n = 0; n < slot[1]; n++)
+                pickInto(picks, byRarity, quota, pc -> pc.getRules().getType().isCreature()
+                        && (slot[0] == 6 ? pc.getRules().getManaCost().getCMC() >= 6 : pc.getRules().getManaCost().getCMC() == slot[0]));
+        while (picks.size() < 62 && pickInto(picks, byRarity, quota, pc -> !pc.getRules().getType().isCreature())) { }
+        while (picks.size() < 62 && pickInto(picks, byRarity, quota, pc -> true)) { }
+        while (picks.size() < 62 && pickInto(picks, byRarity, new int[]{99, 99, 99}, pc -> true)) { }
+        // de-duplicate by name (singleton) - reprints across era sets share names
+        java.util.Set<String> names = new java.util.HashSet<>();
+        picks.removeIf(pc -> !names.add(pc.getName()));
+
+        Deck deck = new Deck(commanderName);
+        deck.getOrCreate(forge.deck.DeckSection.Commander).add(commander);
+        deck.getMain().add(picks);
+        addBasics(deck, picks, commander, 99 - picks.size());
+        commanderDecks.put(cacheKey, deck);
+        return deck;
+    }
+
+    /** Basics split by colored pips, only in the commander's identity. */
+    private static void addBasics(Deck deck, List<PaperCard> picks, PaperCard commander, int count) {
+        int[] pips = new int[5];
+        List<PaperCard> all = new ArrayList<>(picks);
+        all.add(commander);
+        for (PaperCard pc : all) {
+            int[] c = pc.getRules().getManaCost().getColorShardCounts();
+            for (int i = 0; i < 5; i++) pips[i] += c[i];
+        }
+        ColorSet id = commander.getRules().getColorIdentity();
+        byte[] masks = {forge.card.MagicColor.WHITE, forge.card.MagicColor.BLUE, forge.card.MagicColor.BLACK,
+                forge.card.MagicColor.RED, forge.card.MagicColor.GREEN};
+        String[] basics = {"Plains", "Island", "Swamp", "Mountain", "Forest"};
+        int total = 0;
+        for (int i = 0; i < 5; i++) {
+            if ((id.getColor() & masks[i]) == 0) pips[i] = 0;
+            else if (pips[i] == 0) pips[i] = 1;
+            total += pips[i];
+        }
+        int added = 0, most = 0;
+        for (int i = 0; i < 5; i++) {
+            if (pips[i] > pips[most]) most = i;
+            int n = total == 0 ? 0 : Math.round(count * pips[i] / (float) total);
+            for (int k = 0; k < n && added < count; k++, added++)
+                deck.getMain().add(FModel.getMagicDb().getCommonCards().getCard(basics[i]));
+        }
+        String fill = total == 0 ? "Wastes" : basics[most];
+        while (added++ < count) deck.getMain().add(FModel.getMagicDb().getCommonCards().getCard(fill));
+    }
+
     // ---- town Card Shop stock ----------------------------------------------------
 
     private List<PaperCard> shopSingles;

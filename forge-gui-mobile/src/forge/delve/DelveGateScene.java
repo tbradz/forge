@@ -77,7 +77,7 @@ public class DelveGateScene extends DelveScene {
         DelveDay day = DelveDay.today();
         Deck deck = day.loadStarter(guild);
         choose(guild + " starter", "Today's " + guild + " starter: " + deck.getMain().countAll()
-                        + " cards, mostly commons from recent sets. A new one is built every day.",
+                        + " cards, mostly commons from this era. A new one is built every day.",
                 java.util.List.of("Start with this deck", "View the cards", "Back"),
                 null,
                 java.util.List.of(() -> begin(deck), () -> viewStarter(guild, deck), () -> { }));

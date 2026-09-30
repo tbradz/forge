@@ -31,6 +31,18 @@ public class DelveCastleScene extends DelveScene {
         Tournament(Deck deck) { this.deck = deck; }
     }
 
+    /** A Commander pod in progress: the player and three opponents, one free-for-all game. */
+    private static class Pod {
+        final Deck deck;
+        final boolean loaner;
+        final List<EnemyData> foes = new ArrayList<>();
+        final List<Deck> decks = new ArrayList<>();
+        boolean over = false;
+        Pod(Deck deck, boolean loaner) { this.deck = deck; this.loaner = loaner; }
+    }
+
+    private Pod pod;
+
     private static final String[] ROUND_NAMES = {"Quarterfinal", "Semifinal", "Final"};
     private Tournament t;
 
@@ -57,33 +69,168 @@ public class DelveCastleScene extends DelveScene {
     private void build() {
         clearScreen();
         DelveProfile prof = DelveProfile.get();
-        label("[%90][GOLD]Castle Tournament", 8, 5, 220, 16, Align.left);
+        label("[%90][GOLD]The Castle", 8, 5, 220, 16, Align.left);
         label("[%90][GOLD]Gold[] " + prof.gold() + "    Titles " + prof.castleTitles(), 240, 5, 232, 16, Align.right);
-        if (t == null) buildLobby();
+        if (pod != null) buildPod();
+        else if (t == null) buildLobby();
         else buildBracket();
     }
 
     // ---- lobby -----------------------------------------------------------------
 
+    /** Text markup size resets at line breaks, so apply it to every line. */
+    private static String sized(String pct, String text) {
+        return pct + text.replace("[]", "[WHITE]").replace("\n", "\n" + pct);
+    }
+
     private void buildLobby() {
-        image("ui/delve/panel.png", 60, 40, 360, 180);
-        label("[%130]1v1 Tournament", 60, 50, 360, 22, Align.center);
-        label("One tournament each evening. Eight duelists, single elimination, best of three.\n"
-                        + "Bring a deck you built in Your House or a Locked Deck (40+ cards).\n\n"
-                        + "Entry: [GOLD]" + DelveEconomy.CASTLE_ENTRY + " gold[]\n"
-                        + "Champion: [GOLD]" + DelveEconomy.CASTLE_CHAMPION + " gold[] + a booster\n"
-                        + "Finalist: [GOLD]" + DelveEconomy.CASTLE_FINALIST + " gold[]    Semifinalist: [GOLD]"
-                        + DelveEconomy.CASTLE_SEMIFINAL + " gold[]",
-                76, 78, 328, 110, Align.center);
         DelveProfile prof = DelveProfile.get();
-        if (prof.castleToday()) {
-            label("[%80][GOLD]You've competed tonight. Sleep at Your House for tomorrow's tournament.",
-                    70, 194, 340, 20, Align.center);
-        } else {
-            button("[GOLD]Enter tonight's tournament", 140, 192, 200, 22, this::chooseDeck)
+        boolean done = prof.castleToday();
+        // left: 1v1 bracket
+        image("ui/delve/panel.png", 12, 30, 224, 200);
+        label("[%120]1v1 Tournament", 12, 38, 224, 20, Align.center);
+        label(sized("[%80]", "Eight duelists, single elimination, best of three. "
+                        + "Bring a deck from Your House or a Locked Deck (40+ cards).\n\n"
+                        + "Entry [GOLD]" + DelveEconomy.CASTLE_ENTRY + "g[]\n"
+                        + "Champion [GOLD]" + DelveEconomy.CASTLE_CHAMPION + "g[] + booster\n"
+                        + "Finalist [GOLD]" + DelveEconomy.CASTLE_FINALIST + "g[]   Semifinal [GOLD]"
+                        + DelveEconomy.CASTLE_SEMIFINAL + "g[]"),
+                24, 62, 200, 130, Align.center);
+        if (!done)
+            button("[GOLD]Enter the tournament", 34, 200, 180, 22, this::chooseDeck)
                     .setDisabled(prof.gold() < DelveEconomy.CASTLE_ENTRY);
+        // right: Commander pod
+        image("ui/delve/panel.png", 244, 30, 224, 200);
+        label("[%120]Commander Pod", 244, 38, 224, 20, Align.center);
+        label(sized("[%80]", "Four players, one game, everyone for themselves. 40 life, commanders in the command zone. "
+                        + "Bring a Commander deck from Your House, or borrow one of tonight's house decks.\n\n"
+                        + "Entry [GOLD]" + DelveEconomy.POD_ENTRY + "g[]\n"
+                        + "Last one standing [GOLD]" + DelveEconomy.POD_WIN + "g[] + booster"),
+                256, 62, 200, 130, Align.center);
+        if (!done)
+            button("[GOLD]Join a pod", 266, 200, 180, 22, this::choosePodDeck)
+                    .setDisabled(prof.gold() < DelveEconomy.POD_ENTRY);
+        if (done)
+            label("[%80][GOLD]You've competed tonight. Sleep at Your House for tomorrow's events.",
+                    40, 236, 400, 14, Align.center);
+        button("Leave", 190, 250, 100, 18, () -> Forge.switchScene(DelveHubScene.instance()));
+    }
+
+    // ---- Commander pod ------------------------------------------------------------
+
+    private void choosePodDeck() {
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        for (Deck d : DelveDeckEditScene.legalCommanderDecks()) {
+            labels.add(d.getName() + " (" + commanderName(d) + ")");
+            actions.add(() -> startPod(d, false));
         }
-        button("Leave", 190, 240, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+        labels.add("[GOLD]Borrow a house deck");
+        actions.add(this::chooseLoaner);
+        labels.add("Cancel");
+        actions.add(() -> { });
+        String note = DelveDeckEditScene.commanderDecks().iterator().hasNext() && DelveDeckEditScene.legalCommanderDecks().isEmpty()
+                ? "None of your Commander decks are legal yet (100 cards, singleton, a commander). " : "";
+        choose("Choose your deck", note + "Entry costs " + DelveEconomy.POD_ENTRY + " gold.", labels, null, actions);
+    }
+
+    private static String commanderName(Deck d) {
+        List<PaperCard> c = d.getCommanders();
+        return c.isEmpty() ? "no commander" : c.get(0).getName();
+    }
+
+    private void chooseLoaner() {
+        List<Deck> loaners = DelveDay.today().loanerCommanders();
+        if (loaners.isEmpty()) {
+            info("No house decks", "There are no legendary creatures in this era to lead a deck. Try another day.", null);
+            return;
+        }
+        List<PaperCard> commanders = new ArrayList<>();
+        for (Deck d : loaners) commanders.add(d.getCommanders().get(0));
+        DelvePickScene.instance().show("Borrow a house deck: choose its commander", commanders, 0, 1, "Back",
+                pc -> "Borrow", chosen -> {
+            Forge.switchScene(this);
+            if (chosen.isEmpty()) return;
+            for (Deck d : loaners)
+                if (d.getCommanders().get(0).equals(chosen.get(0))) startPod(d, true);
+        });
+    }
+
+    private void startPod(Deck deck, boolean loaner) {
+        if (!DelveProfile.get().spendGold(DelveEconomy.POD_ENTRY)) return;
+        DelveProfile.get().markCastle();
+        pod = new Pod(deck, loaner);
+        DelveDay day = DelveDay.today();
+        List<EnemyData> pool = new ArrayList<>(day.eliteEnemies);
+        pool.addAll(day.bossEnemies);
+        if (pool.size() < 3) pool.addAll(day.weakEnemies);
+        Collections.shuffle(pool, new Random());
+        for (EnemyData e : pool) {
+            if (pod.foes.size() >= 3) break;
+            boolean dup = false;
+            for (EnemyData f : pod.foes) dup |= f.getName().equals(e.getName());
+            if (dup) continue;
+            Deck d = day.enemyCommanderDeck(e);
+            if (d == null) continue;
+            pod.foes.add(e);
+            pod.decks.add(d);
+        }
+        build();
+    }
+
+    private void buildPod() {
+        image("ui/delve/panel.png", 40, 32, 400, 196);
+        label("[%110]Tonight's pod", 40, 40, 400, 18, Align.center);
+        String[] names = new String[4], cmds = new String[4];
+        names[0] = "You";
+        cmds[0] = commanderName(pod.deck) + (pod.loaner ? " (borrowed)" : "");
+        for (int i = 0; i < pod.foes.size(); i++) {
+            names[i + 1] = pod.foes.get(i).getName();
+            cmds[i + 1] = commanderName(pod.decks.get(i));
+        }
+        for (int i = 0; i < 4 && names[i] != null; i++) {
+            float x = i % 2 == 0 ? 60 : 250, y = i < 2 ? 70 : 140;
+            label("[%90]" + (i == 0 ? "[GOLD]" : "") + shorten(names[i]), x, y, 170, 16, Align.left);
+            label("[%70]" + cmds[i], x, y + 18, 170, 30, Align.left);
+        }
+        if (!pod.over) {
+            List<PaperCard> commanders = new ArrayList<>();
+            for (Deck d : pod.decks) commanders.addAll(d.getCommanders());
+            button("View their commanders", 60, 200, 150, 20, () -> DelvePickScene.instance().show(
+                    "Your opponents' commanders", commanders, 0, 0, "Back", x -> Forge.switchScene(this)));
+            button("[GOLD]Begin the game", 220, 200, 120, 20, this::playPod);
+            button("Forfeit", 350, 200, 70, 20, () -> confirm("Forfeit", "Leave the pod? Your entry fee is lost.",
+                    () -> finishPod(false)));
+        }
+    }
+
+    private void playPod() {
+        DelveDuelScene.instance().setupCommander(pod.deck, pod.foes, pod.decks, (won, life) -> {
+            Forge.switchScene(this);
+            finishPod(won);
+        });
+        Forge.switchScene(DelveDuelScene.instance());
+    }
+
+    private void finishPod(boolean won) {
+        DelveProfile prof = DelveProfile.get();
+        String msg;
+        if (won) {
+            prof.addGold(DelveEconomy.POD_WIN);
+            prof.addCastleTitle();
+            List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, new Random());
+            prof.addToCollection(pack);
+            msg = "Last one standing! +" + DelveEconomy.POD_WIN + " gold and a " + DelveDay.today().themeName()
+                    + " booster (added to your collection).";
+        } else {
+            msg = "You were knocked out of the pod. Better luck next time.";
+        }
+        pod.over = true;
+        build();
+        info("Pod over", msg, () -> {
+            pod = null;
+            build();
+        });
     }
 
     private List<Deck> eligibleDecks() {

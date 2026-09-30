@@ -68,6 +68,11 @@ public class DuelScene extends ForgeScene {
     // existing end-of-match hooks (MatchController, AdventureWinLose) route to it.
     private static DuelScene override;
 
+    /** True while another scene (e.g. Delve) is hosting the match. */
+    public static boolean hasOverride() {
+        return override != null;
+    }
+
     public static void setOverride(DuelScene scene) {
         override = scene;
     }

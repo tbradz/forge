@@ -28,9 +28,8 @@ import java.util.List;
  */
 public class DelveDeckEditScene extends ForgeScene {
     private static DelveDeckEditScene object;
-    private static IStorage<Deck> storage;
-    private static FDeckEditor.FileDeckController<Deck> controller;
-    private static FDeckEditor.DeckEditorConfig config;
+    private static IStorage<Deck> storage, commanderStorage;
+    private static FDeckEditor.DeckEditorConfig config, commanderConfig;
 
     private FScreen screen;
 
@@ -51,6 +50,25 @@ public class DelveDeckEditScene extends ForgeScene {
         return storage;
     }
 
+    /** The player's Commander decks: 100-card singleton, a legendary creature in the Commander section. */
+    public static IStorage<Deck> commanderDecks() {
+        if (commanderStorage == null) {
+            File dir = new File(ForgeProfileProperties.getUserDir(), "delve" + File.separator + "commander");
+            dir.mkdirs();
+            commanderStorage = new StorageImmediatelySerialized<>("Delve commander decks",
+                    new DeckStorage(dir, new File(ForgeProfileProperties.getUserDir(), "delve").getPath()), true);
+        }
+        return commanderStorage;
+    }
+
+    /** Commander decks that pass Forge's Commander deck rules. */
+    public static List<Deck> legalCommanderDecks() {
+        List<Deck> out = new ArrayList<>();
+        for (Deck d : commanderDecks())
+            if (forge.deck.DeckFormat.Commander.getDeckConformanceProblem(d) == null) out.add(d);
+        return out;
+    }
+
     public static List<Deck> deckList() {
         List<Deck> out = new ArrayList<>();
         for (Deck d : decks()) out.add(d);
@@ -59,7 +77,7 @@ public class DelveDeckEditScene extends ForgeScene {
 
     private static FDeckEditor.DeckEditorConfig config() {
         if (config == null) {
-            controller = new FDeckEditor.FileDeckController<Deck>(decks(), Deck::new, null) { };
+            FDeckEditor.FileDeckController<Deck> controller = new FDeckEditor.FileDeckController<Deck>(decks(), Deck::new, null) { };
             config = new FDeckEditor.GameTypeDeckEditorConfig(GameType.Quest, controller)
                     .setCatalogConfig(ItemManagerConfig.SEALED_POOL)
                     .setMainSectionConfig(ItemManagerConfig.DECK_EDITOR)
@@ -68,6 +86,26 @@ public class DelveDeckEditScene extends ForgeScene {
                     .setBasicLandSetFunction(d -> basicLandSets());
         }
         return config;
+    }
+
+    private static FDeckEditor.DeckEditorConfig commanderConfig() {
+        if (commanderConfig == null) {
+            FDeckEditor.FileDeckController<Deck> controller =
+                    new FDeckEditor.FileDeckController<Deck>(commanderDecks(), Deck::new, null) { };
+            commanderConfig = new FDeckEditor.GameTypeDeckEditorConfig(GameType.Commander, controller)
+                    .setCatalogConfig(ItemManagerConfig.SEALED_POOL)
+                    .setMainSectionConfig(ItemManagerConfig.DECK_EDITOR)
+                    .setSideboardConfig(ItemManagerConfig.DECK_EDITOR)
+                    .setPlayerInventorySupplier(() -> DelveProfile.get().collection())
+                    .setBasicLandSetFunction(d -> basicLandSets());
+        }
+        return commanderConfig;
+    }
+
+    /** Open the Commander deck editor on an existing deck, or a new one if {@code deck} is null. */
+    public void openCommander(Deck deck) {
+        screen = deck == null ? new FDeckEditor(commanderConfig(), (Deck) null) : new FDeckEditor(commanderConfig(), deck);
+        forge.Forge.switchScene(this);
     }
 
     /** Sets offered in the "add basic lands" dialog: today's set if it has basics, plus recent core/expansion sets. */

@@ -143,7 +143,7 @@ public class DelveHubScene extends UIScene {
             return;
         }
         if (!p.isEvening()) {
-            showDialog(createGenericDialog("Castle", "The tournament begins at dusk. Skip today's dungeon run and "
+            showDialog(createGenericDialog("Castle", "The Castle opens at dusk. Skip today's dungeon run and "
                             + "head to the Castle now?", "Go to the Castle", "Not yet",
                     () -> {
                         removeDialog();
@@ -221,40 +221,48 @@ public class DelveHubScene extends UIScene {
             d.getButtonTable().add(forge.adventure.util.Controls.newTextButton(text, () -> {
                 removeDialog();
                 action.run();
-            })).width(220f).pad(2f);
+            })).width(220f).height(20f).pad(1f);
         };
         add.accept("[GOLD]Sleep until tomorrow", this::sleep);
-        add.accept("Build a deck", this::chooseDeckToEdit);
+        add.accept("Build a deck", () -> chooseDeckToEdit(false));
+        add.accept("Build a Commander deck", () -> chooseDeckToEdit(true));
         add.accept("View collection", this::viewCollection);
         add.accept("Change character", () -> DelveCharacterScene.instance().open(() -> Forge.switchScene(this)));
         add.accept("Close", () -> { });
         showDialog(d);
     }
 
-    private void chooseDeckToEdit() {
+    private void chooseDeckToEdit(boolean commander) {
         if (DelveProfile.get().collection().isEmpty()) {
             openInfo("Build a deck", "Your collection is empty. Keep cards at the end of a dungeon run first.");
             return;
         }
-        java.util.List<forge.deck.Deck> decks = DelveDeckEditScene.deckList();
+        java.util.List<forge.deck.Deck> decks = new java.util.ArrayList<>();
+        if (commander) for (forge.deck.Deck x : DelveDeckEditScene.commanderDecks()) decks.add(x);
+        else decks.addAll(DelveDeckEditScene.deckList());
+        java.util.function.Consumer<forge.deck.Deck> edit = x -> {
+            if (commander) DelveDeckEditScene.instance().openCommander(x);
+            else DelveDeckEditScene.instance().open(x);
+        };
         if (decks.isEmpty()) {
-            DelveDeckEditScene.instance().open(null);
+            edit.accept(null);
             return;
         }
         com.badlogic.gdx.scenes.scene2d.ui.Dialog d =
-                new com.badlogic.gdx.scenes.scene2d.ui.Dialog("Your decks", forge.adventure.util.Controls.getSkin());
-        d.getContentTable().add(forge.adventure.util.Controls.newTextraLabel("Edit a deck or start a new one."));
+                new com.badlogic.gdx.scenes.scene2d.ui.Dialog(commander ? "Your Commander decks" : "Your decks", forge.adventure.util.Controls.getSkin());
+        d.getContentTable().add(forge.adventure.util.Controls.newTextraLabel(commander
+                ? "100 cards, one copy of each (except basics), led by a legendary creature.\nPick your commander in the Commander section." : "Edit a deck or start a new one."));
         for (forge.deck.Deck deck : decks) {
             d.getButtonTable().row();
-            d.getButtonTable().add(forge.adventure.util.Controls.newTextButton(deck.getName() + " (" + deck.getMain().countAll() + ")", () -> {
+            d.getButtonTable().add(forge.adventure.util.Controls.newTextButton(deck.getName() + " (" + (deck.getMain().countAll() + (commander ? deck.getCommanders().size() : 0)) + ")", () -> {
                 removeDialog();
-                DelveDeckEditScene.instance().open(deck);
+                edit.accept(deck);
             })).width(240f).pad(2f);
         }
         d.getButtonTable().row();
         d.getButtonTable().add(forge.adventure.util.Controls.newTextButton("[GOLD]New deck", () -> {
             removeDialog();
-            DelveDeckEditScene.instance().open(null);
+            edit.accept(null);
         })).width(240f).pad(2f);
         d.getButtonTable().row();
         d.getButtonTable().add(forge.adventure.util.Controls.newTextButton("Cancel", this::removeDialog)).width(240f).pad(2f);

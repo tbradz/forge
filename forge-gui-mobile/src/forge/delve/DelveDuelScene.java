@@ -51,8 +51,9 @@ public class DelveDuelScene extends DuelScene {
     private HostedMatch match;
     private RegisteredPlayer human;
     private Deck playerDeck;
-    private Deck enemyDeck;
-    private forge.adventure.data.EnemyData enemy;
+    private final List<forge.adventure.data.EnemyData> foes = new ArrayList<>();
+    private final List<Deck> foeDecks = new ArrayList<>();
+    private boolean commander;
     private int enemyLife;
     private boolean boss;
     private int gamesPerMatch = 1;
@@ -86,16 +87,34 @@ public class DelveDuelScene extends DuelScene {
      */
     public void setup(Deck playerDeck, int playerLife, forge.adventure.data.EnemyData enemy, Deck enemyDeck,
                       int enemyLife, int games, boolean boss, BiConsumer<Boolean, Integer> onFinished) {
+        prepare(playerDeck, playerLife, List.of(enemy), List.of(enemyDeck), enemyLife, games, boss, false, onFinished);
+        this.returnLabel = games > 1 ? "Back to the Castle" : "Back to the Dungeon";
+    }
+
+    /**
+     * Prepare a Commander free-for-all: the player against every foe at once,
+     * everyone on 40 life with their commander in the command zone.
+     */
+    public void setupCommander(Deck playerDeck, List<forge.adventure.data.EnemyData> enemies, List<Deck> decks,
+                               BiConsumer<Boolean, Integer> onFinished) {
+        prepare(playerDeck, 40, enemies, decks, 40, 1, true, true, onFinished);
+        this.returnLabel = "Back to the Castle";
+    }
+
+    private void prepare(Deck playerDeck, int playerLife, List<forge.adventure.data.EnemyData> enemies, List<Deck> decks,
+                         int enemyLife, int games, boolean boss, boolean commander, BiConsumer<Boolean, Integer> onFinished) {
         this.playerDeck = (Deck) playerDeck.copyTo("Delve Deck");
         this.startingLife = playerLife;
-        this.enemy = enemy;
-        this.enemyDeck = enemyDeck;
+        this.foes.clear();
+        this.foes.addAll(enemies);
+        this.foeDecks.clear();
+        this.foeDecks.addAll(decks);
         this.enemyLife = enemyLife;
         this.gamesPerMatch = games;
         this.boss = boss;
+        this.commander = commander;
         this.onFinished = onFinished;
         this.finished = false;
-        this.returnLabel = games > 1 ? "Back to the Castle" : "Back to the Dungeon";
         DuelScene.setOverride(this);
     }
 
@@ -103,9 +122,10 @@ public class DelveDuelScene extends DuelScene {
     public void enter() {
         forge.Adventure.getInstance().renderTransitionScreen = false;
         SoundSystem.instance.stopBackgroundMusic();
-        EnumSet<GameType> variants = EnumSet.of(GameType.Adventure);
+        EnumSet<GameType> variants = commander ? EnumSet.of(GameType.Commander) : EnumSet.of(GameType.Adventure);
+        int nPlayers = foes.size() + 1;
 
-        human = RegisteredPlayer.forVariants(2, variants, playerDeck, null, false, null, null);
+        human = RegisteredPlayer.forVariants(nPlayers, variants, playerDeck, null, false, null, null);
         LobbyPlayer me = GamePlayerUtil.getGuiPlayer();
         if (me.getName() == null || me.getName().trim().isEmpty())
             me.setName("You");
@@ -124,32 +144,35 @@ public class DelveDuelScene extends DuelScene {
         human.setTeamNumber(0);
         human.setStartingLife(startingLife);
 
-        RegisteredPlayer ai = RegisteredPlayer.forVariants(2, variants, enemyDeck, null, false, null, null);
-        LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(enemy.getName(), "");
-        try {
-            TextureRegion avatar = new EnemySprite(enemy).getAvatar();
-            if (avatar != null) {
-                avatar = new TextureRegion(avatar);
-                avatar.flip(true, false);
-                FSkin.getAvatars().put(ENEMY_AVATAR_KEY, avatar);
-                aiLobby.setAvatarIndex(ENEMY_AVATAR_KEY);
-            }
-        } catch (Exception e) {
-            // avatar is cosmetic; never block a duel on it
-            e.printStackTrace();
-        }
-        ai.setPlayer(aiLobby);
-        ai.setTeamNumber(1);
-        ai.setStartingLife(enemyLife);
-
         List<RegisteredPlayer> players = new ArrayList<>();
-        players.add(ai);
+        for (int i = 0; i < foes.size(); i++) {
+            forge.adventure.data.EnemyData enemy = foes.get(i);
+            RegisteredPlayer ai = RegisteredPlayer.forVariants(nPlayers, variants, foeDecks.get(i), null, false, null, null);
+            LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(enemy.getName(), "");
+            try {
+                TextureRegion avatar = new EnemySprite(enemy).getAvatar();
+                if (avatar != null) {
+                    avatar = new TextureRegion(avatar);
+                    avatar.flip(true, false);
+                    FSkin.getAvatars().put(ENEMY_AVATAR_KEY + i, avatar);
+                    aiLobby.setAvatarIndex(ENEMY_AVATAR_KEY + i);
+                }
+            } catch (Exception e) {
+                // avatar is cosmetic; never block a duel on it
+                e.printStackTrace();
+            }
+            ai.setPlayer(aiLobby);
+            ai.setTeamNumber(i + 1); // free-for-all: everyone on their own team
+            ai.setStartingLife(enemyLife);
+            players.add(ai);
+        }
         players.add(human);
 
         Map<RegisteredPlayer, IGuiGame> guiMap = new HashMap<>();
         guiMap.put(human, MatchController.instance);
 
-        GameRules rules = new GameRules(GameType.Adventure);
+        GameRules rules = new GameRules(commander ? GameType.Commander : GameType.Adventure);
+        rules.setAppliedVariants(variants);
         rules.setGamesPerMatch(gamesPerMatch);
         rules.setPlayForAnte(false);
         rules.setManaBurn(false);

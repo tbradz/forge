@@ -66,6 +66,8 @@ public final class DelveEconomy {
     public static final int CASTLE_SEMIFINAL = 30;   // lost in the semifinal
     public static final int CASTLE_FINALIST = 75;    // lost in the final
     public static final int CASTLE_CHAMPION = 150;   // plus a booster of today's set
+    public static final int POD_ENTRY = 25;
+    public static final int POD_WIN = 125;           // last one standing in a Commander pod, plus a booster
 
     public static int sellPrice(PaperCard pc) {
         if (pc.getRules().getType().isBasicLand()) return 1;

@@ -84,7 +84,8 @@ public class ViewWinLose extends FOverlay implements IWinLoseView<FButton> {
 
         // Control of the win/lose is handled differently for various game modes
         ControlWinLose control = null;
-        switch (game0.getGameType()) {
+        // a scene hosting its own match (Delve, incl. Commander pods) always returns through the Adventure hooks
+        switch (forge.adventure.scene.DuelScene.hasOverride() ? forge.game.GameType.Adventure : game0.getGameType()) {
         case Quest:
             control = new QuestWinLose(this, game0);
             break;
