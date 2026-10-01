@@ -55,8 +55,15 @@ public class DelveSavesScene extends DelveScene {
             label("[%75]Page " + (page + 1) + " of " + pages, 64, 212, 100, 14, Align.left);
             button(">", 160, 210, 30, 18, () -> { page++; build(); }).setDisabled(page >= pages - 1);
         }
-        button("[GOLD]New save", W / 2f - 110, 238, 100, 22, () -> play(DelveSaves.create()));
+        button("[GOLD]New save", W / 2f - 110, 238, 100, 22, this::newSave);
         button("Back", W / 2f + 10, 238, 100, 22, () -> Forge.switchScene(StartScene.instance()));
+    }
+
+    /** A new save: create your character (for good), meet Bram, then into town. */
+    private void newSave() {
+        DelveSaves.load(DelveSaves.create());
+        DelveCharacterScene.instance().open(() ->
+                DelveIntroScene.instance().play(true, () -> Forge.switchScene(DelveHubScene.instance())));
     }
 
     private void play(String name) {

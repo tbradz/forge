@@ -108,3 +108,15 @@ def shade():
 
 
 shade()
+
+
+def shop_bg():
+    """The Card Shop backdrop: Forge's market art, blurred and darkened so cards stand out."""
+    from PIL import ImageEnhance
+    im = Image.open("forge-gui/res/adventure/common/ui/market.png").convert("RGB")
+    im = im.filter(ImageFilter.GaussianBlur(radius=max(2, im.width // 240)))
+    im = ImageEnhance.Color(ImageEnhance.Brightness(im).enhance(0.5)).enhance(0.7)
+    im.save(OUT + "/shop_bg.png")
+
+
+shop_bg()

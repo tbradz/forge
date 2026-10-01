@@ -236,7 +236,6 @@ public class DelveHubScene extends UIScene {
         add.accept("Build a deck", () -> chooseDeckToEdit(false));
         add.accept("Build a Commander deck", () -> chooseDeckToEdit(true));
         add.accept("Saves (" + DelveSaves.currentName() + ")", () -> Forge.switchScene(DelveSavesScene.instance()));
-        add.accept("Change character", () -> DelveCharacterScene.instance().open(() -> Forge.switchScene(this)));
         DelveDialogs.gridButtons(d, labels, actions, 2);
         DelveDialogs.wideButton(d, "Close", this::removeDialog, 2);
         showDialog(d);

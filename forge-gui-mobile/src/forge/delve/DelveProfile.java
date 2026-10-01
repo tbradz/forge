@@ -263,6 +263,17 @@ public class DelveProfile {
         saveStats();
     }
 
+    // ---- intro ---------------------------------------------------------------------
+
+    public boolean introSeen() {
+        return Boolean.parseBoolean(stats.getProperty("introSeen", "false"));
+    }
+
+    public void setIntroSeen() {
+        stats.setProperty("introSeen", "true");
+        saveStats();
+    }
+
     // ---- character --------------------------------------------------------------
 
     public boolean hasCharacter() {

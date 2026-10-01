@@ -45,7 +45,7 @@ public class DelveCharacterScene extends DelveScene {
         String raceName = HeroListData.instance().getRaces().get(race);
 
         title("Create your character");
-        label("This is who walks into the dungeon.", 0, 30, W, 14, Align.center);
+        label("This is who walks into the dungeon, for the whole of this save. Choose carefully.", 0, 30, W, 14, Align.center);
 
         image("ui/delve/plate_glow.png", W / 2f - 52, 164, 104, 56);
         CharacterSprite hero = new CharacterSprite(HeroListData.instance().getHero(race, female));

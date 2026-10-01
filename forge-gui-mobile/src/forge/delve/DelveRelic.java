@@ -13,8 +13,7 @@ import java.util.Random;
  * res/adventure/common/custom_cards/delve_relic_*.txt, like boss perks); the rest
  * are handled in code (life, hand size, gold).
  *
- * You choose a starting relic after building your deck; elites, Treasure Rooms
- * and merchants offer more.
+ * Runs start with none: elites, Treasure Rooms and merchants offer them.
  */
 public enum DelveRelic {
     // common: steady, run-long help

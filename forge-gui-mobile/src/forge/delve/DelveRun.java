@@ -59,8 +59,6 @@ public class DelveRun {
     public int life = MAX_LIFE;
     /** relics found this run (see {@link DelveRelic}) */
     public final List<DelveRelic> relics = new ArrayList<>();
-    /** whether the starting-relic choice has been made */
-    public boolean startRelicChosen;
     /** the relic a merchant offers, per merchant room ("step.index" -> relic) */
     public final java.util.Map<String, DelveRelic> merchantRelics = new java.util.HashMap<>();
 

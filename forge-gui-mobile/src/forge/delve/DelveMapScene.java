@@ -39,19 +39,9 @@ public class DelveMapScene extends DelveScene {
         if (run != null) chosen = run.chosen;
         build();
         super.enter();
-        if (run != null && !run.over && !run.startRelicChosen) offerStartRelic(run);
     }
 
     // ---- relics -------------------------------------------------------------------
-
-    /** Before the first room: pick one of three relics to carry through the run. */
-    private void offerStartRelic(DelveRun run) {
-        relicChoice(run, "Choose a starting relic", "Relics help you in every fight for the rest of this run.",
-                DelveRelic.offer(run.rng, run.relics, 3, 0.0), false, () -> {
-                    run.startRelicChosen = true;
-                    build();
-                });
-    }
 
     /** Pick one relic from {@code options} (optionally skip), then run {@code then}. */
     private void relicChoice(DelveRun run, String title, String text, List<DelveRelic> options, boolean canSkip, Runnable then) {
