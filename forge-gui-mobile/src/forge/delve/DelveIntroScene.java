@@ -62,6 +62,7 @@ public class DelveIntroScene extends DelveScene {
 
     @Override
     public void enter() {
+        DelveAudio.town();
         build();
         super.enter();
     }

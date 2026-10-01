@@ -62,6 +62,7 @@ public class DelvePackOpenScene extends DelveScene {
 
     @Override
     public void enter() {
+        DelveAudio.dungeon();
         showPack();
         super.enter();
     }
@@ -112,6 +113,7 @@ public class DelvePackOpenScene extends DelveScene {
     /** Open every remaining pack at once: the packs burst together, then the best cards are revealed. */
     private void openAll() {
         animating = true;
+        DelveAudio.shuffle();
         clearScreen();
         showing.clear();
         header();
@@ -159,6 +161,7 @@ public class DelvePackOpenScene extends DelveScene {
     /** Shake, flash, and spill the cards. */
     private void burst(Image pack, com.github.tommyettinger.textra.TextraLabel name) {
         animating = true;
+        DelveAudio.shuffle();
         name.remove();
         if (hint != null) hint.remove();
         if (openButton != null) openButton.remove();

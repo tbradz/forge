@@ -176,6 +176,7 @@ public class DelveHubScene extends UIScene {
         ask("Sleep", warn + "Sleep until tomorrow morning?", "Sleep", "Stay up",
                 () -> {
                     p.sleep();
+                    DelveAudio.day();
                     refreshTime();
                     DelveDay d = DelveDay.today();
                     openInfo("Day " + d.dayNumber, "A new day. The shop has new stock, and the dungeon gate is open."
@@ -327,6 +328,7 @@ public class DelveHubScene extends UIScene {
     public void enter() {
         DelveDevExport.maybeExport();
         refreshTime();
+        DelveAudio.town();
         super.enter();
         showPending();
     }

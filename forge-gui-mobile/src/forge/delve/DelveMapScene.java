@@ -37,6 +37,7 @@ public class DelveMapScene extends DelveScene {
     public void enter() {
         DelveRun run = DelveRun.current();
         if (run != null) chosen = run.chosen;
+        DelveAudio.dungeon();
         build();
         super.enter();
     }
@@ -333,7 +334,8 @@ public class DelveMapScene extends DelveScene {
                         + (run.nextFoeLife < 0 ? " (blessed: " + run.nextFoeLife + ")" : run.nextFoeLife > 0 ? " (cursed: +" + run.nextFoeLife + ")" : "")
                         + ". You have " + run.life + (run.has(DelveRelic.IRON_BUCKLER) ? " (+4 from your Iron Buckler)" : "") + "."
                         + (node.perk != null ? "\n[GOLD]" + (node.perk.elite ? "Elite" : "Boss") + " perk - " + node.perk.title + ":[] " + node.perk.description : "")
-                        + (node.perk2 != null ? "\n[GOLD]Second perk - " + node.perk2.title + ":[] " + node.perk2.description : ""),
+                        + (node.perk2 != null ? "\n[GOLD]Second perk - " + node.perk2.title + ":[] " + node.perk2.description : "")
+                        + (node.type == NodeType.BOSS ? "\n[GOLD]Its deck:[] " + run.day.bossTheme(node.enemy).name : ""),
                 () -> walkTo(run, step, index, () -> fight(run, node, index)));
     }
 
@@ -358,6 +360,7 @@ public class DelveMapScene extends DelveScene {
         int gold = DelveEconomy.fightGold(node.type, run.rng);
         if (run.has(DelveRelic.GOLD_IDOL)) gold = gold * 3 / 2;
         run.gainGold(gold);
+        DelveAudio.coins();
         completeStep(run, index);
         if (node.type == NodeType.BOSS) {
             bossLine = "You defeated " + node.enemy.getName() + " (+" + gold + " gold).\n";
@@ -412,7 +415,11 @@ public class DelveMapScene extends DelveScene {
             labels.add(c.label);
             enabled.add(c.available.test(run));
             actions.add(() -> {
+                int lifeBefore = run.life, goldBefore = run.gold;
                 String result = c.apply.apply(run);
+                if (run.life < lifeBefore) DelveAudio.hurt();
+                else if (run.life > lifeBefore) DelveAudio.heal();
+                else if (run.gold > goldBefore) DelveAudio.coins();
                 completeStep(run, index);
                 if (DelveRun.PICK_CARD.equals(result)) {
                     offerCard(run, e.title + ": choose a card", true);
@@ -575,6 +582,7 @@ public class DelveMapScene extends DelveScene {
                 List.of(true, canTrim),
                 List.of(() -> {
                             run.heal(DelveRun.REST_HEAL);
+                            DelveAudio.heal();
                             completeStep(run, index);
                         },
                         () -> DelvePickScene.instance().show("Choose a card to remove from your deck", uniqueCards(run, true),

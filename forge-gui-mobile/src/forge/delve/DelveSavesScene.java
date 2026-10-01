@@ -23,6 +23,7 @@ public class DelveSavesScene extends DelveScene {
 
     @Override
     public void enter() {
+        DelveAudio.menus();
         build();
         super.enter();
     }

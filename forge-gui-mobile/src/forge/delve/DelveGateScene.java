@@ -33,6 +33,7 @@ public class DelveGateScene extends DelveScene {
     public void enter() {
         int top = DelveProfile.get().topTier();
         if (selectedTier < 0 || selectedTier > top) selectedTier = top;
+        DelveAudio.dungeon();
         build();
         super.enter();
     }

@@ -67,6 +67,7 @@ public class DelveCastleScene extends DelveScene {
     @Override
     public void enter() {
         if (t == null && pod == null) loadState();
+        DelveAudio.castle();
         build();
         super.enter();
     }
@@ -252,8 +253,9 @@ public class DelveCastleScene extends DelveScene {
             prof.addCastleTitle();
             List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, new Random());
             prof.addToCollection(pack);
-            msg = "Last one standing! +" + DelveEconomy.POD_WIN + " gold, a " + DelveDay.today().themeName()
+            msg = "Last one standing! +" + DelveEconomy.POD_WIN + " gold, " + article(DelveDay.today().themeName()) + " " + DelveDay.today().themeName()
                     + " booster (added to your collection) and " + DelveTokens.grant(1, new Random()) + ".";
+            if (pod.loaner) msg += "\n\n" + keepHouseDeck(pod.deck);
         } else {
             msg = "You were knocked out of the pod. Better luck next time.";
         }
@@ -264,6 +266,27 @@ public class DelveCastleScene extends DelveScene {
             pod = null;
             build();
         });
+    }
+
+    /** A borrowed house deck that wins is yours: its cards join your collection and it's saved as your Commander deck. */
+    private static String keepHouseDeck(Deck house) {
+        try {
+            Deck mine = new Deck(house.getCommanders().get(0).getName() + " (won)");
+            mine.getOrCreate(forge.deck.DeckSection.Commander).addAll(house.get(forge.deck.DeckSection.Commander));
+            mine.getMain().addAll(house.getMain());
+            String base = mine.getName();
+            for (int i = 2; DelveDeckEditScene.commanderDecks().contains(mine.getName()); i++) mine.setName(base + " " + i);
+            DelveDeckEditScene.commanderDecks().add(mine);
+            List<PaperCard> cards = new ArrayList<>(mine.getMain().toFlatList());
+            cards.addAll(house.getCommanders());
+            cards.removeIf(pc -> pc.getRules().getType().isBasicLand()); // basics are free anyway
+            DelveProfile.get().addToCollection(cards);
+            return "[GOLD]The house lets you keep the deck![] " + mine.getName()
+                    + " is now one of your Commander decks (Your House), and its cards are in your collection.";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 
     private List<Deck> eligibleDecks() {
@@ -343,6 +366,10 @@ public class DelveCastleScene extends DelveScene {
             button("Forfeit", 320, 238, 80, 22, () -> confirm("Forfeit", "Leave the tournament? Your entry fee is lost.",
                     () -> finish(t.round)));
         }
+    }
+
+    private static String article(String word) {
+        return "AEIOUaeiou".indexOf(word.isEmpty() ? 'x' : word.charAt(0)) >= 0 ? "an" : "a";
     }
 
     private static String shorten(String s) {

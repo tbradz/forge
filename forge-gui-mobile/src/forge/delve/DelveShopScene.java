@@ -32,6 +32,7 @@ public class DelveShopScene extends DelveScene {
 
     @Override
     public void enter() {
+        DelveAudio.town();
         build();
         super.enter();
     }
@@ -73,7 +74,7 @@ public class DelveShopScene extends DelveScene {
                 px, 50, pw, 12, Align.center);
         packButton(0, day.edition, px, 70, pw);
         packButton(1, day.recentPackSet(), px, 116, pw);
-        label("[%70]Singles and packs go straight into your collection.", px, 168, pw, 24, Align.center);
+        label("[%70]Singles and packs go straight into your collection. The last single is always a legend that can lead a Commander deck.", px, 160, pw, 34, Align.center);
         button("[GOLD]Run tokens", px + 24, 208, pw - 48, 22, this::tokenCounter);
 
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
@@ -116,6 +117,7 @@ public class DelveShopScene extends DelveScene {
         DelveProfile prof = DelveProfile.get();
         if (prof.shopBought(index) || !prof.spendGold(price)) return;
         prof.markShopBought(index);
+        DelveAudio.coins();
         prof.addToCollection(List.of(pc));
         build();
         info("Card Shop", "You buy " + pc.getName() + " for " + price + " gold.", null);
@@ -125,6 +127,7 @@ public class DelveShopScene extends DelveScene {
         DelveProfile prof = DelveProfile.get();
         if (prof.packsBought(type) >= DelveEconomy.PACKS_PER_DAY || !prof.spendGold(DelveEconomy.PACK_PRICE)) return;
         prof.markPackBought(type);
+        DelveAudio.shuffle();
         List<PaperCard> cards = DelveDay.today().openPack(set, rng);
         prof.addToCollection(cards);
         DelvePickScene.instance().show("You open a " + set.getName() + " booster", cards, 0, 0, "Back",

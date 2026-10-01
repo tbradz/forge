@@ -34,6 +34,7 @@ public class DelveOutfitterScene extends DelveScene {
 
     @Override
     public void enter() {
+        DelveAudio.town();
         build();
         super.enter();
     }
@@ -120,6 +121,7 @@ public class DelveOutfitterScene extends DelveScene {
         DelveProfile prof = DelveProfile.get();
         if (prof.ownedSleeves().contains(index) || !prof.spendGold(price(index))) return;
         prof.addSleeve(index);
+        DelveAudio.coins();
         prof.setCurrentSleeve(index);
         build();
         info("Outfitter", "New sleeves! They're on your cards now (change them any time below).", null);

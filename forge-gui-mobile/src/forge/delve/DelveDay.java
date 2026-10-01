@@ -234,10 +234,83 @@ public class DelveDay {
             case CASTLE: q = new int[]{8, 10, 5}; break;
             default: q = new int[]{18, 5, 0};
         }
-        Deck d = buildDeck(colors, q[0], q[1], q[2], true, rng);
+        Deck d = tier == Tier.BOSS
+                ? buildDeck(colors, q[0], q[1], q[2], true, rng, bossTheme(enemy).fits) // bosses play to a plan
+                : buildDeck(colors, q[0], q[1], q[2], true, rng);
         d.setName(enemy.getName());
         enemyDecks.put(key, d);
         return d;
+    }
+
+    // ---- boss themes ------------------------------------------------------------------
+
+    /** A deck plan for a boss: a name shown to the player and the cards that fit it. */
+    public static final class Theme {
+        public final String name;
+        public final java.util.function.Predicate<PaperCard> fits;
+        Theme(String name, java.util.function.Predicate<PaperCard> fits) { this.name = name; this.fits = fits; }
+    }
+
+    private final java.util.Map<String, Theme> bossThemes = new java.util.HashMap<>();
+
+    private static String oracle(PaperCard pc) {
+        String o = pc.getRules().getOracleText();
+        return o == null ? "" : o.toLowerCase();
+    }
+
+    /**
+     * The boss's plan, chosen from what this set offers in its colors: a creature type
+     * (tribal), flyers, removal-heavy control, or go-wide aggression. Whichever theme
+     * has the most cards wins (ties broken by the day's seed).
+     */
+    public Theme bossTheme(EnemyData enemy) {
+        String key = enemy.getName();
+        Theme cached = bossThemes.get(key);
+        if (cached != null) return cached;
+        Random rng = new Random(seed ^ (key + "|theme").hashCode());
+        ColorSet colors = enemyColors(enemy, new Random(seed ^ (key + "|" + Tier.BOSS).hashCode()));
+        loadEraPool();
+        List<PaperCard> pool = new ArrayList<>();
+        for (List<PaperCard> src : List.of(rares, uncommons, commons))
+            for (PaperCard pc : src) {
+                ColorSet id = pc.getRules().getColorIdentity();
+                if (!pc.getRules().getType().isLand() && !id.isColorless() && colors.containsAllColorsFrom(id.getColor()))
+                    pool.add(pc);
+            }
+        List<Theme> themes = new ArrayList<>();
+        // tribal: the most common creature type in these colors
+        java.util.Map<String, Integer> types = new java.util.HashMap<>();
+        for (PaperCard pc : pool)
+            for (String t : pc.getRules().getType().getCreatureTypes())
+                if (!t.equals("Human")) types.merge(t, 1, Integer::sum); // "Human" is rarely a real plan
+        String tribe = null;
+        for (java.util.Map.Entry<String, Integer> e : types.entrySet())
+            if (e.getValue() >= 7 && (tribe == null || e.getValue() > types.get(tribe))) tribe = e.getKey();
+        if (tribe != null) {
+            final String t = tribe;
+            themes.add(new Theme(t + (t.endsWith("f") ? "s" : t.endsWith("s") ? "" : "s"),
+                    pc -> pc.getRules().getType().getCreatureTypes().contains(t) || oracle(pc).contains(t.toLowerCase())));
+        }
+        themes.add(new Theme("Flyers", pc -> pc.getRules().getType().isCreature() && oracle(pc).contains("flying")));
+        themes.add(new Theme("Removal and control", pc -> {
+            String o = oracle(pc);
+            return !pc.getRules().getType().isCreature() && (o.contains("destroy target") || o.contains("exile target")
+                    || (o.contains("deals") && o.contains("damage to target")) || o.contains("counter target")
+                    || o.contains("return target creature"));
+        }));
+        themes.add(new Theme("Swarm", pc -> pc.getRules().getType().isCreature()
+                && pc.getRules().getManaCost().getCMC() <= 2));
+        Theme best = null;
+        int bestCount = -1;
+        Collections.shuffle(themes, rng);
+        for (Theme th : themes) {
+            int n = 0;
+            for (PaperCard pc : pool) if (th.fits.test(pc)) n++;
+            if (th.name.equals("Swarm")) n = n * 2 / 3; // only when nothing else stands out
+            if (n > bestCount) { best = th; bestCount = n; }
+        }
+        bossThemes.put(key, best);
+        return best;
     }
 
     private static ColorSet enemyColors(EnemyData enemy, Random rng) {
@@ -257,6 +330,12 @@ public class DelveDay {
      * @param forAI skip cards Forge marks as unplayable for the AI
      */
     Deck buildDeck(ColorSet colors, int nCommon, int nUncommon, int nRare, boolean forAI, Random rng) {
+        return buildDeck(colors, nCommon, nUncommon, nRare, forAI, rng, null);
+    }
+
+    /** As above; cards matching {@code prefer} are picked first at every rarity (a deck theme). */
+    Deck buildDeck(ColorSet colors, int nCommon, int nUncommon, int nRare, boolean forAI, Random rng,
+                   java.util.function.Predicate<PaperCard> prefer) {
         loadEraPool();
         java.util.function.Predicate<PaperCard> fits = pc -> {
             if (pc.getRules().getType().isLand()) return false;
@@ -271,6 +350,7 @@ public class DelveDay {
             List<PaperCard> l = new ArrayList<>();
             for (PaperCard pc : src) if (fits.test(pc)) l.add(pc);
             Collections.shuffle(l, rng);
+            if (prefer != null) l.sort((a, b) -> Boolean.compare(prefer.test(b), prefer.test(a))); // stable: theme first
             byRarity.add(l);
         }
         List<List<PaperCard>> backup = new ArrayList<>(); // the era around it, if the set is thin in these colors
@@ -282,12 +362,22 @@ public class DelveDay {
         }
         int[] quota = {nRare, nUncommon, nCommon};
         List<PaperCard> picks = new ArrayList<>();
+        if (prefer != null) { // the theme's core: up to 12 cards that fit the plan, curve permitting
+            int[] perCost = new int[9];
+            for (int n = 0; n < 12; n++)
+                if (!pickInto(picks, byRarity, quota, pc -> prefer.test(pc)
+                        && perCost[Math.min(8, pc.getRules().getManaCost().getCMC())] < 4)) break;
+                else perCost[Math.min(8, picks.get(picks.size() - 1).getRules().getManaCost().getCMC())]++;
+        }
         // creature curve: 1-drop x1, 2 x5, 3 x4, 4 x3, 5+ x2
         int[][] curve = {{1, 1}, {2, 5}, {3, 4}, {4, 3}, {5, 2}};
-        for (int[] slot : curve)
-            for (int n = 0; n < slot[1]; n++)
-                pickInto(picks, byRarity, quota, pc -> pc.getRules().getType().isCreature()
-                        && (slot[0] == 5 ? pc.getRules().getManaCost().getCMC() >= 5 : pc.getRules().getManaCost().getCMC() == slot[0]));
+        for (int[] slot : curve) {
+            java.util.function.Predicate<PaperCard> inSlot = pc -> pc.getRules().getType().isCreature()
+                    && (slot[0] == 5 ? pc.getRules().getManaCost().getCMC() >= 5 : pc.getRules().getManaCost().getCMC() == slot[0]);
+            long have = picks.stream().filter(inSlot).count(); // theme picks already fill some slots
+            for (long n = have; n < slot[1]; n++)
+                pickInto(picks, byRarity, quota, inSlot);
+        }
         while (picks.size() < 23 && pickInto(picks, byRarity, quota, pc -> !pc.getRules().getType().isCreature())) { }
         while (picks.size() < 23 && pickInto(picks, byRarity, quota, pc -> true)) { }
         while (picks.size() < 23 && pickInto(picks, byRarity, new int[]{99, 99, 99}, pc -> true)) { } // quotas exhausted
@@ -459,7 +549,13 @@ public class DelveDay {
         loadEraPool();
         List<PaperCard> recentUnc = eraUncommons, recentRare = eraRares;
         addRandom(out, recentUnc, 1, rng);
-        addRandom(out, recentRare, 2, rng);
+        addRandom(out, recentRare, 1, rng);
+        // the last slot is always a legend you could lead a Commander deck with
+        List<PaperCard> legends = eraCommanders(false);
+        List<PaperCard> fresh = new ArrayList<>(legends);
+        fresh.removeAll(out);
+        if (!fresh.isEmpty()) out.add(fresh.get(rng.nextInt(fresh.size())));
+        else addRandom(out, recentRare, 1, rng);
         shopSingles = out;
         return out;
     }

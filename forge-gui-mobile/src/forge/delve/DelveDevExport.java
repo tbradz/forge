@@ -38,7 +38,8 @@ final class DelveDevExport {
     private static void dump(DelveDay day, File dir, List<EnemyData> enemies, DelveDay.Tier tier, int n) {
         for (int i = 0; i < n && i < enemies.size(); i++) {
             EnemyData e = enemies.get(i);
-            write(day.enemyDeck(e, tier), new File(dir, tier.name().toLowerCase() + "_" + i + ".dck"));
+            String suffix = tier == DelveDay.Tier.BOSS ? "_" + day.bossTheme(e).name.replaceAll("[^A-Za-z]", "") : "";
+            write(day.enemyDeck(e, tier), new File(dir, tier.name().toLowerCase() + "_" + i + suffix + ".dck"));
         }
     }
 
