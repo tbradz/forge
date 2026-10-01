@@ -4,6 +4,8 @@ import com.badlogic.gdx.utils.Align;
 import forge.Forge;
 import forge.adventure.data.EnemyData;
 import forge.deck.Deck;
+import forge.item.PaperCard;
+import forge.item.PaperCard;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +69,7 @@ public class DelveTavernScene extends DelveScene {
         label("[%110]Practice games", 40, 40, 400, 18, Align.center);
         button("[%80]Talk to Bram", 352, 38, 80, 16, () -> DelveIntroScene.instance().play(false,
                 () -> forge.Forge.switchScene(this)));
-        label("[%75]No fee, no prizes. Test a deck against tonight's patrons as often as you like.\n[%75]"
+        label("[%75]No fee. Test a deck against tonight's patrons as often as you like, or play for gold or an ante.\n[%75]"
                         + "They play " + DelveDay.today().edition.getName() + " decks. Sleep at Your House when you're ready for tomorrow.",
                 56, 60, 368, 30, Align.center);
         for (int i = 0; i < patrons.size(); i++) {
@@ -117,7 +119,8 @@ public class DelveTavernScene extends DelveScene {
         List<Runnable> actions = new ArrayList<>();
         for (Deck d : decks) {
             labels.add(d.getName() + " (" + d.getMain().countAll() + ")");
-            actions.add(() -> play(d, foe));
+            actions.add(() -> chooseStakes(List.of(foe), List.of(DelveDay.today().enemyDeck(foe, DelveDay.Tier.ELITE)),
+                    () -> play(d, foe)));
         }
         labels.add("Cancel");
         actions.add(() -> { });
@@ -135,6 +138,119 @@ public class DelveTavernScene extends DelveScene {
         if (won) wins++;
         else losses++;
         Forge.switchScene(this);
+        settleStakes(won);
+    }
+
+    // ---- stakes: a gold bet or an ante -----------------------------------------------
+
+    private int betGold;                                  // per opponent
+    private int betOpponents;
+    private PaperCard myAnte;
+    private final List<PaperCard> theirAntes = new ArrayList<>();
+
+    private void clearStakes() {
+        betGold = 0;
+        betOpponents = 0;
+        myAnte = null;
+        theirAntes.clear();
+    }
+
+    /** Before a game: play for nothing, bet gold against each opponent, or ante a card each. */
+    private void chooseStakes(List<EnemyData> foes, List<Deck> foeDecks, Runnable play) {
+        clearStakes();
+        DelveProfile prof = DelveProfile.get();
+        int n = foes.size();
+        String who = n == 1 ? foes.get(0).getName() : "the patrons";
+        List<String> labels = new ArrayList<>();
+        List<Boolean> enabled = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        labels.add("Just for fun");
+        enabled.add(true);
+        actions.add(play);
+        for (int bet : DelveEconomy.TAVERN_BETS) {
+            int risk = bet * n;
+            if (risk > DelveEconomy.TAVERN_BET_MAX_TOTAL) continue;
+            labels.add("Bet " + bet + " gold" + (n > 1 ? " each (" + risk + " total)" : ""));
+            enabled.add(prof.gold() >= risk);
+            actions.add(() -> {
+                betGold = bet;
+                betOpponents = n;
+                play.run();
+            });
+        }
+        int antes = prof.antesLeft();
+        labels.add("Ante a card (" + antes + " left this tier)");
+        enabled.add(antes > 0 && !prof.collection().isEmpty());
+        actions.add(() -> chooseAnte(foes, foeDecks, play));
+        labels.add("Cancel");
+        enabled.add(true);
+        actions.add(() -> { });
+        choose("Stakes", "Play " + who + " for something? Win a bet and each opponent pays you; lose and you pay "
+                        + (n > 1 ? "each of them" : "them") + ".\nAnte: you each put up a card from your collection, and the winner takes them all ("
+                        + DelveProfile.ANTES_PER_TIER + " antes per dungeon tier).",
+                labels, enabled, actions);
+    }
+
+    private void chooseAnte(List<EnemyData> foes, List<Deck> foeDecks, Runnable play) {
+        // each opponent antes a random card from its deck (not a basic land)
+        java.util.Random rng = new java.util.Random();
+        theirAntes.clear();
+        for (Deck d : foeDecks) {
+            List<PaperCard> cards = new ArrayList<>();
+            for (PaperCard pc : d.getMain().toFlatList()) if (!pc.getRules().getType().isBasicLand()) cards.add(pc);
+            if (d.has(forge.deck.DeckSection.Commander)) cards.removeAll(d.getCommanders());
+            if (!cards.isEmpty()) theirAntes.add(cards.get(rng.nextInt(cards.size())));
+        }
+        // pick yours: cheapest first so it's easy to risk a common
+        List<PaperCard> mine = new ArrayList<>();
+        for (PaperCard pc : DelveProfile.get().collection().toFlatList())
+            if (!mine.contains(pc) && !pc.getRules().getType().isBasicLand()) mine.add(pc);
+        mine.sort(java.util.Comparator.comparingInt((PaperCard pc) -> pc.getRarity().ordinal())
+                .thenComparing(PaperCard::getName));
+        if (mine.size() > 40) mine = new ArrayList<>(mine.subList(0, 40));
+        StringBuilder theirs = new StringBuilder();
+        for (int i = 0; i < theirAntes.size(); i++)
+            theirs.append(i > 0 ? ", " : "").append(theirAntes.get(i).getName());
+        DelvePickScene.instance().show("Ante: choose your card  (they put up " + theirs + ")", mine, 0, 1, "Back",
+                pc -> "Ante", picked -> {
+                    Forge.switchScene(this);
+                    if (picked.isEmpty()) {
+                        clearStakes();
+                        return;
+                    }
+                    myAnte = picked.get(0);
+                    DelveProfile.get().useAnte();
+                    play.run();
+                });
+    }
+
+    private void settleStakes(boolean won) {
+        DelveProfile prof = DelveProfile.get();
+        String msg = null;
+        if (betGold > 0) {
+            int total = betGold * betOpponents;
+            if (won) {
+                prof.addGold(total);
+                msg = "You win the bet: +" + total + " gold.";
+            } else {
+                prof.spendGold(Math.min(total, prof.gold()));
+                msg = "You lose the bet: -" + total + " gold.";
+            }
+            DelveAudio.coins();
+        } else if (myAnte != null) {
+            StringBuilder names = new StringBuilder();
+            for (int i = 0; i < theirAntes.size(); i++)
+                names.append(i > 0 ? ", " : "").append(theirAntes.get(i).getName());
+            if (won) {
+                prof.addToCollection(new ArrayList<>(theirAntes));
+                msg = "You win the ante! " + names + (theirAntes.size() == 1 ? " joins" : " join") + " your collection.";
+            } else {
+                prof.removeFromCollection(myAnte);
+                msg = "You lose the ante. " + myAnte.getName() + " leaves your collection.";
+            }
+        }
+        clearStakes();
+        if (msg != null) info(won ? "Victory" : "Defeat", msg, null);
     }
 
     // ---- Commander practice -----------------------------------------------------
@@ -144,21 +260,19 @@ public class DelveTavernScene extends DelveScene {
         List<Runnable> actions = new ArrayList<>();
         for (Deck d : DelveDeckEditScene.legalCommanderDecks()) {
             labels.add(d.getName());
-            actions.add(() -> playCommander(d));
+            actions.add(() -> commanderStakes(d));
         }
         List<Deck> loaners = DelveDay.today().loanerCommanders();
         for (Deck d : loaners) {
             labels.add("House deck: " + d.getCommanders().get(0).getName());
-            actions.add(() -> playCommander(d));
+            actions.add(() -> commanderStakes(d));
         }
         labels.add("Cancel");
         actions.add(() -> { });
         choose("Commander with the patrons", "Four players, 40 life. Choose your deck.", labels, null, actions);
     }
 
-    private void playCommander(Deck deck) {
-        List<EnemyData> foes = new ArrayList<>();
-        List<Deck> decks = new ArrayList<>();
+    private void commanderFoes(List<EnemyData> foes, List<Deck> decks) {
         for (EnemyData e : patrons) {
             if (foes.size() >= 3) break;
             Deck d = DelveDay.today().enemyCommanderDeck(e);
@@ -166,6 +280,20 @@ public class DelveTavernScene extends DelveScene {
             foes.add(e);
             decks.add(d);
         }
+    }
+
+    private void commanderStakes(Deck deck) {
+        List<EnemyData> foes = new ArrayList<>();
+        List<Deck> decks = new ArrayList<>();
+        commanderFoes(foes, decks);
+        if (foes.isEmpty()) return;
+        chooseStakes(foes, decks, () -> playCommander(deck));
+    }
+
+    private void playCommander(Deck deck) {
+        List<EnemyData> foes = new ArrayList<>();
+        List<Deck> decks = new ArrayList<>();
+        commanderFoes(foes, decks);
         if (foes.isEmpty()) return;
         DelveDuelScene.instance().setupCommander(deck, foes, decks, (won, life) -> result(won));
         DelveDuelScene.instance().setReturnLabel("Back to the Tavern");

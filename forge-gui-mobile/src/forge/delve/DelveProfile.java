@@ -324,6 +324,31 @@ public class DelveProfile {
         save();
     }
 
+    // ---- Tavern antes: limited per tier ----------------------------------------------
+
+    public static final int ANTES_PER_TIER = 3;
+
+    /** Antes left at your current highest tier. */
+    public int antesLeft() {
+        if (Integer.parseInt(stats.getProperty("ante.tier", "-1")) != topTier()) return ANTES_PER_TIER;
+        return Math.max(0, ANTES_PER_TIER - Integer.parseInt(stats.getProperty("ante.used", "0")));
+    }
+
+    public void useAnte() {
+        int used = ANTES_PER_TIER - antesLeft() + 1;
+        stats.setProperty("ante.tier", String.valueOf(topTier()));
+        stats.setProperty("ante.used", String.valueOf(used));
+        saveStats();
+    }
+
+    /** Remove one copy of a card from the collection (e.g. a lost ante); false if you don't own it. */
+    public boolean removeFromCollection(PaperCard pc) {
+        if (collection.getMain().count(pc) <= 0) return false;
+        collection.getMain().remove(pc);
+        save();
+        return true;
+    }
+
     public void addLockedDeck(Deck deck, String name) {
         Deck locked = new Deck(uniqueName(name));
         locked.getMain().addAll(deck.getMain());

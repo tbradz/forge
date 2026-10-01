@@ -37,6 +37,10 @@ public final class DelveEconomy {
     public static final int RELIC_PRICE = 60;
     public static final int RELIC_PRICE_RARE = 90;
 
+    // ---- Tavern bets: about one dungeon fight's worth at most -------------------------
+    public static final int[] TAVERN_BETS = {5, 10, 20};   // per opponent
+    public static final int TAVERN_BET_MAX_TOTAL = 30;      // across all opponents (Commander)
+
     // ---- clearing a tier (choose one reward) ----------------------------------------
     public static final int CLEAR_PACKS = 3;      // boosters of the tier's set
     public static final int CLEAR_GOLD = 120;     // on top of the gold found
