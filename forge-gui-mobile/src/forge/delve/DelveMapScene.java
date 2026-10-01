@@ -168,7 +168,10 @@ public class DelveMapScene extends DelveScene {
 
         CharacterSprite who = roomSprite(node);
         if (who != null && !wasChosen) { // the room's occupant is gone once you've been there
+            // a few Adventure sprites are drawn much larger than the usual 16-24px: shrink those to fit the plate
             float scale = node.type == NodeType.BOSS ? 2.2f : 2f;
+            float target = node.type == NodeType.BOSS ? 48f : 34f, h = Math.max(who.getHeight(), who.getWidth());
+            if (h > 0 && h * scale > target) scale = target / h;
             com.badlogic.gdx.scenes.scene2d.Group g = standing(who, scale);
             standAt(g, x, y + 4);
             g.getColor().a = dim;

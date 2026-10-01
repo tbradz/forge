@@ -8,7 +8,7 @@ import java.util.Random;
  * counts in the profile. The game always asks before spending one.
  */
 public enum DelveTokens {
-    REROLL("Reroll", 25, "Swap a draft pack or a card reward for a fresh one."),
+    REROLL("Reroll", 25, "Swap a card reward in the dungeon for three new choices."),
     TREASURE_MAP("Treasure Map", 90, "When you clear a dungeon, take two rewards instead of one."),
     INSURANCE("Insurance", 100, "If a run ends in defeat, bring home all the gold you found and still choose a clear reward (no tier unlock).");
 
