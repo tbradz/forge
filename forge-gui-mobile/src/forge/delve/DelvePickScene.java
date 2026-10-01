@@ -31,6 +31,14 @@ public class DelvePickScene extends DelveScene {
     private String extraLabel, pendingExtraLabel;
     private Runnable extraAction, pendingExtraAction;
 
+    private boolean pendingPreselect;
+
+    /** Start the next {@link #show} call with every card selected (the player deselects). */
+    public DelvePickScene withAllSelected() {
+        pendingPreselect = true;
+        return this;
+    }
+
     /** Add one extra button (e.g. "Reroll") to the next {@link #show} call only. */
     public DelvePickScene withExtra(String label, Runnable action) {
         pendingExtraLabel = label;
@@ -73,6 +81,9 @@ public class DelvePickScene extends DelveScene {
         this.skipText = skipText;
         this.onDone = onDone;
         selected.clear();
+        if (pendingPreselect)
+            for (int i = 0; i < this.cards.size() && i < this.maxPick; i++) selected.add(i);
+        pendingPreselect = false;
         if (Forge.getCurrentScene() == this)
             build(); // e.g. the next pick of a draft
         else

@@ -62,19 +62,10 @@ public class DelveRun {
     public final List<PaperCard> picked = new ArrayList<>();
     /** index of the room chosen on each completed step */
     public final List<Integer> chosen = new ArrayList<>();
-    public final Size size;
+    /** Cards you may pick from the run deck as a clear reward. */
+    public static final int CLEAR_KEEPS = 5;
 
-    /** Dungeon sizes: more steps, more fights, bigger rewards. */
-    public enum Size {
-        SHALLOW("Shallow", 3), STANDARD("Standard", 5), DEEP("Deep", 8);
-        public final String label;
-        /** cards kept for clearing it */
-        public final int clearKeeps;
-        Size(String label, int clearKeeps) { this.label = label; this.clearKeeps = clearKeeps; }
-    }
-
-    private DelveRun(DelveDay day, Deck deck, long seed, Size size) {
-        this.size = size;
+    private DelveRun(DelveDay day, Deck deck, long seed) {
         this.day = day;
         this.deck = deck;
         this.seed = seed;
@@ -82,16 +73,16 @@ public class DelveRun {
         DelveMapGen.build(this);
     }
 
-    public static DelveRun start(DelveDay day, Deck starter, Size size) {
-        current = new DelveRun(day, starter, day.seed ^ System.nanoTime(), size);
+    public static DelveRun start(DelveDay day, Deck starter) {
+        current = new DelveRun(day, starter, day.seed ^ System.nanoTime());
         DelveProfile.get().markDelved();
         DelveRunSave.save(current);
         return current;
     }
 
     /** Rebuild a run from its seed (same map) — used by DelveRunSave. */
-    static DelveRun restore(DelveDay day, Deck deck, long seed, Size size) {
-        current = new DelveRun(day, deck, seed, size);
+    static DelveRun restore(DelveDay day, Deck deck, long seed) {
+        current = new DelveRun(day, deck, seed);
         return current;
     }
 
@@ -102,6 +93,11 @@ public class DelveRun {
     public static void clear() {
         current = null;
         DelveRunSave.delete();
+    }
+
+    /** Share of the dungeon completed, 0..1 (steps done / total steps). */
+    public double completion() {
+        return layers.isEmpty() ? 0 : Math.min(1.0, step / (double) layers.size());
     }
 
     public List<Node> nextChoices() {

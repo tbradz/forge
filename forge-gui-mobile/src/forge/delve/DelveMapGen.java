@@ -9,18 +9,16 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Map for a Standard-size dungeon: seven steps, each offering 1-3 rooms.
+ * One dungeon size with a random length: 6-9 steps, each offering 1-3 rooms.
  *
- *   1: Fight
- *   2: Fight | Event
- *   3: Fight | Event | Merchant
- *   4: Elite | Rest
- *   5: Fight | Event | Merchant
- *   6: two of Rest / Merchant / Event
- *   7: Boss
+ *   first:        Fight
+ *   middle:       mixes of Fight / Event / Merchant / Rest
+ *   halfway:      Elite | Rest   (a second elite in 8-9 step dungeons)
+ *   before boss:  two of Rest / Merchant / Event
+ *   last:         Boss
  *
- * Rooms within a step are shuffled. Later phases add dungeon sizes and a
- * seeded branching layout.
+ * Rooms within a step are shuffled; everything comes from the run's seed, so a
+ * saved run rebuilds the same map.
  */
 final class DelveMapGen {
     private DelveMapGen() {}
@@ -32,38 +30,25 @@ final class DelveMapGen {
         Picker elite = new Picker(day.eliteEnemies.isEmpty() ? day.weakEnemies : day.eliteEnemies, run);
         Picker boss = new Picker(day.bossEnemies.isEmpty() ? day.eliteEnemies : day.bossEnemies, run);
 
-        switch (run.size) {
-            case SHALLOW: // 4 steps, the "boss" is an elite-tier foe
-                add(run, fight(weak, NodeType.FIGHT));
-                add(run, fight(weak, NodeType.FIGHT), event(run));
-                add(run, fight(weak, NodeType.FIGHT), merchant(), rest());
-                add(run, bossNode(elite.next(), 20));
-                break;
-            case DEEP: // 10 steps, three elites, tougher boss
-                add(run, fight(weak, NodeType.FIGHT));
-                add(run, fight(weak, NodeType.FIGHT), event(run));
-                add(run, fight(weak, NodeType.FIGHT), event(run), merchant());
-                add(run, fight(elite, NodeType.ELITE), rest());
-                add(run, fight(weak, NodeType.FIGHT), event(run), merchant());
-                add(run, fight(elite, NodeType.ELITE), fight(weak, NodeType.FIGHT), rest());
-                add(run, fight(weak, NodeType.FIGHT), event(run), merchant());
-                List<Node> deepLate = new ArrayList<>(List.of(rest(), merchant(), event(run)));
-                Collections.shuffle(deepLate, run.rng);
-                add(run, deepLate.get(0), deepLate.get(1));
-                add(run, fight(elite, NodeType.ELITE), event(run));
-                add(run, bossNode(boss.next(), 30));
-                break;
-            default: // STANDARD, 7 steps
-                add(run, fight(weak, NodeType.FIGHT));
-                add(run, fight(weak, NodeType.FIGHT), event(run));
-                add(run, fight(weak, NodeType.FIGHT), event(run), merchant());
-                add(run, fight(elite, NodeType.ELITE), rest());
-                add(run, fight(weak, NodeType.FIGHT), event(run), merchant());
-                List<Node> late = new ArrayList<>(List.of(rest(), merchant(), event(run)));
-                Collections.shuffle(late, run.rng);
-                add(run, late.get(0), late.get(1));
-                add(run, fight(boss, NodeType.BOSS));
+        int steps = 6 + run.rng.nextInt(4); // 6..9
+        int eliteAt = steps / 2;              // 0-based layer index
+        int secondEliteAt = steps >= 8 ? steps - 3 : -1;
+        add(run, fight(weak, NodeType.FIGHT));
+        for (int i = 1; i < steps - 2; i++) {
+            if (i == eliteAt || i == secondEliteAt) {
+                add(run, fight(elite, NodeType.ELITE), run.rng.nextBoolean() ? rest() : event(run));
+                continue;
+            }
+            switch (run.rng.nextInt(3)) {
+                case 0: add(run, fight(weak, NodeType.FIGHT), event(run)); break;
+                case 1: add(run, fight(weak, NodeType.FIGHT), event(run), merchant()); break;
+                default: add(run, fight(weak, NodeType.FIGHT), merchant(), rest());
+            }
         }
+        List<Node> late = new ArrayList<>(List.of(rest(), merchant(), event(run)));
+        Collections.shuffle(late, run.rng);
+        add(run, late.get(0), late.get(1));
+        add(run, fight(boss, NodeType.BOSS));
     }
 
     private static void add(DelveRun run, Node... nodes) {
@@ -81,10 +66,6 @@ final class DelveMapGen {
             default: life = 15;
         }
         return new Node(type, e, life, null);
-    }
-
-    private static Node bossNode(EnemyData e, int life) {
-        return new Node(NodeType.BOSS, e, life, null);
     }
 
     private static Node rest() {

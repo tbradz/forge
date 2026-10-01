@@ -229,6 +229,11 @@ public class DelveDuelScene extends DuelScene {
         });
     }
 
+    /** Override the win/lose screen's return button text (call after setup). */
+    public void setReturnLabel(String label) {
+        this.returnLabel = label;
+    }
+
     @Override
     public String returnButtonLabel() {
         return returnLabel;

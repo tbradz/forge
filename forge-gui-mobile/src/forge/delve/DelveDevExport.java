@@ -24,12 +24,10 @@ final class DelveDevExport {
         if (done || !FModel.getPreferences().getPrefBoolean(ForgePreferences.FPref.DEV_MODE_ENABLED)) return;
         done = true;
         File root = new File(ForgeProfileProperties.getUserDir(), "delve" + File.separator + "export");
-        for (int dayNo : new int[]{1, 10, 20, 32}) {
-            DelveDay day = DelveDay.forDay(dayNo);
-            File dir = new File(root, "day" + dayNo);
+        for (int tier : new int[]{0, 10, 20, 40}) {
+            DelveDay day = DelveDay.forTier(1, tier);
+            File dir = new File(root, "tier" + (tier + 1));
             dir.mkdirs();
-            for (String g : day.starterNames)
-                write(day.loadStarter(g), new File(dir, "starter_" + g + ".dck"));
             dump(day, dir, day.weakEnemies, DelveDay.Tier.FIGHT, 4);
             dump(day, dir, day.eliteEnemies, DelveDay.Tier.ELITE, 3);
             dump(day, dir, day.bossEnemies, DelveDay.Tier.BOSS, 3);

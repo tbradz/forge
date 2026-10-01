@@ -3,16 +3,14 @@ package forge.delve;
 import java.util.Random;
 
 /**
- * Run tokens: town items that bend the end-of-run rules (and one that works
- * mid-run). Bought at the Card Shop, and earned by clearing Standard/Deep
- * dungeons or winning at the Castle. Stored as counts in the profile.
+ * Run tokens: town items that bend a run's rules. Bought at the Card Shop's token
+ * counter, and earned by clearing dungeons and winning at the Castle. Stored as
+ * counts in the profile. The game always asks before spending one.
  */
 public enum DelveTokens {
-    KEEPSAKE("Keepsake", 60, "Keep one extra card at the end of a run."),
-    DUPLICATE("Duplicate", 60, "After keeping cards, take a second copy of one of them."),
-    INSURANCE("Insurance", 75, "If a run ends in defeat, keep as many cards as a clear would."),
-    REROLL("Reroll", 25, "In the dungeon, swap a card reward for three new choices."),
-    VAULT("Vault", 250, "After clearing a dungeon, add the whole run deck to your collection (you can still edit it).");
+    REROLL("Reroll", 25, "Swap a draft pack or a card reward for a fresh one."),
+    TREASURE_MAP("Treasure Map", 90, "When you clear a dungeon, take two rewards instead of one."),
+    INSURANCE("Insurance", 100, "If a run ends in defeat, bring home all the gold you found and still choose a clear reward (no tier unlock).");
 
     public final String title;
     public final int price;
@@ -24,13 +22,13 @@ public enum DelveTokens {
         this.description = description;
     }
 
-    /** A random token for a reward (Vault is only ever bought). */
+    /** A random token for a reward (Rerolls are the most common). */
     public static DelveTokens randomReward(Random rng) {
-        DelveTokens[] pool = {KEEPSAKE, DUPLICATE, INSURANCE, REROLL, REROLL};
+        DelveTokens[] pool = {REROLL, REROLL, REROLL, TREASURE_MAP, INSURANCE};
         return pool[rng.nextInt(pool.length)];
     }
 
-    /** Give the player {@code n} random reward tokens; returns e.g. "a Reroll token" / "Keepsake and Reroll tokens". */
+    /** Give the player {@code n} random reward tokens; returns e.g. "a Reroll token" / "Reroll and Insurance tokens". */
     public static String grant(int n, Random rng) {
         StringBuilder names = new StringBuilder();
         for (int i = 0; i < n; i++) {

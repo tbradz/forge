@@ -168,10 +168,41 @@ public class DelveProfile {
         saveStats();
     }
 
+    // ---- tiers ------------------------------------------------------------------
+
+    /** Highest unlocked tier (0 = the first set). */
+    public int topTier() {
+        return Integer.parseInt(stats.getProperty("tier", "0"));
+    }
+
+    /** Clearing your highest tier unlocks the next one; returns true if a new tier opened. */
+    public boolean clearTier(int tier) {
+        if (tier < topTier() || tier + 1 >= DelveDay.tiers().size()) return false;
+        stats.setProperty("tier", String.valueOf(tier + 1));
+        saveStats();
+        return true;
+    }
+
     // ---- run tokens ---------------------------------------------------------------
 
     public int tokens(DelveTokens t) {
+        retireOldTokens();
         return Integer.parseInt(stats.getProperty("token." + t.name(), "0"));
+    }
+
+    /** Tokens from an earlier design are refunded at their old price. */
+    private void retireOldTokens() {
+        int[] prices = {60, 60, 250};
+        String[] names = {"KEEPSAKE", "DUPLICATE", "VAULT"};
+        boolean changed = false;
+        for (int i = 0; i < names.length; i++) {
+            String n = stats.getProperty("token." + names[i]);
+            if (n == null) continue;
+            stats.remove("token." + names[i]);
+            stats.setProperty("gold", String.valueOf(gold() + Integer.parseInt(n) * prices[i]));
+            changed = true;
+        }
+        if (changed) saveStats();
     }
 
     public void addToken(DelveTokens t, int n) {

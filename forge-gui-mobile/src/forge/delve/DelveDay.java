@@ -17,69 +17,88 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * One in-game day. The day number (not the real date) seeds everything: the
- * day's set, card pools, starters, shop stock and enemy roster.
+ * The card world for one tier on one in-game day.
  *
- * Power creep: day 1 starts in the 2003 era and each day moves the "era" forward
- * through Magic's sets in release order, so card power rises as you play and older
- * cards stay useful early on. Once the era reaches the newest sets it stays there.
+ * Tiers: every regular expansion/core set (150+ cards) from mid-2003 on is a tier,
+ * in release order. The player starts at tier 0 and unlocks the next tier by
+ * clearing a dungeon run at their highest tier; any unlocked tier can be replayed.
+ * A run's draft, rewards and enemy decks come from its tier's set. The town (shop,
+ * Castle, Tavern) uses the player's highest unlocked tier.
+ *
+ * The day number still seeds daily things (shop stock, enemy roster order).
  */
 public class DelveDay {
-    private static final String[] STARTER_DECKS = {
-            "Azorius", "Dimir", "Rakdos", "Gruul", "Selesnya",
-            "Orzhov", "Izzet", "Golgari", "Boros", "Simic"
-    };
-
-    /** Where day 1 begins: the first set released on or after this date. */
+    /** Tier 0 is the first set released on or after this date. */
     static final String ERA_START = "2003-07-01";
-    /** How many sets the era advances per in-game day. */
-    static final int SETS_PER_DAY = 3;
-    /** How many sets (ending at the era's newest) make up the era's card pool. */
-    static final int ERA_WIDTH = 6;
+    /** Sets (ending at the tier's set) used for the shop's "era" stock and second pack type. */
+    static final int ERA_WIDTH = 3;
+    /** Sets (ending at the tier's set) used for Commander decks, which need a deeper pool. */
+    static final int COMMANDER_WIDTH = 6;
 
     public final int dayNumber;
+    public final int tier;
     public final long seed;
     public final CardEdition edition;
-    /** The sets in play this day, oldest first; the last is the era's newest. */
+    /** the tier's set plus a couple before it */
     public final List<CardEdition> eraSets = new ArrayList<>();
+    private final List<CardEdition> commanderSets = new ArrayList<>();
     public final List<PaperCard> commons = new ArrayList<>();
     public final List<PaperCard> uncommons = new ArrayList<>();
     public final List<PaperCard> rares = new ArrayList<>(); // rare + mythic
-    public final List<String> starterNames = new ArrayList<>();
     public final List<EnemyData> weakEnemies = new ArrayList<>();
     public final List<EnemyData> eliteEnemies = new ArrayList<>();
     public final List<EnemyData> bossEnemies = new ArrayList<>();
 
     private static DelveDay cached;
+    private static List<CardEdition> tierCache;
 
-    /** The current in-game day. */
+    /** The town's card world: today, at the player's highest unlocked tier. */
     public static DelveDay today() {
-        return forDay(DelveProfile.get().day());
+        return forTier(DelveProfile.get().topTier());
     }
 
-    public static DelveDay forDay(int dayNumber) {
-        if (cached == null || cached.dayNumber != dayNumber)
-            cached = new DelveDay(dayNumber);
+    /** Today at a given tier (a dungeon run). */
+    public static DelveDay forTier(int tier) {
+        return forTier(DelveProfile.get().day(), tier);
+    }
+
+    public static DelveDay forTier(int dayNumber, int tier) {
+        tier = Math.max(0, Math.min(tier, tiers().size() - 1));
+        if (cached == null || cached.dayNumber != dayNumber || cached.tier != tier)
+            cached = new DelveDay(dayNumber, tier);
         return cached;
     }
 
-    private DelveDay(int dayNumber) {
+    /** Every tier's set, oldest first. */
+    public static List<CardEdition> tiers() {
+        if (tierCache == null) {
+            List<CardEdition> all = allSets();
+            java.util.Date startDate = java.sql.Date.valueOf(ERA_START);
+            tierCache = new ArrayList<>();
+            for (CardEdition e : all) if (!e.getDate().before(startDate)) tierCache.add(e);
+            if (tierCache.isEmpty()) tierCache.addAll(all);
+        }
+        return tierCache;
+    }
+
+    public static String tierName(int tier) {
+        CardEdition e = tiers().get(Math.max(0, Math.min(tier, tiers().size() - 1)));
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.setTime(e.getDate());
+        return "Tier " + (tier + 1) + ": " + e.getName() + " (" + c.get(java.util.Calendar.YEAR) + ")";
+    }
+
+    private DelveDay(int dayNumber, int tier) {
         this.dayNumber = dayNumber;
-        this.seed = dayNumber * 0x9E3779B97F4A7C15L + 12345L;
+        this.tier = tier;
+        this.seed = dayNumber * 0x9E3779B97F4A7C15L + tier * 0x632BE59BD9B4E019L + 12345L;
         Random rng = new Random(seed);
         List<CardEdition> all = allSets();
-        int start = 0;
-        java.util.Date startDate = java.sql.Date.valueOf(ERA_START);
-        while (start < all.size() - 1 && all.get(start).getDate().before(startDate)) start++;
-        int newest = Math.min(all.size() - 1, start + (dayNumber - 1) * SETS_PER_DAY);
-        for (int i = Math.max(0, newest - ERA_WIDTH + 1); i <= newest; i++) eraSets.add(all.get(i));
-        // the day's featured set leans toward the newest sets of the era
-        int pick = eraSets.size() - 1 - Math.min(eraSets.size() - 1, (int) (Math.abs(rng.nextGaussian()) * 2));
-        this.edition = eraSets.get(pick);
+        this.edition = tiers().get(tier);
+        int at = all.indexOf(edition);
+        for (int i = Math.max(0, at - ERA_WIDTH + 1); i <= at; i++) eraSets.add(all.get(i));
+        for (int i = Math.max(0, at - COMMANDER_WIDTH + 1); i <= at; i++) commanderSets.add(all.get(i));
         buildPool();
-        List<String> decks = new ArrayList<>(List.of(STARTER_DECKS));
-        Collections.shuffle(decks, rng);
-        starterNames.addAll(decks.subList(0, 3));
         buildEnemies(rng);
     }
 
@@ -102,7 +121,7 @@ public class DelveDay {
     /** Year of the era's newest set, for display. */
     public int eraYear() {
         java.util.Calendar c = java.util.Calendar.getInstance();
-        c.setTime(eraSets.get(eraSets.size() - 1).getDate());
+        c.setTime(edition.getDate());
         return c.get(java.util.Calendar.YEAR);
     }
 
@@ -113,27 +132,33 @@ public class DelveDay {
         return e.getDate().after(cut.getTime()) && e.getDate().before(new java.util.Date());
     }
 
-    // ---- era card pool (all rarities, every set in the era) ---------------------------
+    // ---- wider card pools ---------------------------------------------------------
 
-    private List<PaperCard> eraCommons, eraUncommons, eraRares;
+    private List<PaperCard> eraCommons, eraUncommons, eraRares;     // eraSets
+    private List<PaperCard> cmdCommons, cmdUncommons, cmdRares;     // commanderSets
 
     private void loadEraPool() {
         if (eraCommons != null) return;
+        List<List<PaperCard>> p = pool(eraSets);
+        eraRares = p.get(0); eraUncommons = p.get(1); eraCommons = p.get(2);
+        p = pool(commanderSets);
+        cmdRares = p.get(0); cmdUncommons = p.get(1); cmdCommons = p.get(2);
+    }
+
+    /** [rares+mythics, uncommons, commons] of the given sets, no basics, one printing per name. */
+    private static List<List<PaperCard>> pool(List<CardEdition> sets) {
         java.util.Set<String> codes = new java.util.HashSet<>();
-        for (CardEdition e : eraSets) codes.add(e.getCode());
-        eraCommons = new ArrayList<>();
-        eraUncommons = new ArrayList<>();
-        eraRares = new ArrayList<>();
-        for (PaperCard pc : FModel.getMagicDb().getCommonCards().getAllCards(c -> codes.contains(c.getEdition()))) {
+        for (CardEdition e : sets) codes.add(e.getCode());
+        List<PaperCard> c = new ArrayList<>(), u = new ArrayList<>(), r = new ArrayList<>();
+        for (PaperCard pc : FModel.getMagicDb().getCommonCards().getAllCards(x -> codes.contains(x.getEdition()))) {
             if (pc.getRules().getType().isBasicLand()) continue;
-            CardRarity r = pc.getRarity();
-            if (r == CardRarity.Common) eraCommons.add(pc);
-            else if (r == CardRarity.Uncommon) eraUncommons.add(pc);
-            else if (r == CardRarity.Rare || r == CardRarity.MythicRare) eraRares.add(pc);
+            CardRarity rr = pc.getRarity();
+            if (rr == CardRarity.Common) c.add(pc);
+            else if (rr == CardRarity.Uncommon) u.add(pc);
+            else if (rr == CardRarity.Rare || rr == CardRarity.MythicRare) r.add(pc);
         }
-        dedupe(eraCommons);
-        dedupe(eraUncommons);
-        dedupe(eraRares);
+        dedupe(c); dedupe(u); dedupe(r);
+        return List.of(r, u, c);
     }
 
     private void buildPool() {
@@ -182,38 +207,6 @@ public class DelveDay {
 
     public String themeName() {
         return edition.getName();
-    }
-
-    // ---- starter decks ---------------------------------------------------------
-
-    private static final java.util.Map<String, String> GUILD_COLORS = java.util.Map.of(
-            "Azorius", "WU", "Dimir", "UB", "Rakdos", "BR", "Gruul", "RG", "Selesnya", "GW",
-            "Orzhov", "WB", "Izzet", "UR", "Golgari", "BG", "Boros", "RW", "Simic", "GU");
-
-    private final java.util.Map<String, Deck> starters = new java.util.HashMap<>();
-    private List<PaperCard> starterPool;
-
-    /**
-     * Today's fixed starter for a guild: 23 commons/uncommons from recent sets in the
-     * guild's colors (plus today's set) and 17 basics. Seeded by the date, so everyone
-     * gets the same three starters on a given day and new ones tomorrow.
-     */
-    public Deck loadStarter(String guildName) {
-        Deck cached = starters.get(guildName);
-        if (cached == null) {
-            cached = buildStarter(guildName, new Random(seed ^ guildName.hashCode()));
-            starters.put(guildName, cached);
-        }
-        Deck copy = new Deck(guildName + " Starter");
-        copy.getMain().addAll(cached.getMain());
-        return copy;
-    }
-
-    private Deck buildStarter(String guild, Random rng) {
-        ColorSet colors = ColorSet.fromNames(GUILD_COLORS.get(guild).toCharArray());
-        Deck d = buildDeck(colors, 17, 5, 1, false, rng); // starters: modest, one rare
-        d.setName(guild + " Starter");
-        return d;
     }
 
     /** Deck strength for generated opponents. */
@@ -271,12 +264,19 @@ public class DelveDay {
             if (id.isColorless() || !colors.containsAllColorsFrom(id.getColor())) return false;
             return !forAI || !pc.getRules().getAiHints().getRemAIDecks();
         };
-        List<List<PaperCard>> byRarity = new ArrayList<>(); // [rare, uncommon, common]
-        for (List<PaperCard> src : List.of(eraRares, eraUncommons, eraCommons)) {
+        List<List<PaperCard>> byRarity = new ArrayList<>(); // [rare, uncommon, common]: the tier's set
+        for (List<PaperCard> src : List.of(rares, uncommons, commons)) {
             List<PaperCard> l = new ArrayList<>();
             for (PaperCard pc : src) if (fits.test(pc)) l.add(pc);
             Collections.shuffle(l, rng);
             byRarity.add(l);
+        }
+        List<List<PaperCard>> backup = new ArrayList<>(); // the era around it, if the set is thin in these colors
+        for (List<PaperCard> src : List.of(eraRares, eraUncommons, eraCommons)) {
+            List<PaperCard> l = new ArrayList<>();
+            for (PaperCard pc : src) if (fits.test(pc)) l.add(pc);
+            Collections.shuffle(l, rng);
+            backup.add(l);
         }
         int[] quota = {nRare, nUncommon, nCommon};
         List<PaperCard> picks = new ArrayList<>();
@@ -289,6 +289,7 @@ public class DelveDay {
         while (picks.size() < 23 && pickInto(picks, byRarity, quota, pc -> !pc.getRules().getType().isCreature())) { }
         while (picks.size() < 23 && pickInto(picks, byRarity, quota, pc -> true)) { }
         while (picks.size() < 23 && pickInto(picks, byRarity, new int[]{99, 99, 99}, pc -> true)) { } // quotas exhausted
+        while (picks.size() < 23 && pickInto(picks, backup, new int[]{99, 99, 99}, pc -> true)) { }
         return DelveGateScene.buildDraftDeck(picks);
     }
 
@@ -315,7 +316,7 @@ public class DelveDay {
     private List<PaperCard> eraCommanders(boolean forAI) {
         loadEraPool();
         List<PaperCard> out = new ArrayList<>();
-        for (List<PaperCard> src : List.of(eraRares, eraUncommons, eraCommons))
+        for (List<PaperCard> src : List.of(cmdRares, cmdUncommons, cmdCommons))
             for (PaperCard pc : src) {
                 if (!pc.getRules().canBeCommander() || !pc.getRules().getType().isCreature()) continue;
                 int n = pc.getRules().getColorIdentity().countColors();
@@ -382,7 +383,7 @@ public class DelveDay {
             return !forAI || !pc.getRules().getAiHints().getRemAIDecks();
         };
         List<List<PaperCard>> byRarity = new ArrayList<>();
-        for (List<PaperCard> src : List.of(eraRares, eraUncommons, eraCommons)) {
+        for (List<PaperCard> src : List.of(cmdRares, cmdUncommons, cmdCommons)) {
             List<PaperCard> l = new ArrayList<>();
             for (PaperCard pc : src) if (fits.test(pc)) l.add(pc);
             Collections.shuffle(l, rng);
@@ -524,16 +525,11 @@ public class DelveDay {
         return rares;
     }
 
-    /** A pack of three for drafting a starter. */
-    public List<PaperCard> draftChoices(Random rng) {
+    /** A draft pack: a real booster of the tier's set, minus basic lands. */
+    public List<PaperCard> draftPack(Random rng) {
         List<PaperCard> out = new ArrayList<>();
-        int guard = 0;
-        while (out.size() < 3 && guard++ < 100) {
-            List<PaperCard> tier = pickTier(rng, 0.7, 0.95);
-            if (tier.isEmpty()) tier = commons;
-            PaperCard pc = tier.get(rng.nextInt(tier.size()));
-            if (!out.contains(pc)) out.add(pc);
-        }
+        for (PaperCard pc : openPack(edition, rng))
+            if (!pc.getRules().getType().isBasicLand() && !out.contains(pc)) out.add(pc);
         return out;
     }
 }

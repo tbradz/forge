@@ -41,8 +41,7 @@ public class DelveHubScene extends UIScene {
         building("b_house", "Your House", this::openHouse);
         building("b_dungeon", "Dungeon Gate", this::openGate);
         building("b_shop", "Card Shop", () -> Forge.switchScene(DelveShopScene.instance()));
-        building("b_tavern", "Tavern",
-                "Talk to locals, pick up rumors, and play casual games to test decks.", 2);
+        building("b_tavern", "Tavern", this::openTavern);
         building("b_outfitter", "Outfitter",
                 "Sleeves, playmats, dice, and other cosmetics.", 3);
         building("b_castle", "Castle", this::openCastle);
@@ -120,7 +119,7 @@ public class DelveHubScene extends UIScene {
         if (p.delvedToday() || p.isEvening()) {
             openInfo("Dungeon Gate", "The gate is sealed until morning. You get one delve per day.\n\n"
                     + (p.castleToday() ? "Sleep at Your House to start a new day."
-                    : "The Castle is open tonight (1v1 tournament or Commander pod), or sleep at Your House to start a new day."));
+                    : "The Castle and the Tavern are open tonight, or sleep at Your House to start a new day."));
             return;
         }
         Forge.switchScene(DelveGateScene.instance());
@@ -157,6 +156,20 @@ public class DelveHubScene extends UIScene {
         Forge.switchScene(DelveCastleScene.instance());
     }
 
+    private void openTavern() {
+        DelveRun run = currentRun();
+        if (run != null && !run.over) {
+            openInfo("Tavern", "You're in the middle of a dungeon run. The Tavern can wait until evening.");
+            return;
+        }
+        if (!DelveProfile.get().isEvening()) {
+            openInfo("Tavern", "The Tavern opens in the evening, after your dungeon run. "
+                    + "Practice games against the patrons, as many as you like.");
+            return;
+        }
+        Forge.switchScene(DelveTavernScene.instance());
+    }
+
     private void sleep() {
         DelveRun run = currentRun();
         if (run != null && !run.over) {
@@ -171,8 +184,8 @@ public class DelveHubScene extends UIScene {
                     p.sleep();
                     refreshTime();
                     DelveDay d = DelveDay.today();
-                    openInfo("Day " + d.dayNumber, "A new day. Today's dungeon draws from " + d.themeName()
-                            + " (" + d.eraYear() + " era).");
+                    openInfo("Day " + d.dayNumber, "A new day. The shop has new stock, and the dungeon gate is open."
+                            + "\nYour highest tier: " + DelveDay.tierName(d.tier) + ".");
                 }, this::removeDialog));
     }
 
@@ -183,7 +196,7 @@ public class DelveHubScene extends UIScene {
         DelveProfile p = DelveProfile.get();
         String when = p.isEvening() ? "Evening" : "Morning";
         String hint = !p.isEvening() ? "the dungeon awaits"
-                : !p.castleToday() ? "the Castle is open" : "time to rest at Your House";
+                : !p.castleToday() ? "the Castle and Tavern are open" : "the Tavern is open, or rest at Your House";
         if (timeLabel == null) {
             timeLabel = forge.adventure.util.Controls.newTextraLabel("");
             timeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);

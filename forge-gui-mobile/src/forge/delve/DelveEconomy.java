@@ -26,17 +26,16 @@ public final class DelveEconomy {
     public static final int BOSS_GOLD = 75;
 
     public static int fightGold(DelveRun.NodeType type, Random rng) {
-        return fightGold(type, rng, DelveRun.Size.STANDARD);
-    }
-
-    /** Bigger dungeons pay more for their boss. */
-    public static int fightGold(DelveRun.NodeType type, Random rng, DelveRun.Size size) {
         switch (type) {
-            case BOSS: return size == DelveRun.Size.SHALLOW ? 50 : size == DelveRun.Size.DEEP ? 120 : BOSS_GOLD;
+            case BOSS: return BOSS_GOLD;
             case ELITE: return ELITE_GOLD;
             default: return FIGHT_GOLD_MIN + rng.nextInt(FIGHT_GOLD_MAX - FIGHT_GOLD_MIN + 1);
         }
     }
+
+    // ---- clearing a tier (choose one reward) ----------------------------------------
+    public static final int CLEAR_PACKS = 3;      // boosters of the tier's set
+    public static final int CLEAR_GOLD = 120;     // on top of the gold found
 
     // ---- dungeon merchant ---------------------------------------------------------
     public static int buyPrice(PaperCard pc) {

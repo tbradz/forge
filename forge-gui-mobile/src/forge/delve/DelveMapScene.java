@@ -80,7 +80,7 @@ public class DelveMapScene extends DelveScene {
         chosen = run.chosen;
         if (!run.over) DelveRunSave.save(run);
         // header bar
-        label("[%90][GOLD]" + run.day.themeName() + "[]  [%70]" + run.size.label, 8, 5, 180, 16, Align.left);
+        label("[%90][GOLD]" + run.day.themeName() + "[]  [%70]Tier " + (run.day.tier + 1), 8, 5, 180, 16, Align.left);
         label("[%90][RED]Life[] " + run.life + "/" + DelveRun.MAX_LIFE + "    [GOLD]Gold[] " + run.gold
                         + "    Deck " + run.deckSize() + "/" + DelveRun.MIN_DECK + "    Wins " + run.fightsWon,
                 150, 5, 322, 16, Align.right);
@@ -134,8 +134,8 @@ public class DelveMapScene extends DelveScene {
 
         button("[%80]View deck", 300, 246, 80, 18, this::viewDeck);
         button("[%80]Abandon run", 390, 246, 84, 18, () ->
-                confirm("Abandon run", "End this run now? You'll still get the reward for how far you got.",
-                        () -> endRun(false)));
+                confirm("Abandon run", "End this run now? You'll bring home a share of the gold you found, by how far you got.",
+                        () -> endRun(false, true)));
         label("[%70]Step " + Math.min(run.step + 1, steps) + " of " + steps
                 + (run.step < steps ? "  -  choose a lit room" : ""), 8, 250, 280, 12, Align.left);
     }
@@ -298,18 +298,18 @@ public class DelveMapScene extends DelveScene {
         Forge.switchScene(this);
         if (!won) {
             run.life = 0;
-            info("Defeated", node.enemy.getName() + " has beaten you. Your run is over.", () -> endRun(false));
+            info("Defeated", node.enemy.getName() + " has beaten you. Your run is over.", () -> endRun(false, false));
             return;
         }
         run.life = Math.max(1, life);
         run.fightsWon++;
         boolean elite = node.type == NodeType.ELITE;
-        int gold = DelveEconomy.fightGold(node.type, run.rng, run.size);
+        int gold = DelveEconomy.fightGold(node.type, run.rng);
         run.gainGold(gold);
         completeStep(run, index);
         if (node.type == NodeType.BOSS) {
-            info("Dungeon cleared!", "You defeated " + node.enemy.getName() + " and cleared today's dungeon. (+"
-                    + gold + " gold)", () -> endRun(true));
+            bossLine = "You defeated " + node.enemy.getName() + " (+" + gold + " gold).\n";
+            endRun(true, false);
             return;
         }
         offerCard(run, (elite ? "Elite reward" : "Victory") + " (+" + gold + " gold): add one card to your deck", elite);
@@ -479,123 +479,114 @@ public class DelveMapScene extends DelveScene {
     // ---- end of run ---------------------------------------------------------------
 
     /** Keep picks by result: 1 if you fell at the first fight, more the further you got. */
-    static int keepPicks(DelveRun run, boolean cleared) {
-        if (cleared) return run.size.clearKeeps;
-        if (run.fightsWon == 0) return 1;
-        return run.fightsWon >= 3 ? 3 : 2;
-    }
+    private String bossLine = "";
 
-    private void endRun(boolean cleared) {
+    private void endRun(boolean cleared, boolean abandoned) {
         DelveRun run = DelveRun.current();
         if (run == null) return;
         run.over = true;
         run.cleared = cleared;
         DelveProfile prof = DelveProfile.get();
-        prof.makeEvening(); // the run is done: the Castle opens tonight
-        // all gold found in the dungeon comes home, win or lose
-        int banked = run.gold;
-        prof.addGold(banked);
+        prof.makeEvening(); // the run is done: the Castle and Tavern open tonight
+        int found = run.gold;
         run.gold = 0;
-        String tokenLine = "";
-        if (cleared && run.size != DelveRun.Size.SHALLOW) // bigger dungeons also pay out run tokens
-            tokenLine = "\nYou also find " + DelveTokens.grant(run.size == DelveRun.Size.DEEP ? 2 : 1, run.rng) + ".";
-        int picks = keepPicks(run, cleared);
-        String summary = (cleared ? "You cleared the dungeon" : "Your run ended") + " after winning "
-                + run.fightsWon + (run.fightsWon == 1 ? " fight." : " fights.")
-                + "\nYou bring " + banked + " gold home (town gold: " + prof.gold() + ")." + tokenLine;
-        if (!cleared && prof.tokens(DelveTokens.INSURANCE) > 0 && run.size.clearKeeps > picks) {
-            int insured = run.size.clearKeeps;
-            List<String> labels = List.of("Use Insurance: keep " + insured + " cards", "Keep " + picks);
-            List<Runnable> actions = List.of(() -> {
-                prof.useToken(DelveTokens.INSURANCE);
-                chooseKeeps(run, insured, false);
-            }, () -> chooseKeeps(run, picks, false));
-            choose("Run over", summary + "\n\nYou have " + prof.tokens(DelveTokens.INSURANCE)
-                    + " Insurance. Use one to keep as many cards as a clear would?", labels, null, actions);
+        if (cleared) {
+            prof.addGold(found);
+            boolean unlocked = prof.clearTier(run.day.tier);
+            String text = bossLine + "You cleared " + DelveDay.tierName(run.day.tier) + " after winning " + run.fightsWon
+                    + " fights.\nYou bring home all " + found + " gold you found, and " + DelveTokens.grant(1, run.rng) + "."
+                    + (unlocked ? "\n[GOLD]New tier unlocked: " + DelveDay.tierName(run.day.tier + 1) + "[]" : "");
+            int rewards = 1;
+            if (prof.tokens(DelveTokens.TREASURE_MAP) > 0) {
+                choose("Dungeon cleared", text + "\n\nYou have " + prof.tokens(DelveTokens.TREASURE_MAP)
+                                + " Treasure Map. Use one to take two rewards?",
+                        List.of("Use a Treasure Map (2 rewards)", "Take one reward"), null, List.of(() -> {
+                            prof.useToken(DelveTokens.TREASURE_MAP);
+                            rewardMenu(run, 2, new ArrayList<>(), "");
+                        }, () -> rewardMenu(run, 1, new ArrayList<>(), "")));
+            } else {
+                info("Dungeon cleared", text, () -> rewardMenu(run, rewards, new ArrayList<>(), ""));
+            }
             return;
         }
-        if (!cleared) {
-            info("Run over", summary + "\n\nKeep " + picks + (picks == 1 ? " card" : " cards")
-                    + " from your run deck for your collection.", () -> chooseKeeps(run, picks, false));
+        // defeat: a share of the gold, by how far you got
+        int pct = (int) Math.round(run.completion() * 100);
+        int banked = (int) Math.round(found * run.completion());
+        String text = "Your run ended " + pct + "% of the way through the dungeon, after winning " + run.fightsWon
+                + (run.fightsWon == 1 ? " fight." : " fights.");
+        if (!abandoned && prof.tokens(DelveTokens.INSURANCE) > 0) { // insurance covers defeats, not walking out
+            choose("Run over", text + "\n\nYou found " + found + " gold. Use Insurance (you have "
+                            + prof.tokens(DelveTokens.INSURANCE) + ") to bring it all home and choose a clear reward?",
+                    List.of("Use Insurance", "Take " + banked + " gold (" + pct + "%)"), null, List.of(() -> {
+                        prof.useToken(DelveTokens.INSURANCE);
+                        prof.addGold(found);
+                        rewardMenu(run, 1, new ArrayList<>(), "Insurance paid out " + found + " gold. ");
+                    }, () -> {
+                        prof.addGold(banked);
+                        finishRun("You bring home " + banked + " of the " + found + " gold you found (" + pct + "%).");
+                    }));
             return;
         }
+        prof.addGold(banked);
+        info("Run over", text + "\nYou bring home " + pct + "% of the " + found + " gold you found: " + banked + " gold.",
+                () -> finishRun("You bring home " + banked + " gold."));
+    }
+
+    /** Clear rewards: choose {@code left} of packs / gold / cards from the run deck / lock the deck. */
+    private void rewardMenu(DelveRun run, int left, List<String> taken, String log) {
+        if (left <= 0) {
+            finishRun(log.trim());
+            return;
+        }
+        String set = run.day.edition.getName();
         List<String> labels = new ArrayList<>();
         List<Boolean> enabled = new ArrayList<>();
         List<Runnable> actions = new ArrayList<>();
-        labels.add("Keep " + picks + " cards");
-        enabled.add(true);
-        actions.add(() -> chooseKeeps(run, picks, false));
-        labels.add("Lock the deck");
-        enabled.add(true);
-        actions.add(() -> lockDeck(run));
-        int vaults = prof.tokens(DelveTokens.VAULT);
-        labels.add("Vault the deck (" + vaults + " Vault)");
-        enabled.add(vaults > 0);
-        actions.add(() -> vaultDeck(run));
-        choose("Choose your reward", summary + "\n\nKeep " + picks + " cards from your run deck, lock the whole deck"
-                + " exactly as it is (it can never be changed), or spend a Vault token to add every card to your collection.",
-                labels, enabled, actions);
-    }
-
-    /**
-     * Let the player keep cards from the run deck. Offers a Keepsake first (one more card),
-     * then a Duplicate afterwards (a second copy of one kept card).
-     */
-    private void chooseKeeps(DelveRun run, int picks, boolean keepsakeAsked) {
-        List<PaperCard> options = uniqueCards(run, false);
-        if (options.isEmpty()) {
-            finishRun("Nothing to keep this time.");
-            return;
-        }
-        DelveProfile prof = DelveProfile.get();
-        if (!keepsakeAsked && prof.tokens(DelveTokens.KEEPSAKE) > 0 && picks < options.size()) {
-            choose("Keepsake", "You have " + prof.tokens(DelveTokens.KEEPSAKE) + " Keepsake. Use one to keep "
-                            + (picks + 1) + " cards instead of " + picks + "?",
-                    List.of("Use a Keepsake", "No thanks"), null, List.of(() -> {
-                        prof.useToken(DelveTokens.KEEPSAKE);
-                        chooseKeeps(run, picks + 1, true);
-                    }, () -> chooseKeeps(run, picks, true)));
-            return;
-        }
-        DelvePickScene.instance().show("Keep " + picks + (picks == 1 ? " card" : " cards") + " for your collection",
-                options, Math.min(picks, options.size()), picks, null, kept -> {
-                    prof.addToCollection(kept);
-                    String msg = kept.size() + (kept.size() == 1 ? " card" : " cards") + " added to your collection.";
-                    if (!kept.isEmpty() && prof.tokens(DelveTokens.DUPLICATE) > 0)
-                        offerDuplicate(kept, msg);
-                    else
-                        finishRun(msg);
-                });
-    }
-
-    private void offerDuplicate(List<PaperCard> kept, String msg) {
-        DelveProfile prof = DelveProfile.get();
-        DelvePickScene.instance().show("Use a Duplicate? Take a second copy of one card  (you have "
-                        + prof.tokens(DelveTokens.DUPLICATE) + ")", kept, 0, 1, "No thanks", pc -> "Copy", chosen -> {
-            if (!chosen.isEmpty() && prof.useToken(DelveTokens.DUPLICATE)) {
-                prof.addToCollection(chosen);
-                finishRun(msg + " Duplicate: a second " + chosen.get(0).getName() + " too.");
-            } else {
-                finishRun(msg);
-            }
+        labels.add(DelveEconomy.CLEAR_PACKS + " " + set + " boosters");
+        enabled.add(!taken.contains("packs"));
+        actions.add(() -> {
+            taken.add("packs");
+            List<PaperCard> all = new ArrayList<>();
+            for (int i = 0; i < DelveEconomy.CLEAR_PACKS; i++)
+                for (PaperCard pc : run.day.openPack(run.day.edition, run.rng))
+                    if (!pc.getRules().getType().isBasicLand()) all.add(pc); // basics are free anyway
+            DelveProfile.get().addToCollection(all);
+            DelvePickScene.instance().show("Your " + DelveEconomy.CLEAR_PACKS + " " + set + " boosters ("
+                            + all.size() + " cards, added to your collection)", all, 0, 0, "Continue", x -> {
+                Forge.switchScene(this);
+                rewardMenu(run, left - 1, taken, log + DelveEconomy.CLEAR_PACKS + " boosters opened. ");
+            });
         });
-    }
-
-    private void vaultDeck(DelveRun run) {
-        if (!DelveProfile.get().useToken(DelveTokens.VAULT)) return;
-        List<PaperCard> all = new ArrayList<>();
-        for (java.util.Map.Entry<PaperCard, Integer> e : run.deck.getMain()) {
-            if (e.getKey().getRules().getType().isBasicLand()) continue; // basics are free anyway
-            for (int i = 0; i < e.getValue(); i++) all.add(e.getKey());
-        }
-        DelveProfile.get().addToCollection(all);
-        finishRun("Vault: all " + all.size() + " cards (besides basic lands) from your run deck were added to your collection.");
-    }
-
-    private void lockDeck(DelveRun run) {
-        String name = run.day.themeName() + " " + run.deck.getName().replace(" Starter", "");
-        DelveProfile.get().addLockedDeck(run.deck, name + " (Locked)");
-        finishRun("Your run deck was saved as a Locked Deck. Find it in Your House.");
+        labels.add(DelveEconomy.CLEAR_GOLD + " gold");
+        enabled.add(!taken.contains("gold"));
+        actions.add(() -> {
+            taken.add("gold");
+            DelveProfile.get().addGold(DelveEconomy.CLEAR_GOLD);
+            rewardMenu(run, left - 1, taken, log + "+" + DelveEconomy.CLEAR_GOLD + " gold. ");
+        });
+        labels.add("Pick " + DelveRun.CLEAR_KEEPS + " cards from your run deck");
+        enabled.add(!taken.contains("cards"));
+        actions.add(() -> {
+            taken.add("cards");
+            List<PaperCard> options = uniqueCards(run, false);
+            int n = Math.min(DelveRun.CLEAR_KEEPS, options.size());
+            DelvePickScene.instance().show("Keep " + n + " cards for your collection", options, n, n, null, kept -> {
+                DelveProfile.get().addToCollection(kept);
+                Forge.switchScene(this);
+                rewardMenu(run, left - 1, taken, log + kept.size() + " cards added to your collection. ");
+            });
+        });
+        labels.add("Lock the deck (it can never be changed)");
+        enabled.add(!taken.contains("lock"));
+        actions.add(() -> {
+            taken.add("lock");
+            String name = run.day.themeName() + " " + run.deck.getName().replace(" Draft", "");
+            DelveProfile.get().addLockedDeck(run.deck, name + " (Locked)");
+            rewardMenu(run, left - 1, taken, log + "Run deck saved as a Locked Deck. ");
+        });
+        choose(left > 1 ? "Choose a reward (" + left + " left)" : "Choose your reward",
+                "Rewards come from " + set + ". Cards and packs go to your collection; a Locked Deck can be played "
+                        + "anywhere but never edited.", labels, enabled, actions);
     }
 
     private void finishRun(String message) {
