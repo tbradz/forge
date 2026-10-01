@@ -42,8 +42,8 @@ public class DelveGateScene extends DelveScene {
         DelveProfile prof = DelveProfile.get();
         int top = prof.topTier();
         title("Dungeon Gate");
-        label("Day " + prof.day() + "  -  choose a tier to delve. Clear your highest tier to unlock the next set.",
-                30, 34, W - 60, 16, Align.center);
+        label("[%85]Day " + prof.day() + "  -  choose a tier. Clear your highest tier to unlock the next set.",
+                30, 36, W - 60, 14, Align.center);
 
         image("ui/delve/panel.png", 40, 56, W - 80, 150);
         button("<", 56, 70, 30, 24, () -> { selectedTier--; build(); }).setDisabled(selectedTier <= 0);
@@ -55,13 +55,23 @@ public class DelveGateScene extends DelveScene {
                         : "The newest set. There is no higher tier (yet).")
                         : "Already cleared. Replay it for its rewards."),
                 56, 98, W - 112, 14, Align.center);
-        label("[%80]Prerelease: open " + PRERELEASE_PACKS + " " + DelveDay.tiers().get(selectedTier).getName()
-                        + " boosters and build a " + DECK_SIZE + "-card deck from what you open.\n[%80]Basic lands are free."
-                        + "\n[%80]Clear the dungeon to choose a reward: packs, gold, cards from your run deck, or lock the deck.",
-                56, 118, W - 112, 60, Align.center);
+        // three steps of a run, side by side
+        String set = DelveDay.tiers().get(selectedTier).getName();
+        String[][] steps = {
+                {"1. Your deck", "Open " + PRERELEASE_PACKS + " " + set + " boosters and build a " + DECK_SIZE
+                        + "-card deck. Basic lands are free."},
+                {"2. The dungeon", "6-9 steps of fights, events and shops, an elite or two, and a boss with a perk."},
+                {"3. Clear it", "Keep all your gold and pick a reward: packs, gold, cards from your deck, or lock it."}};
+        float colW = (W - 112) / 3f;
+        for (int i = 0; i < 3; i++) {
+            float x = 56 + i * colW;
+            label("[%85][GOLD]" + steps[i][0], x + 4, 118, colW - 8, 12, Align.center);
+            com.github.tommyettinger.textra.TextraLabel t = label("[%75]" + steps[i][1], x + 4, 132, colW - 8, 36, Align.top);
+            t.setAlignment(Align.top);
+        }
 
         boolean canDelve = !prof.delvedToday() && !prof.isEvening();
-        button(canDelve ? "[GOLD]Open your packs" : "[GRAY]The gate is sealed until morning", W / 2f - 100, 180, 200, 22,
+        button(canDelve ? "[GOLD]Open your packs" : "[GRAY]The gate is sealed until morning", W / 2f - 100, 174, 200, 22,
                 this::startDraft).setDisabled(!canDelve);
         button("Back", W / 2f - 50, 236, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }

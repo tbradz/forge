@@ -96,9 +96,7 @@ public class DelveHubScene extends UIScene {
 
     /** Placeholder until each building has its own screen. */
     private void openBuilding(String title, String description, int phase) {
-        showDialog(createGenericDialog(title,
-                description + "\n\nComing in Phase " + phase + ".",
-                Forge.getLocalizer().getMessage("lblOK"), null, this::removeDialog, null));
+        openInfo(title, description + "\n\nComing in Phase " + phase + ".");
     }
 
     private void openGate() {
@@ -141,15 +139,13 @@ public class DelveHubScene extends UIScene {
             return;
         }
         if (!p.isEvening()) {
-            showDialog(createGenericDialog("Castle", "The Castle opens at dusk. Skip today's dungeon run and "
-                            + "head to the Castle now?", "Go to the Castle", "Not yet",
-                    () -> {
-                        removeDialog();
+            ask("Castle", "The Castle opens at dusk. Skip today's dungeon run and head to the Castle now?",
+                    "Go now", "Not yet", () -> {
                         p.markDelved();
                         p.makeEvening();
                         refreshTime();
                         Forge.switchScene(DelveCastleScene.instance());
-                    }, this::removeDialog));
+                    });
             return;
         }
         Forge.switchScene(DelveCastleScene.instance());
@@ -177,15 +173,14 @@ public class DelveHubScene extends UIScene {
         }
         DelveProfile p = DelveProfile.get();
         String warn = !p.delvedToday() ? "You haven't delved today. " : !p.castleToday() ? "You skipped tonight's tournament. " : "";
-        showDialog(createGenericDialog("Sleep", warn + "Sleep until tomorrow morning?", "Sleep", "Stay up",
+        ask("Sleep", warn + "Sleep until tomorrow morning?", "Sleep", "Stay up",
                 () -> {
-                    removeDialog();
                     p.sleep();
                     refreshTime();
                     DelveDay d = DelveDay.today();
                     openInfo("Day " + d.dayNumber, "A new day. The shop has new stock, and the dungeon gate is open."
                             + "\nYour highest tier: " + DelveDay.tierName(d.tier) + ".");
-                }, this::removeDialog));
+                });
     }
 
     private com.github.tommyettinger.textra.TextraLabel timeLabel;
@@ -217,32 +212,33 @@ public class DelveHubScene extends UIScene {
         DelveProfile p = DelveProfile.get();
         StringBuilder sb = new StringBuilder();
         sb.append("Day ").append(p.day()).append(p.isEvening() ? " (evening)" : " (morning)")
-                .append("    Gold ").append(p.gold()).append("    Castle titles ").append(p.castleTitles()).append("\n");
-        sb.append("Collection ").append(p.collection().countAll()).append(" cards (")
-                .append(p.collection().countDistinct()).append(" different)    Locked Decks ")
-                .append(p.lockedDecks().size()).append("\n");
+                .append("  -  [GOLD]").append(p.gold()).append(" gold[]  -  ").append(DelveDay.tierName(p.topTier())).append("\n");
+        sb.append(p.collection().countAll()).append(" cards collected  -  ").append(p.lockedDecks().size())
+                .append(" Locked Decks  -  ").append(p.castleTitles()).append(" Castle titles\n");
         sb.append("Tokens: ").append(p.tokenSummary());
         houseMenu(sb.toString());
     }
 
     private void houseMenu(String summary) {
-        com.badlogic.gdx.scenes.scene2d.ui.Dialog d =
-                new com.badlogic.gdx.scenes.scene2d.ui.Dialog("Your House", forge.adventure.util.Controls.getSkin());
-        d.getContentTable().add(forge.adventure.util.Controls.newTextraLabel(summary));
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make("Your House");
+        DelveDialogs.body(d, "[%85]" + summary.replace("\n", "\n[%85]"));
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        java.util.List<Runnable> actions = new java.util.ArrayList<>();
         java.util.function.BiConsumer<String, Runnable> add = (text, action) -> {
-            d.getButtonTable().row();
-            d.getButtonTable().add(forge.adventure.util.Controls.newTextButton(text, () -> {
+            labels.add(text);
+            actions.add(() -> {
                 removeDialog();
                 action.run();
-            })).width(220f).height(20f).pad(1f);
+            });
         };
         add.accept("[GOLD]Sleep until tomorrow", this::sleep);
+        add.accept("View collection", this::viewCollection);
         add.accept("Build a deck", () -> chooseDeckToEdit(false));
         add.accept("Build a Commander deck", () -> chooseDeckToEdit(true));
-        add.accept("View collection", this::viewCollection);
         add.accept("Saves (" + DelveSaves.currentName() + ")", () -> Forge.switchScene(DelveSavesScene.instance()));
         add.accept("Change character", () -> DelveCharacterScene.instance().open(() -> Forge.switchScene(this)));
-        add.accept("Close", () -> { });
+        DelveDialogs.gridButtons(d, labels, actions, 2);
+        DelveDialogs.wideButton(d, "Close", this::removeDialog, 2);
         showDialog(d);
     }
 
@@ -262,24 +258,20 @@ public class DelveHubScene extends UIScene {
             edit.accept(null);
             return;
         }
-        com.badlogic.gdx.scenes.scene2d.ui.Dialog d =
-                new com.badlogic.gdx.scenes.scene2d.ui.Dialog(commander ? "Your Commander decks" : "Your decks", forge.adventure.util.Controls.getSkin());
-        d.getContentTable().add(forge.adventure.util.Controls.newTextraLabel(commander
-                ? "100 cards, one copy of each (except basics), led by a legendary creature.\nPick your commander in the Commander section." : "Edit a deck or start a new one."));
-        for (forge.deck.Deck deck : decks) {
-            d.getButtonTable().row();
-            d.getButtonTable().add(forge.adventure.util.Controls.newTextButton(deck.getName() + " (" + (deck.getMain().countAll() + (commander ? deck.getCommanders().size() : 0)) + ")", () -> {
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make(commander ? "Your Commander decks" : "Your decks");
+        DelveDialogs.body(d, commander
+                ? "100 cards, one copy of each (except basics), led by a legendary creature. Pick your commander in the Commander section."
+                : "Edit a deck or start a new one.");
+        for (forge.deck.Deck deck : decks)
+            DelveDialogs.listButton(d, deck.getName() + " (" + (deck.getMain().countAll() + (commander ? deck.getCommanders().size() : 0)) + ")", () -> {
                 removeDialog();
                 edit.accept(deck);
-            })).width(240f).pad(2f);
-        }
-        d.getButtonTable().row();
-        d.getButtonTable().add(forge.adventure.util.Controls.newTextButton("[GOLD]New deck", () -> {
+            }, 19f);
+        DelveDialogs.listButton(d, "[GOLD]New deck", () -> {
             removeDialog();
             edit.accept(null);
-        })).width(240f).pad(2f);
-        d.getButtonTable().row();
-        d.getButtonTable().add(forge.adventure.util.Controls.newTextButton("Cancel", this::removeDialog)).width(240f).pad(2f);
+        }, 19f);
+        DelveDialogs.listButton(d, "Cancel", this::removeDialog, 19f);
         showDialog(d);
     }
 
@@ -315,8 +307,21 @@ public class DelveHubScene extends UIScene {
     }
 
     private void openInfo(String title, String text) {
-        showDialog(createGenericDialog(title, text,
-                Forge.getLocalizer().getMessage("lblOK"), null, this::removeDialog, null));
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make(title);
+        DelveDialogs.body(d, text);
+        DelveDialogs.rowButtons(d, new String[]{Forge.getLocalizer().getMessage("lblOK")}, new Runnable[]{this::removeDialog});
+        showDialog(d);
+    }
+
+    /** Two-button question in Delve's dialog style. */
+    private void ask(String title, String text, String yes, String no, Runnable onYes) {
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make(title);
+        DelveDialogs.body(d, text);
+        DelveDialogs.rowButtons(d, new String[]{yes, no}, new Runnable[]{() -> {
+            removeDialog();
+            onYes.run();
+        }, this::removeDialog});
+        showDialog(d);
     }
 
     @Override

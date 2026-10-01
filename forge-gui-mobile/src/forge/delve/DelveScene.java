@@ -68,6 +68,7 @@ abstract class DelveScene extends UIScene {
             if (!self[0].isDisabled()) onClick.run(); // libGDX still delivers clicks to disabled buttons
         });
         self[0] = b;
+        DelveDialogs.dimWhenDisabled(b);
         b.setBounds(x, H - yTop - h, w, h);
         return track(b);
     }
@@ -101,42 +102,38 @@ abstract class DelveScene extends UIScene {
     }
 
     protected void info(String title, String text, Runnable then) {
-        showDialog(createGenericDialog(title, text, Forge.getLocalizer().getMessage("lblOK"), null,
-                () -> {
-                    removeDialog();
-                    if (then != null) then.run();
-                }, null));
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make(title);
+        DelveDialogs.body(d, text);
+        DelveDialogs.rowButtons(d, new String[]{Forge.getLocalizer().getMessage("lblOK")}, new Runnable[]{() -> {
+            removeDialog();
+            if (then != null) then.run();
+        }});
+        showDialog(d);
     }
 
     /** A dialog with one button per choice; each button closes the dialog and runs its action. */
     protected void choose(String title, String text, List<String> labels, List<Boolean> enabled, List<Runnable> actions) {
-        com.badlogic.gdx.scenes.scene2d.ui.Dialog dialog =
-                new com.badlogic.gdx.scenes.scene2d.ui.Dialog(title == null ? "" : title, Controls.getSkin());
-        TextraLabel body = Controls.newTextraLabel(text);
-        body.setWrap(true);
-        body.setAlignment(Align.center);
-        dialog.getContentTable().add(body).width(300f);
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make(title);
+        DelveDialogs.body(d, text);
+        float h = labels.size() > 4 ? 17f : 20f;
         for (int i = 0; i < labels.size(); i++) {
             final Runnable action = actions.get(i);
-            TextraButton[] self = new TextraButton[1];
-            TextraButton b = Controls.newTextButton(labels.get(i), () -> {
-                if (self[0].isDisabled()) return; // libGDX still delivers clicks to disabled buttons
+            TextraButton b = DelveDialogs.listButton(d, labels.get(i), () -> {
                 removeDialog();
                 action.run();
-            });
-            self[0] = b;
+            }, h);
             if (enabled != null && !enabled.get(i)) b.setDisabled(true);
-            dialog.getButtonTable().row();
-            dialog.getButtonTable().add(b).width(260f).height(labels.size() > 4 ? 17f : 20f).pad(1f);
         }
-        showDialog(dialog);
+        showDialog(d);
     }
 
     protected void confirm(String title, String text, Runnable yes) {
-        showDialog(createGenericDialog(title, text, "Yes", "No",
-                () -> {
-                    removeDialog();
-                    yes.run();
-                }, this::removeDialog));
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make(title);
+        DelveDialogs.body(d, text);
+        DelveDialogs.rowButtons(d, new String[]{"Yes", "No"}, new Runnable[]{() -> {
+            removeDialog();
+            yes.run();
+        }, this::removeDialog});
+        showDialog(d);
     }
 }

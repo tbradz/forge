@@ -21,8 +21,9 @@ import java.util.function.Consumer;
 /**
  * Prerelease-style pack opening: boosters are opened one at a time. Click the
  * pack and it shakes, bursts, and its cards fly out face down and flip over one
- * by one (rares and mythics last, with a gold glow). When every pack is open,
- * the whole pool is handed to {@code onDone}.
+ * by one (rares and mythics last, with a gold glow). "Open all" bursts every
+ * remaining pack together and reveals the uncommons, rares and mythics. When every
+ * pack is open, the whole pool is handed to {@code onDone}.
  */
 public class DelvePackOpenScene extends DelveScene {
     private static DelvePackOpenScene object;
@@ -36,7 +37,7 @@ public class DelvePackOpenScene extends DelveScene {
     private boolean animating;
     private int spillId; // guards afterSpill so Flip all and the timer can't both finish a pack
     private com.github.tommyettinger.textra.TextraLabel hint, headerRight;
-    private com.github.tommyettinger.textra.TextraButton openButton, flipAllButton;
+    private com.github.tommyettinger.textra.TextraButton openButton, openAllButton, flipAllButton;
 
     private DelvePackOpenScene() {
         super("ui/delve_opening.json");
@@ -97,9 +98,62 @@ public class DelvePackOpenScene extends DelveScene {
                 if (!animating) burst(pack, name);
             }
         });
-        openButton = button("[GOLD]Open", W / 2f - 50, 236, 100, 22, () -> {
+        int left = packs - opened;
+        float bx = left > 1 ? W / 2f - 105 : W / 2f - 50;
+        openButton = button("[GOLD]Open", bx, 236, 100, 22, () -> {
             if (!animating) burst(pack, name);
         });
+        if (left > 1)
+            openAllButton = button("Open all (" + left + ")", W / 2f + 5, 236, 100, 22, () -> {
+                if (!animating) openAll();
+            });
+    }
+
+    /** Open every remaining pack at once: the packs burst together, then the best cards are revealed. */
+    private void openAll() {
+        animating = true;
+        clearScreen();
+        showing.clear();
+        header();
+        int left = packs - opened;
+        float pw = 48, ph = 72, gap = 10;
+        float total = left * pw + (left - 1) * gap, x0 = (W - total) / 2f, py = 90;
+        List<PaperCard> all = new ArrayList<>();
+        for (int i = 0; i < left; i++)
+            for (PaperCard pc : day.openPack(day.edition, rng))
+                if (!pc.getRules().getType().isBasicLand()) all.add(pc);
+        pool.addAll(all);
+        final int count = left;
+        for (int i = 0; i < left; i++) {
+            Image pack = image("ui/delve/booster_pack.png", x0 + i * (pw + gap), py, pw, ph);
+            pack.setOrigin(Align.center);
+            float cx = pack.getX() + pw / 2f, cy = pack.getY() + ph / 2f;
+            Image flash = image("ui/delve/pack_flash.png", 0, 0, 140, 140);
+            flash.setPosition(cx - 70, cy - 70);
+            flash.setOrigin(Align.center);
+            flash.setTouchable(Touchable.disabled);
+            flash.getColor().a = 0;
+            flash.setScale(0.3f);
+            pack.addAction(Actions.sequence(
+                    Actions.delay(i * 0.12f),
+                    Actions.rotateBy(6, 0.05f), Actions.rotateBy(-12, 0.08f), Actions.rotateBy(6, 0.05f),
+                    Actions.parallel(Actions.scaleTo(1.3f, 1.3f, 0.16f, Interpolation.pow2Out), Actions.fadeOut(0.16f)),
+                    Actions.run(() -> flash.addAction(Actions.sequence(
+                            Actions.parallel(Actions.fadeIn(0.06f), Actions.scaleTo(1.3f, 1.3f, 0.22f, Interpolation.pow2Out)),
+                            Actions.fadeOut(0.4f), Actions.removeActor()))),
+                    Actions.removeActor()));
+        }
+        float burstDone = (left - 1) * 0.12f + 0.4f;
+        ui.addAction(Actions.sequence(Actions.delay(burstDone), Actions.run(() -> {
+            // highlights: every rare/mythic, then uncommons, up to two rows
+            List<PaperCard> best = new ArrayList<>(all);
+            best.removeIf(pc -> rarityOrder(pc) == 0);
+            best.sort((a, b) -> Integer.compare(rarityOrder(b), rarityOrder(a)));
+            if (best.size() > 16) best = new ArrayList<>(best.subList(0, 16));
+            best.sort(java.util.Comparator.comparingInt(DelvePackOpenScene::rarityOrder)); // flip uncommons first
+            opened = packs - 1; // the reveal finishes the last pack
+            layOut(best, W / 2f, H / 2f, "Opened " + count + " packs (" + all.size() + " cards). Highlights:");
+        })));
     }
 
     /** Shake, flash, and spill the cards. */
@@ -108,6 +162,7 @@ public class DelvePackOpenScene extends DelveScene {
         name.remove();
         if (hint != null) hint.remove();
         if (openButton != null) openButton.remove();
+        if (openAllButton != null) openAllButton.remove();
         pack.clearActions();
         float cx = pack.getX() + pack.getWidth() / 2f, cy = pack.getY() + pack.getHeight() / 2f;
         Image flash = image("ui/delve/pack_flash.png", 0, 0, 220, 220);
@@ -138,13 +193,23 @@ public class DelvePackOpenScene extends DelveScene {
         // reveal commons first, then uncommons, then the rare/mythic
         cards.sort(java.util.Comparator.comparingInt(DelvePackOpenScene::rarityOrder));
         pool.addAll(cards);
+        layOut(cards, cx, cy, null);
+    }
 
+    /** Fly cards from (cx, cy) to a grid face down, then flip them in order (rares last, with a glow). */
+    private void layOut(List<PaperCard> cards, float cx, float cy, String caption) {
+        if (caption != null) label("[%80]" + caption, 0, 30, W, 12, Align.center);
         int n = cards.size();
+        if (n == 0) {
+            final int id0 = ++spillId;
+            ui.addAction(Actions.sequence(Actions.delay(0.3f), Actions.run(() -> afterSpill(id0))));
+            return;
+        }
         int perRow = Math.min(8, (n + 1) / 2);
         int rows = (n + perRow - 1) / perRow;
         float gap = 5;
-        float cardH = Math.min(rows > 1 ? 90 : 120, ((W - 16) / perRow - gap) / 0.716f), cardW = cardH * 0.716f;
-        float top = 32;
+        float cardH = Math.min(rows > 1 ? (caption != null ? 86 : 90) : 120, ((W - 16) / perRow - gap) / 0.716f), cardW = cardH * 0.716f;
+        float top = caption != null ? 44 : 32;
         for (int i = 0; i < n; i++) {
             PaperCard pc = cards.get(i);
             int r = i / perRow, c = i % perRow;
@@ -219,8 +284,9 @@ public class DelvePackOpenScene extends DelveScene {
                 if (cb != null) cb.accept(new ArrayList<>(pool));
             });
         } else {
-            button("[GOLD]Open the next pack (" + (opened + 1) + "/" + packs + ")", W / 2f - 90, 244, 180, 20,
+            button("[GOLD]Open the next pack (" + (opened + 1) + "/" + packs + ")", W / 2f - 185, 244, 180, 20,
                     this::showPack);
+            button("Open all the rest (" + (packs - opened) + ")", W / 2f + 5, 244, 180, 20, this::openAll);
         }
     }
 

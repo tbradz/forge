@@ -119,9 +119,13 @@ public class DelveCastleScene extends DelveScene {
         if (!done)
             button("[GOLD]Join a pod", 266, 200, 180, 22, this::choosePodDeck)
                     .setDisabled(prof.gold() < DelveEconomy.POD_ENTRY);
-        if (done)
-            label("[%80][GOLD]You've competed tonight. Sleep at Your House for tomorrow's events.",
-                    40, 236, 400, 14, Align.center);
+        String note = done ? "You've competed tonight. Sleep at Your House for tomorrow's events."
+                : prof.gold() < Math.min(DelveEconomy.CASTLE_ENTRY, DelveEconomy.POD_ENTRY)
+                ? "Not enough gold for an entry tonight. The Tavern has free practice games." : null;
+        if (note != null) {
+            image("ui/delve/shade.png", 60, 233, 360, 15);
+            label("[%80][GOLD]" + note, 60, 234, 360, 13, Align.center);
+        }
         button("Leave", 190, 250, 100, 18, () -> Forge.switchScene(DelveHubScene.instance()));
     }
 

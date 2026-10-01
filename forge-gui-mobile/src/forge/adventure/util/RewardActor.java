@@ -1121,6 +1121,8 @@ public class RewardActor extends Actor implements Disposable, ImageFetcher.Callb
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
+        // a faded actor drawn just before can leave its colour on the batch; cards always draw opaque
+        batch.setColor(com.badlogic.gdx.graphics.Color.WHITE);
         matrixCpy.set(batch.getTransformMatrix());
         applyTransform(batch, computeTransform(matrixCpy));
 

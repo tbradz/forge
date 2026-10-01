@@ -71,7 +71,7 @@ public class DelveTavernScene extends DelveScene {
             EnemyData e = patrons.get(i);
             float x = i % 2 == 0 ? 66 : 250, y = 100 + (i / 2) * 44;
             button("Play " + shorten(e.getName()), x, y, 164, 22, () -> chooseDeck(e));
-            label("[%65]" + colorsOf(e), x, y + 24, 164, 12, Align.center);
+            label("[%75]" + colorsOf(e), x, y + 24, 164, 12, Align.center);
         }
         button("[GOLD]Commander with the patrons", 140, 192, 200, 20, this::chooseCommanderDeck)
                 .setDisabled(patrons.size() < 3);
@@ -84,7 +84,13 @@ public class DelveTavernScene extends DelveScene {
 
     private static String colorsOf(EnemyData e) {
         String c = e.colors == null ? "" : e.colors.replaceAll("[^WUBRG]", "");
-        return c.isEmpty() ? "mystery colors" : "colors " + c;
+        if (c.isEmpty()) return "[GRAY]Plays mystery colors";
+        java.util.Map<Character, String> names = java.util.Map.of('W', "[#f8f0c0]White", 'U', "[#7fb0ff]Blue",
+                'B', "[#b090c0]Black", 'R', "[#ff8070]Red", 'G', "[#80d080]Green");
+        StringBuilder sb = new StringBuilder("Plays ");
+        for (int i = 0; i < c.length(); i++)
+            sb.append(i > 0 ? "[WHITE] / " : "").append(names.get(c.charAt(i)));
+        return sb.toString();
     }
 
     // ---- 1v1 practice -------------------------------------------------------------
