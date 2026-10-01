@@ -66,6 +66,7 @@ public class DelveCastleScene extends DelveScene {
 
     @Override
     public void enter() {
+        if (t == null && pod == null) loadState();
         build();
         super.enter();
     }
@@ -183,7 +184,25 @@ public class DelveCastleScene extends DelveScene {
             pod.foes.add(e);
             pod.decks.add(d);
         }
+        saveState();
         build();
+    }
+
+    /** A seat's standing portrait (null = the player's hero), feet at (x, yTop), scaled to ~34 tall. */
+    private void portrait(EnemyData enemy, float x, float yTop) {
+        try {
+            forge.adventure.character.CharacterSprite who = enemy == null
+                    ? new forge.adventure.character.CharacterSprite(DelveProfile.get().heroAtlas())
+                    : new forge.adventure.character.EnemySprite(enemy);
+            who.setAnimation(forge.adventure.character.CharacterSprite.AnimationTypes.Idle);
+            float h = Math.max(who.getHeight(), who.getWidth());
+            float scale = h > 0 ? Math.min(2f, 34f / h) : 2f;
+            com.badlogic.gdx.scenes.scene2d.Group g = standing(who, scale);
+            standAt(g, x, yTop);
+            track(g);
+        } catch (Exception e) {
+            e.printStackTrace(); // portraits are cosmetic
+        }
     }
 
     private void buildPod() {
@@ -197,9 +216,10 @@ public class DelveCastleScene extends DelveScene {
             cmds[i + 1] = commanderName(pod.decks.get(i));
         }
         for (int i = 0; i < 4 && names[i] != null; i++) {
-            float x = i % 2 == 0 ? 60 : 250, y = i < 2 ? 70 : 140;
-            label("[%90]" + (i == 0 ? "[GOLD]" : "") + shorten(names[i]), x, y, 170, 16, Align.left);
-            label("[%70]" + cmds[i], x, y + 18, 170, 30, Align.left);
+            float x = i % 2 == 0 ? 56 : 246, y = i < 2 ? 66 : 132;
+            portrait(i == 0 ? null : pod.foes.get(i - 1), x + 16, y + 40);
+            label("[%90]" + (i == 0 ? "[GOLD]" : "") + shorten(names[i]), x + 36, y + 4, 140, 16, Align.left);
+            label("[%70]" + cmds[i], x + 36, y + 22, 140, 30, Align.left);
         }
         if (!pod.over) {
             List<PaperCard> commanders = new ArrayList<>();
@@ -234,6 +254,7 @@ public class DelveCastleScene extends DelveScene {
             msg = "You were knocked out of the pod. Better luck next time.";
         }
         pod.over = true;
+        clearState();
         build();
         info("Pod over", msg, () -> {
             pod = null;
@@ -288,6 +309,7 @@ public class DelveCastleScene extends DelveScene {
         }
         Collections.shuffle(entrants, t.rng);
         t.rounds.add(entrants);
+        saveState();
         build();
     }
 
@@ -368,6 +390,7 @@ public class DelveCastleScene extends DelveScene {
             return;
         }
         t.round++;
+        saveState();
         build();
         info("Victory", "You advance to the " + ROUND_NAMES[t.round].toLowerCase() + ".", null);
     }
@@ -399,11 +422,106 @@ public class DelveCastleScene extends DelveScene {
                 msg = "You were knocked out in the quarterfinal. Better luck next time.";
         }
         t.out = true;
+        clearState();
         build();
         info("Tournament over", msg, () -> {
             t = null;
             build();
         });
+    }
+
+    // ---- saving an event in progress -----------------------------------------------
+
+    private static java.io.File stateFile() { return new java.io.File(DelveSaves.dir(), "castle.properties"); }
+
+    private static java.io.File deckFile() { return new java.io.File(DelveSaves.dir(), "castle.dck"); }
+
+    /** Remember tonight's tournament or pod so closing the game doesn't lose it. */
+    private void saveState() {
+        try {
+            java.util.Properties p = new java.util.Properties();
+            p.setProperty("day", String.valueOf(DelveProfile.get().day()));
+            Deck deck;
+            if (t != null) {
+                deck = t.deck;
+                p.setProperty("kind", "bracket");
+                p.setProperty("round", String.valueOf(t.round));
+                StringBuilder field = new StringBuilder();
+                for (EnemyData e : t.field) field.append(field.length() > 0 ? "|" : "").append(e.getName());
+                p.setProperty("field", field.toString());
+                for (int r = 0; r < t.rounds.size(); r++)
+                    p.setProperty("rounds." + r, String.join("|", t.rounds.get(r)));
+            } else if (pod != null) {
+                deck = pod.deck;
+                p.setProperty("kind", "pod");
+                p.setProperty("loaner", String.valueOf(pod.loaner));
+                StringBuilder foes = new StringBuilder();
+                for (EnemyData e : pod.foes) foes.append(foes.length() > 0 ? "|" : "").append(e.getName());
+                p.setProperty("foes", foes.toString());
+            } else {
+                return;
+            }
+            p.setProperty("deckName", deck.getName());
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(stateFile())) {
+                p.store(out, "Delve Castle event in progress");
+            }
+            forge.deck.io.DeckSerializer.writeDeck(deck, deckFile());
+        } catch (Exception e) {
+            e.printStackTrace(); // best-effort
+        }
+    }
+
+    private static void clearState() {
+        stateFile().delete();
+        deckFile().delete();
+    }
+
+    /** Restore tonight's event, if one was saved today. */
+    private void loadState() {
+        if (!stateFile().exists() || !deckFile().exists()) return;
+        try {
+            java.util.Properties p = new java.util.Properties();
+            try (java.io.FileInputStream in = new java.io.FileInputStream(stateFile())) {
+                p.load(in);
+            }
+            if (Integer.parseInt(p.getProperty("day", "-1")) != DelveProfile.get().day()) {
+                clearState(); // yesterday's event is over
+                return;
+            }
+            Deck deck = forge.deck.io.DeckSerializer.fromFile(deckFile());
+            if (deck == null) return;
+            deck.setName(p.getProperty("deckName", deck.getName()));
+            if ("bracket".equals(p.getProperty("kind"))) {
+                Tournament restored = new Tournament(deck);
+                for (String n : p.getProperty("field", "").split("\\|")) {
+                    EnemyData e = enemyByName(n);
+                    if (e != null) restored.field.add(e);
+                }
+                for (int r = 0; p.getProperty("rounds." + r) != null; r++)
+                    restored.rounds.add(new ArrayList<>(List.of(p.getProperty("rounds." + r).split("\\|"))));
+                restored.round = Integer.parseInt(p.getProperty("round", "0"));
+                if (!restored.rounds.isEmpty()) t = restored;
+            } else if ("pod".equals(p.getProperty("kind"))) {
+                Pod restored = new Pod(deck, Boolean.parseBoolean(p.getProperty("loaner", "false")));
+                for (String n : p.getProperty("foes", "").split("\\|")) {
+                    EnemyData e = enemyByName(n);
+                    Deck d = e == null ? null : DelveDay.today().enemyCommanderDeck(e);
+                    if (d != null) {
+                        restored.foes.add(e);
+                        restored.decks.add(d);
+                    }
+                }
+                if (!restored.foes.isEmpty()) pod = restored;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static EnemyData enemyByName(String name) {
+        for (EnemyData e : forge.adventure.data.WorldData.getAllEnemies())
+            if (e.getName().equals(name)) return e;
+        return null;
     }
 
     @Override

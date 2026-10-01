@@ -1,0 +1,6 @@
+Name:Delve Elite Hardy
+ManaCost:no cost
+Types:Enchantment
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Execute$ TrigGain | TriggerDescription$ At the beginning of your upkeep, you gain 1 life.
+SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1
+Oracle:At the beginning of your upkeep, you gain 1 life.

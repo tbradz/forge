@@ -100,3 +100,11 @@ flash()
 glow()
 table()
 print("ok")
+
+
+def shade():
+    """A plain dark overlay (e.g. on sold cards)."""
+    Image.new("RGBA", (8, 8), (0, 0, 0, 175)).save(OUT + "/shade.png")
+
+
+shade()

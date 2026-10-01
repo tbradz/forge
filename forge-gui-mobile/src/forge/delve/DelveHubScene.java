@@ -42,8 +42,7 @@ public class DelveHubScene extends UIScene {
         building("b_dungeon", "Dungeon Gate", this::openGate);
         building("b_shop", "Card Shop", () -> Forge.switchScene(DelveShopScene.instance()));
         building("b_tavern", "Tavern", this::openTavern);
-        building("b_outfitter", "Outfitter",
-                "Sleeves, playmats, dice, and other cosmetics.", 3);
+        building("b_outfitter", "Outfitter", () -> Forge.switchScene(DelveOutfitterScene.instance()));
         building("b_castle", "Castle", this::openCastle);
 
         ui.addActor(nameplate); // on top of the buildings

@@ -75,7 +75,9 @@ public class DelveDuelScene extends DuelScene {
         DelveDay.Tier tier = node.type == DelveRun.NodeType.BOSS ? DelveDay.Tier.BOSS
                 : node.type == DelveRun.NodeType.ELITE ? DelveDay.Tier.ELITE : DelveDay.Tier.FIGHT;
         Deck enemyDeck = run.day.enemyDeck(node.enemy, tier); // era cards in the enemy's colors
-        setup(run.deck, run.life, node.enemy, enemyDeck, node.enemyLife, 1,
+        int foeLife = Math.max(1, node.enemyLife + run.nextFoeLife);
+        run.nextFoeLife = 0; // blessings and curses last for one fight
+        setup(run.deck, run.life, node.enemy, enemyDeck, foeLife, 1,
                 node.type == DelveRun.NodeType.BOSS, onFinished);
         this.perk = node.perk;
     }
@@ -143,6 +145,8 @@ public class DelveDuelScene extends DuelScene {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        if (forge.assets.FSkin.getSleeves().containsKey(DelveProfile.get().currentSleeve()))
+            me.setSleeveIndex(DelveProfile.get().currentSleeve()); // bought at the Outfitter
         human.setPlayer(me);
         human.setTeamNumber(0);
         human.setStartingLife(startingLife);

@@ -53,8 +53,11 @@ public class DelveShopScene extends DelveScene {
             boolean sold = prof.shopBought(i);
             RewardActor card = new RewardActor(new Reward(pc, true), false, RewardScene.Type.Loot, false);
             card.setBounds(x, H - y - cardH, cardW, cardH);
-            if (sold) card.getColor().a = 0.25f;
             track(card);
+            if (sold) { // card art ignores alpha, so darken it with an overlay instead
+                image("ui/delve/shade.png", x, y, cardW, cardH);
+                label("[%110][GRAY]SOLD", x, y + cardH / 2f - 8, cardW, 16, Align.center);
+            }
             final int index = i;
             int price = DelveEconomy.shopPrice(pc);
             TextraButton buy = button(sold ? "[GRAY]Sold" : "[%85]Buy " + price + "g", x, y + cardH + 1, cardW, 15,

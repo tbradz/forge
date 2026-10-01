@@ -17,7 +17,8 @@ import java.util.Random;
  */
 public class DelveRun {
     public enum NodeType {
-        FIGHT("Fight"), ELITE("Elite"), REST("Rest"), EVENT("Event"), MERCHANT("Merchant"), BOSS("Boss");
+        FIGHT("Fight"), ELITE("Elite"), REST("Rest"), EVENT("Event"), MERCHANT("Merchant"), BOSS("Boss"),
+        TREASURE("Treasure"), SHRINE("Shrine");
         public final String label;
         NodeType(String label) { this.label = label; }
     }
@@ -43,6 +44,10 @@ public class DelveRun {
     public static final int MIN_DECK = 40;
     /** Returned by an event choice to ask the map to show a pick-1-of-3. */
     public static final String PICK_CARD = "\u0000pick";
+    /** event result: let the player choose a card in the deck to copy */
+    public static final String PICK_COPY = "\u0000copy";
+    /** event result: let the player choose a card in the deck to remove (above the minimum) */
+    public static final String PICK_REMOVE = "\u0000remove";
 
     private static DelveRun current;
 
@@ -58,6 +63,8 @@ public class DelveRun {
     public int step = 0;
     public Node currentNode;
     public int fightsWon = 0;
+    /** added to the next foe's starting life (blessings negative, curses positive), then cleared */
+    public int nextFoeLife = 0;
     public boolean over = false;
     public boolean cleared = false;
     public final List<PaperCard> picked = new ArrayList<>();
@@ -142,6 +149,13 @@ public class DelveRun {
         int before = life;
         life = Math.max(1, life - amount);
         return "You lose " + (before - life) + " life (life " + life + ").";
+    }
+
+    /** Blessing (negative) or curse (positive) on the next foe's starting life. */
+    public String nextFoe(int lifeChange) {
+        nextFoeLife += lifeChange;
+        return lifeChange < 0 ? "Your next foe starts with " + (-lifeChange) + " less life."
+                : "Your next foe starts with " + lifeChange + " more life.";
     }
 
     public String gainGold(int amount) {

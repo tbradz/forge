@@ -169,6 +169,7 @@ public class DelvePackOpenScene extends DelveScene {
                     super.draw(batch, parentAlpha);
                 }
             };
+            card.setBackTexture(forge.assets.FSkin.getSleeves().get(DelveProfile.get().currentSleeve()));
             card.ownedLabel = null; // that label counts Adventure's collection, not Delve's
             card.setBounds(cx - cardW / 2f, cy - cardH / 2f, cardW, cardH);
             track(card);

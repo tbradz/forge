@@ -234,6 +234,35 @@ public class DelveProfile {
         return sb.length() == 0 ? "none" : sb.toString();
     }
 
+    // ---- sleeves (Outfitter) ----------------------------------------------------------
+
+    /** Sleeve indexes the player owns (sleeve 0 is free). */
+    public java.util.Set<Integer> ownedSleeves() {
+        java.util.Set<Integer> out = new java.util.TreeSet<>();
+        out.add(0);
+        for (String s : stats.getProperty("sleeves.owned", "").split(","))
+            if (!s.trim().isEmpty()) out.add(Integer.parseInt(s.trim()));
+        return out;
+    }
+
+    public void addSleeve(int index) {
+        java.util.Set<Integer> owned = ownedSleeves();
+        owned.add(index);
+        StringBuilder sb = new StringBuilder();
+        for (int i : owned) sb.append(sb.length() > 0 ? "," : "").append(i);
+        stats.setProperty("sleeves.owned", sb.toString());
+        saveStats();
+    }
+
+    public int currentSleeve() {
+        return Integer.parseInt(stats.getProperty("sleeve.current", "0"));
+    }
+
+    public void setCurrentSleeve(int index) {
+        stats.setProperty("sleeve.current", String.valueOf(index));
+        saveStats();
+    }
+
     // ---- character --------------------------------------------------------------
 
     public boolean hasCharacter() {

@@ -170,7 +170,8 @@ public class DelveMapScene extends DelveScene {
         if (who != null && !wasChosen) { // the room's occupant is gone once you've been there
             // a few Adventure sprites are drawn much larger than the usual 16-24px: shrink those to fit the plate
             float scale = node.type == NodeType.BOSS ? 2.2f : 2f;
-            float target = node.type == NodeType.BOSS ? 48f : 34f, h = Math.max(who.getHeight(), who.getWidth());
+            // rooms are 56 apart: keep pictures short enough to clear the label of the room above
+            float target = node.type == NodeType.BOSS ? 48f : 30f, h = Math.max(who.getHeight(), who.getWidth());
             if (h > 0 && h * scale > target) scale = target / h;
             com.badlogic.gdx.scenes.scene2d.Group g = standing(who, scale);
             standAt(g, x, y + 4);
@@ -184,8 +185,10 @@ public class DelveMapScene extends DelveScene {
             case REST: type = "[SKY]Rest"; break;
             case EVENT: type = "[#c080ff]? ? ?"; break;
             case MERCHANT: type = "[GOLD]Merchant"; break;
+            case TREASURE: type = "[GOLD]Treasure"; break;
+            case SHRINE: type = "[#ff6060]Cursed Shrine"; break;
             case BOSS: type = "[RED]Boss" + (node.perk != null ? " - " + node.perk.title : ""); break;
-            case ELITE: type = "[ORANGE]Elite"; break;
+            case ELITE: type = "[ORANGE]Elite" + (node.perk != null ? " - " + node.perk.title : ""); break;
             default: type = "Fight";
         }
         float spacing = (TRAIL_RIGHT - ENTRANCE_X) / run.layers.size();
@@ -193,7 +196,7 @@ public class DelveMapScene extends DelveScene {
         String name = node.enemy != null && roomy ? "\n[%50]" + shortName(node.enemy.getName()) : "";
         float lw = Math.min(64, spacing + 4);
         com.github.tommyettinger.textra.TextraLabel l = label("[%" + (roomy ? 60 : 50) + "]" + type + "[]" + name,
-                x - lw / 2f, y + 14, lw, 20, Align.center);
+                x - lw / 2f, y + 12, lw, 16, Align.center);
         l.getColor().a = dim;
 
         if (!open) return;
@@ -228,6 +231,8 @@ public class DelveMapScene extends DelveScene {
                 case REST: return idle(new CharacterSprite("sprites/3life.atlas"));
                 case EVENT: return idle(new CharacterSprite("sprites/scroll.atlas"));
                 case MERCHANT: return facing(new CharacterSprite("sprites/enemy/humanoid/human/peasant/inn_hermit.atlas"));
+                case TREASURE: return idle(new CharacterSprite("sprites/treasure.atlas"));
+                case SHRINE: return idle(new CharacterSprite("sprites/enemy/undead/unholyskull.atlas"));
                 default: return facing(new forge.adventure.character.EnemySprite(node.enemy));
             }
         } catch (Exception e) {
@@ -281,12 +286,16 @@ public class DelveMapScene extends DelveScene {
             case REST: walkTo(run, step, index, () -> rest(run, index)); return;
             case EVENT: walkTo(run, step, index, () -> event(run, node, index)); return;
             case MERCHANT: walkTo(run, step, index, () -> merchant(run, node, index)); return;
+            case TREASURE: walkTo(run, step, index, () -> treasure(run, index)); return;
+            case SHRINE: walkTo(run, step, index, () -> shrine(run, index)); return;
             default:
         }
         String what = node.type == NodeType.BOSS ? "the boss" : node.type == NodeType.ELITE ? "an elite" : "a fight";
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
-                        + "They start at " + node.enemyLife + " life. You have " + run.life + "."
-                        + (node.perk != null ? "\n[GOLD]Boss perk - " + node.perk.title + ":[] " + node.perk.description : ""),
+                        + "They start at " + Math.max(1, node.enemyLife + run.nextFoeLife) + " life"
+                        + (run.nextFoeLife < 0 ? " (blessed: " + run.nextFoeLife + ")" : run.nextFoeLife > 0 ? " (cursed: +" + run.nextFoeLife + ")" : "")
+                        + ". You have " + run.life + "."
+                        + (node.perk != null ? "\n[GOLD]" + (node.perk.elite ? "Elite" : "Boss") + " perk - " + node.perk.title + ":[] " + node.perk.description : ""),
                 () -> walkTo(run, step, index, () -> fight(run, node, index)));
     }
 
@@ -363,12 +372,70 @@ public class DelveMapScene extends DelveScene {
                 completeStep(run, index);
                 if (DelveRun.PICK_CARD.equals(result)) {
                     offerCard(run, e.title + ": choose a card", true);
+                } else if (DelveRun.PICK_COPY.equals(result)) {
+                    DelvePickScene.instance().show(e.title + ": choose a card to copy", uniqueCards(run, false),
+                            1, 1, null, pc -> "Copy", picks -> {
+                                addPicks(run, picks);
+                                Forge.switchScene(this);
+                            });
+                } else if (DelveRun.PICK_REMOVE.equals(result)) {
+                    DelvePickScene.instance().show(e.title + ": choose a card to remove", uniqueCards(run, true),
+                            1, 1, null, pc -> "Remove", picks -> {
+                                if (!picks.isEmpty()) run.deck.getMain().remove(picks.get(0));
+                                Forge.switchScene(this);
+                            });
                 } else {
                     info(e.title, result, null);
                 }
             });
         }
         choose(e.title, e.text, labels, enabled, actions);
+    }
+
+    // ---- special rooms -------------------------------------------------------------
+
+    /** Treasure Room: a little gold and your pick of three rares from the tier's set. */
+    private void treasure(DelveRun run, int index) {
+        run.gainGold(15);
+        completeStep(run, index);
+        List<PaperCard> rares = new ArrayList<>();
+        for (int i = 0; i < 40 && rares.size() < 3; i++) {
+            PaperCard pc = run.randomCard(DelveEvents.RarityTier.RARE, rares.size() < 2);
+            if (pc != null && !rares.contains(pc)) rares.add(pc);
+        }
+        DelvePickScene.instance().show("Treasure Room (+15 gold): take one rare", rares, 1, 1, "Leave it", picks -> {
+            addPicks(run, picks);
+            Forge.switchScene(this);
+        });
+    }
+
+    /** Cursed Shrine: power at a price. */
+    private void shrine(DelveRun run, int index) {
+        choose("Cursed Shrine", "A black altar pulses with stolen power. Whatever you take, the dungeon will want back.",
+                List.of("Take its power (choose 1 of 3 rares, next foe +6 life)",
+                        "Feed it blood (lose 5 life, +60 gold)",
+                        "Walk away"),
+                List.of(true, true, true),
+                List.of(() -> {
+                            completeStep(run, index);
+                            run.nextFoe(6);
+                            List<PaperCard> rares = new ArrayList<>();
+                            for (int i = 0; i < 40 && rares.size() < 3; i++) {
+                                PaperCard pc = run.randomCard(DelveEvents.RarityTier.RARE, rares.size() < 2);
+                                if (pc != null && !rares.contains(pc)) rares.add(pc);
+                            }
+                            DelvePickScene.instance().show("Cursed Shrine: take one (your next foe starts with 6 more life)",
+                                    rares, 1, 1, null, picks -> {
+                                        addPicks(run, picks);
+                                        Forge.switchScene(this);
+                                    });
+                        },
+                        () -> {
+                            String r = run.damage(5) + " " + run.gainGold(60);
+                            completeStep(run, index);
+                            info("Cursed Shrine", r, null);
+                        },
+                        () -> completeStep(run, index)));
     }
 
     // ---- merchant -----------------------------------------------------------------

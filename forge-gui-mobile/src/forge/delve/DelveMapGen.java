@@ -23,8 +23,14 @@ import java.util.List;
 final class DelveMapGen {
     private DelveMapGen() {}
 
+    /** Rolls added after release (special rooms, elite perks) use their own generator so a saved
+     *  run's seed still rebuilds the same rooms and enemies it had before. */
+    private static java.util.Random extra;
+
     static void build(DelveRun run) {
         usedEvents.clear();
+        usedOriginal.clear();
+        extra = new java.util.Random(run.seed * 31 + 7);
         DelveDay day = run.day;
         Picker weak = new Picker(day.weakEnemies, run);
         Picker elite = new Picker(day.eliteEnemies.isEmpty() ? day.weakEnemies : day.eliteEnemies, run);
@@ -36,12 +42,14 @@ final class DelveMapGen {
         add(run, fight(weak, NodeType.FIGHT));
         for (int i = 1; i < steps - 2; i++) {
             if (i == eliteAt || i == secondEliteAt) {
-                add(run, fight(elite, NodeType.ELITE), run.rng.nextBoolean() ? rest() : event(run));
+                Node eliteRoom = fight(elite, NodeType.ELITE);
+                eliteRoom.perk = DelvePerk.random(extra, true);
+                add(run, eliteRoom, run.rng.nextBoolean() ? rest() : event(run));
                 continue;
             }
             switch (run.rng.nextInt(3)) {
-                case 0: add(run, fight(weak, NodeType.FIGHT), event(run)); break;
-                case 1: add(run, fight(weak, NodeType.FIGHT), event(run), merchant()); break;
+                case 0: add(run, fight(weak, NodeType.FIGHT), eventOrSpecial(run)); break;
+                case 1: add(run, fight(weak, NodeType.FIGHT), eventOrSpecial(run), merchant()); break;
                 default: add(run, fight(weak, NodeType.FIGHT), merchant(), rest());
             }
         }
@@ -78,13 +86,37 @@ final class DelveMapGen {
         return new Node(NodeType.MERCHANT, null, 0, null);
     }
 
+    /** Usually an event; sometimes a rare special room (at most one of each per dungeon). */
+    private static Node eventOrSpecial(DelveRun run) {
+        Node ev = event(run); // always roll the event, so the main generator's sequence is unchanged
+        int roll = extra.nextInt(100);
+        if (roll < 12 && !hasRoom(run, NodeType.TREASURE)) return new Node(NodeType.TREASURE, null, 0, null);
+        if (roll >= 88 && !hasRoom(run, NodeType.SHRINE)) return new Node(NodeType.SHRINE, null, 0, null);
+        return ev;
+    }
+
+    private static boolean hasRoom(DelveRun run, NodeType type) {
+        for (List<Node> layer : run.layers)
+            for (Node n : layer) if (n.type == type) return true;
+        return false;
+    }
+
     private static final List<String> usedEvents = new ArrayList<>();
 
     /** A random event, avoiding repeats within one run. */
+    /** How many events existed when save files started storing seeds (the first 10 in DelveEvents). */
+    private static final int ORIGINAL_EVENTS = 10;
+    private static final List<Integer> usedOriginal = new ArrayList<>();
+
     private static Node event(DelveRun run) {
-        DelveEvents.Event e = DelveEvents.random(run.rng);
-        for (int i = 0; i < 20 && usedEvents.contains(e.title); i++)
-            e = DelveEvents.random(run.rng);
+        // replay the original pick on the main generator so its sequence (and every later room) is unchanged...
+        int o = run.rng.nextInt(ORIGINAL_EVENTS);
+        for (int i = 0; i < 20 && usedOriginal.contains(o); i++) o = run.rng.nextInt(ORIGINAL_EVENTS);
+        usedOriginal.add(o);
+        // ...then pick the actual event from the full list with the extra generator
+        List<DelveEvents.Event> all = DelveEvents.all();
+        DelveEvents.Event e = all.get(extra.nextInt(all.size()));
+        for (int i = 0; i < 40 && usedEvents.contains(e.title); i++) e = all.get(extra.nextInt(all.size()));
         usedEvents.add(e.title);
         return new Node(NodeType.EVENT, null, 0, e);
     }

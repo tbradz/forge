@@ -123,6 +123,88 @@ public final class DelveEvents {
                         choice("Transmute a random card", r -> r.transformRandomCard()),
                         choice("Step around it", r -> "Some magic is best left alone."))));
 
+        e.add(new Event("Hedge Wizard",
+                "A wizard with ink-stained fingers offers to copy one of your cards, for a price.",
+                List.of(
+                        choice("Pay 30 gold (copy a card in your deck)", r -> r.gold >= 30,
+                                r -> { r.spendGold(30); return DelveRun.PICK_COPY; }),
+                        choice("No thanks", r -> "He goes back to his scribbling."))));
+
+        e.add(new Event("Ancient Forge",
+                "A forge still glows with dwarven fire. Cards fed to it melt into gold.",
+                List.of(
+                        choice("Melt a card (remove one from your deck, +15 gold)", r -> r.removableCount() > 0,
+                                r -> { r.gainGold(15); return DelveRun.PICK_REMOVE; }),
+                        choice("Warm your hands (heal 3)", r -> r.heal(3)))));
+
+        e.add(new Event("Scrying Pool",
+                "Still water shows your next opponent, stumbling and afraid.",
+                List.of(
+                        choice("Study their weakness (next foe -5 life)", r -> r.nextFoe(-5)),
+                        choice("Drink (heal 4)", r -> r.heal(4)))));
+
+        e.add(new Event("Goblin Ambush",
+                "Goblins pour out of the cracks, waving rusty knives and demanding your coin.",
+                List.of(
+                        choice("Fight them off (lose 4 life, loot +30 gold)", r -> r.damage(4) + " " + r.gainGold(30)),
+                        choice("Toss them 20 gold", r -> r.gold >= 20, r -> r.spendGold(20) + " They scatter, squabbling."),
+                        choice("Run (lose 2 life)", r -> r.damage(2)))));
+
+        e.add(new Event("Healer's Tent",
+                "A cleric tends the wounded by lantern light. Her services aren't free.",
+                List.of(
+                        choice("Pay 25 gold (heal to full)", r -> r.gold >= 25 && r.life < DelveRun.MAX_LIFE,
+                                r -> r.spendGold(25) + " " + r.heal(DelveRun.MAX_LIFE)),
+                        choice("Ask for a bandage (heal 3)", r -> r.heal(3)))));
+
+        e.add(new Event("Blood Pact",
+                "A voice from the dark offers power. \"Only a little blood. Only a little.\"",
+                List.of(
+                        choice("Accept (lose 7 life, gain a rare)", r -> r.damage(7) + " " + r.gainRandomCard(RarityTier.RARE)),
+                        choice("Refuse", r -> "The voice laughs and fades."))));
+
+        e.add(new Event("Overturned Cart",
+                "A merchant's cart lies on its side. Cards are scattered everywhere.",
+                List.of(
+                        choice("Grab what's on top (gain an uncommon)", r -> r.gainRandomCard(RarityTier.UNCOMMON)),
+                        choice("Dig deeper", r -> r.rng.nextInt(3) > 0
+                                ? "You find something special! " + r.gainRandomCard(RarityTier.RARE)
+                                : "The cart's owner returns, furious. " + r.damage(4)))));
+
+        e.add(new Event("War Drums",
+                "Drums echo ahead. Someone is paying well to see you fail.",
+                List.of(
+                        choice("Take their bribe (+40 gold, next foe +4 life)", r -> r.gainGold(40) + " " + r.nextFoe(4)),
+                        choice("Smash the drums (next foe -2 life)", r -> r.nextFoe(-2)))));
+
+        e.add(new Event("Echoing Hall",
+                "Every sound here comes back changed. So do your cards.",
+                List.of(
+                        choice("Shout (transform two random cards)", r -> r.transformRandomCard() + " " + r.transformRandomCard()),
+                        choice("Tiptoe through", r -> "Silence follows you out."))));
+
+        e.add(new Event("Sleeping Dragon",
+                "A dragon sleeps on a bed of gold. One wing twitches.",
+                List.of(
+                        choice("Sneak a handful (+80 gold, or wake it)", r -> r.rng.nextBoolean()
+                                ? r.gainGold(80) + " It snores on."
+                                : "It wakes! " + r.damage(8)),
+                        choice("Back away slowly", r -> "Discretion is the better part of valor."))));
+
+        e.add(new Event("Card Collector",
+                "A collector in a velvet coat eyes your deck. \"I'll make it worth your while.\"",
+                List.of(
+                        choice("Sell him a card (remove one, +30 gold)", r -> r.removableCount() > 0,
+                                r -> { r.gainGold(30); return DelveRun.PICK_REMOVE; }),
+                        choice("Trade (lose a random card, gain a rare)", r -> r.loseRandomCard() + " " + r.gainRandomCard(RarityTier.RARE)),
+                        choice("Not interested", r -> "He sniffs and moves on."))));
+
+        e.add(new Event("Wandering Monk",
+                "A monk sits in perfect stillness. He gestures for you to join him.",
+                List.of(
+                        choice("Meditate (heal 4, next foe -3 life)", r -> r.heal(4) + " " + r.nextFoe(-3)),
+                        choice("Ask for his blessing (choose 1 of 3 cards)", r -> DelveRun.PICK_CARD))));
+
         return e;
     }
 

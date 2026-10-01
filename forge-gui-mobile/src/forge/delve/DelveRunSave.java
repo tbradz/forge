@@ -49,6 +49,7 @@ public final class DelveRunSave {
             p.setProperty("gold", Integer.toString(run.gold));
             p.setProperty("step", Integer.toString(run.step));
             p.setProperty("fightsWon", Integer.toString(run.fightsWon));
+            p.setProperty("nextFoeLife", Integer.toString(run.nextFoeLife));
             p.setProperty("deckName", run.deck.getName());
             StringBuilder ch = new StringBuilder();
             for (int c : run.chosen) {
@@ -90,6 +91,7 @@ public final class DelveRunSave {
             run.gold = Integer.parseInt(p.getProperty("gold", "0"));
             run.step = Integer.parseInt(p.getProperty("step", "0"));
             run.fightsWon = Integer.parseInt(p.getProperty("fightsWon", "0"));
+            run.nextFoeLife = Integer.parseInt(p.getProperty("nextFoeLife", "0"));
             String ch = p.getProperty("chosen", "");
             if (!ch.isEmpty())
                 for (String c : ch.split(",")) run.chosen.add(Integer.parseInt(c.trim()));

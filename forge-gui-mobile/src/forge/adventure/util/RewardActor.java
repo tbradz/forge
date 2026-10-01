@@ -992,6 +992,11 @@ public class RewardActor extends Actor implements Disposable, ImageFetcher.Callb
         addListener(tooltip);
     }
 
+    /** Use a different card back (e.g. the player's chosen sleeve) while face down. */
+    public void setBackTexture(TextureRegion texture) {
+        if (texture != null) backTexture = texture;
+    }
+
     public boolean frontSideUp() {
         return (flipProcess >= 0.5f) == flipOnClick;
     }

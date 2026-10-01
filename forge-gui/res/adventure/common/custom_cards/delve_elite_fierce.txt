@@ -1,0 +1,5 @@
+Name:Delve Elite Fierce
+ManaCost:no cost
+Types:Enchantment
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Creature.attacking+YouCtrl | AddPower$ 1 | Description$ Attacking creatures you control get +1/+0.
+Oracle:Attacking creatures you control get +1/+0.
