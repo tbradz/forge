@@ -28,6 +28,7 @@ public class DelveRun {
         public final int enemyLife;
         public final DelveEvents.Event event;    // events only
         public List<PaperCard> stock;            // merchant only, filled on first visit
+        public DelvePerk perk;                   // bosses only
         Node(NodeType type, EnemyData enemy, int enemyLife, DelveEvents.Event event) {
             this.type = type;
             this.enemy = enemy;

@@ -48,7 +48,9 @@ final class DelveMapGen {
         List<Node> late = new ArrayList<>(List.of(rest(), merchant(), event(run)));
         Collections.shuffle(late, run.rng);
         add(run, late.get(0), late.get(1));
-        add(run, fight(boss, NodeType.BOSS));
+        Node bossRoom = fight(boss, NodeType.BOSS);
+        bossRoom.perk = DelvePerk.random(run.rng);
+        add(run, bossRoom);
     }
 
     private static void add(DelveRun run, Node... nodes) {

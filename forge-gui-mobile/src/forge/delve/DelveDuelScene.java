@@ -54,6 +54,7 @@ public class DelveDuelScene extends DuelScene {
     private final List<forge.adventure.data.EnemyData> foes = new ArrayList<>();
     private final List<Deck> foeDecks = new ArrayList<>();
     private boolean commander;
+    private DelvePerk perk; // the first foe's boss perk, if any
     private int enemyLife;
     private boolean boss;
     private int gamesPerMatch = 1;
@@ -76,6 +77,7 @@ public class DelveDuelScene extends DuelScene {
         Deck enemyDeck = run.day.enemyDeck(node.enemy, tier); // era cards in the enemy's colors
         setup(run.deck, run.life, node.enemy, enemyDeck, node.enemyLife, 1,
                 node.type == DelveRun.NodeType.BOSS, onFinished);
+        this.perk = node.perk;
     }
 
     /**
@@ -113,6 +115,7 @@ public class DelveDuelScene extends DuelScene {
         this.gamesPerMatch = games;
         this.boss = boss;
         this.commander = commander;
+        this.perk = null;
         this.onFinished = onFinished;
         this.finished = false;
         DuelScene.setOverride(this);
@@ -164,6 +167,7 @@ public class DelveDuelScene extends DuelScene {
             ai.setPlayer(aiLobby);
             ai.setTeamNumber(i + 1); // free-for-all: everyone on their own team
             ai.setStartingLife(enemyLife);
+            if (i == 0 && perk != null) applyPerk(ai, foeDecks.get(i));
             players.add(ai);
         }
         players.add(human);
@@ -232,6 +236,28 @@ public class DelveDuelScene extends DuelScene {
     /** Override the win/lose screen's return button text (call after setup). */
     public void setReturnLabel(String label) {
         this.returnLabel = label;
+    }
+
+    /** The perk's card starts in the boss's command zone; Rampant also starts with a land in play. */
+    private void applyPerk(RegisteredPlayer ai, Deck deck) {
+        forge.item.IPaperCard card = perk.card();
+        if (card == null) {
+            System.err.println("Delve: perk card missing: " + perk.cardName);
+            return;
+        }
+        List<forge.item.IPaperCard> cmd = new ArrayList<>();
+        cmd.add(card);
+        ai.addExtraCardsInCommandZone(cmd);
+        if (perk == DelvePerk.RAMPANT) {
+            forge.item.PaperCard land = null;
+            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : deck.getMain())
+                if (e.getKey().getRules().getType().isBasicLand()) { land = e.getKey(); break; }
+            if (land != null) {
+                List<forge.item.IPaperCard> bf = new ArrayList<>();
+                bf.add(land);
+                ai.addExtraCardsOnBattlefield(bf);
+            }
+        }
     }
 
     @Override

@@ -181,7 +181,7 @@ public class DelveMapScene extends DelveScene {
             case REST: type = "[SKY]Rest"; break;
             case EVENT: type = "[#c080ff]? ? ?"; break;
             case MERCHANT: type = "[GOLD]Merchant"; break;
-            case BOSS: type = "[RED]Boss"; break;
+            case BOSS: type = "[RED]Boss" + (node.perk != null ? " - " + node.perk.title : ""); break;
             case ELITE: type = "[ORANGE]Elite"; break;
             default: type = "Fight";
         }
@@ -282,7 +282,8 @@ public class DelveMapScene extends DelveScene {
         }
         String what = node.type == NodeType.BOSS ? "the boss" : node.type == NodeType.ELITE ? "an elite" : "a fight";
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
-                        + "They start at " + node.enemyLife + " life. You have " + run.life + ".",
+                        + "They start at " + node.enemyLife + " life. You have " + run.life + "."
+                        + (node.perk != null ? "\n[GOLD]Boss perk - " + node.perk.title + ":[] " + node.perk.description : ""),
                 () -> walkTo(run, step, index, () -> fight(run, node, index)));
     }
 

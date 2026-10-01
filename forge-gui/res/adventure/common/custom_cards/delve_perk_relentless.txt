@@ -1,0 +1,6 @@
+Name:Delve Perk Relentless
+ManaCost:no cost
+Types:Enchantment
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Execute$ TrigDraw | TriggerDescription$ At the beginning of your upkeep, draw a card.
+SVar:TrigDraw:DB$ Draw | Defined$ You | NumCards$ 1
+Oracle:At the beginning of your upkeep, draw a card.

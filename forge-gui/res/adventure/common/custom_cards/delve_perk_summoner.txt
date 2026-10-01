@@ -1,0 +1,6 @@
+Name:Delve Perk Summoner
+ManaCost:no cost
+Types:Enchantment
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Execute$ TrigToken | TriggerDescription$ At the beginning of your upkeep, create a 1/1 colorless Spirit creature token.
+SVar:TrigToken:DB$ Token | TokenScript$ c_1_1_spirit | TokenOwner$ You
+Oracle:At the beginning of your upkeep, create a 1/1 colorless Spirit creature token.

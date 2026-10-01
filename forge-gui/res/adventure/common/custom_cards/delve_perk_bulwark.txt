@@ -1,0 +1,7 @@
+Name:Delve Perk Bulwark
+ManaCost:no cost
+Types:Enchantment
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Creature.YouCtrl | AddToughness$ 1 | Description$ Creatures you control get +0/+1.
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Execute$ TrigGain | TriggerDescription$ At the beginning of your upkeep, you gain 1 life.
+SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1
+Oracle:Creatures you control get +0/+1.\nAt the beginning of your upkeep, you gain 1 life.

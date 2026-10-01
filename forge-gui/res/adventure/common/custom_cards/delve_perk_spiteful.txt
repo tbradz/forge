@@ -1,0 +1,6 @@
+Name:Delve Perk Spiteful
+ManaCost:no cost
+Types:Enchantment
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Execute$ TrigLoseLife | TriggerDescription$ At the beginning of your upkeep, each opponent loses 1 life.
+SVar:TrigLoseLife:DB$ LoseLife | Defined$ Player.Opponent | LifeAmount$ 1
+Oracle:At the beginning of your upkeep, each opponent loses 1 life.
