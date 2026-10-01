@@ -46,6 +46,14 @@ public class DelveCastleScene extends DelveScene {
     private static final String[] ROUND_NAMES = {"Quarterfinal", "Semifinal", "Final"};
     private Tournament t;
 
+    /** Forget any tournament or pod in progress (after switching saves). */
+    static void reset() {
+        if (object != null) {
+            object.t = null;
+            object.pod = null;
+        }
+    }
+
     private DelveCastleScene() {
         super("ui/delve_castle.json");
     }

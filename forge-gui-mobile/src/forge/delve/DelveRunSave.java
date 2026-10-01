@@ -27,9 +27,7 @@ public final class DelveRunSave {
     private DelveRunSave() {}
 
     private static File dir() {
-        File d = new File(ForgeProfileProperties.getUserDir(), "delve");
-        d.mkdirs();
-        return d;
+        return DelveSaves.dir();
     }
 
     private static File propsFile() { return new File(dir(), "run.properties"); }

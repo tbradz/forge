@@ -32,8 +32,13 @@ public class DelveProfile {
         return instance;
     }
 
+    /** Re-read everything from the current save slot (after switching saves). */
+    static void reload() {
+        instance = null;
+    }
+
     private DelveProfile() {
-        root = new File(ForgeProfileProperties.getUserDir(), "delve");
+        root = DelveSaves.dir();
         lockedDir = new File(root, "locked");
         collectionFile = new File(root, "collection.dck");
         statsFile = new File(root, "profile.properties");
@@ -177,7 +182,7 @@ public class DelveProfile {
 
     /** Clearing your highest tier unlocks the next one; returns true if a new tier opened. */
     public boolean clearTier(int tier) {
-        if (tier < topTier() || tier + 1 >= DelveDay.tiers().size()) return false;
+        if (tier != topTier() || tier + 1 >= DelveDay.tiers().size()) return false;
         stats.setProperty("tier", String.valueOf(tier + 1));
         saveStats();
         return true;

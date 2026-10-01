@@ -63,7 +63,11 @@ abstract class DelveScene extends UIScene {
     }
 
     protected TextraButton button(String text, float x, float yTop, float w, float h, Runnable onClick) {
-        TextraButton b = Controls.newTextButton(text, onClick);
+        TextraButton[] self = new TextraButton[1];
+        TextraButton b = Controls.newTextButton(text, () -> {
+            if (!self[0].isDisabled()) onClick.run(); // libGDX still delivers clicks to disabled buttons
+        });
+        self[0] = b;
         b.setBounds(x, H - yTop - h, w, h);
         return track(b);
     }
@@ -114,10 +118,13 @@ abstract class DelveScene extends UIScene {
         dialog.getContentTable().add(body).width(300f);
         for (int i = 0; i < labels.size(); i++) {
             final Runnable action = actions.get(i);
+            TextraButton[] self = new TextraButton[1];
             TextraButton b = Controls.newTextButton(labels.get(i), () -> {
+                if (self[0].isDisabled()) return; // libGDX still delivers clicks to disabled buttons
                 removeDialog();
                 action.run();
             });
+            self[0] = b;
             if (enabled != null && !enabled.get(i)) b.setDisabled(true);
             dialog.getButtonTable().row();
             dialog.getButtonTable().add(b).width(260f).height(labels.size() > 4 ? 17f : 20f).pad(1f);

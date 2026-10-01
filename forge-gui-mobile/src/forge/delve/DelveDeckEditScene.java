@@ -42,10 +42,10 @@ public class DelveDeckEditScene extends ForgeScene {
     /** The player's built decks (not Locked Decks). */
     public static IStorage<Deck> decks() {
         if (storage == null) {
-            File dir = new File(ForgeProfileProperties.getUserDir(), "delve" + File.separator + "decks");
+            File dir = new File(DelveSaves.dir(), "decks");
             dir.mkdirs();
             storage = new StorageImmediatelySerialized<>("Delve decks",
-                    new DeckStorage(dir, new File(ForgeProfileProperties.getUserDir(), "delve").getPath()), true);
+                    new DeckStorage(dir, DelveSaves.dir().getPath()), true);
         }
         return storage;
     }
@@ -53,10 +53,10 @@ public class DelveDeckEditScene extends ForgeScene {
     /** The player's Commander decks: 100-card singleton, a legendary creature in the Commander section. */
     public static IStorage<Deck> commanderDecks() {
         if (commanderStorage == null) {
-            File dir = new File(ForgeProfileProperties.getUserDir(), "delve" + File.separator + "commander");
+            File dir = new File(DelveSaves.dir(), "commander");
             dir.mkdirs();
             commanderStorage = new StorageImmediatelySerialized<>("Delve commander decks",
-                    new DeckStorage(dir, new File(ForgeProfileProperties.getUserDir(), "delve").getPath()), true);
+                    new DeckStorage(dir, DelveSaves.dir().getPath()), true);
         }
         return commanderStorage;
     }
@@ -67,6 +67,14 @@ public class DelveDeckEditScene extends ForgeScene {
         for (Deck d : commanderDecks())
             if (forge.deck.DeckFormat.Commander.getDeckConformanceProblem(d) == null) out.add(d);
         return out;
+    }
+
+    /** Forget loaded decks and editors (after switching saves). */
+    static void reload() {
+        storage = null;
+        commanderStorage = null;
+        config = null;
+        commanderConfig = null;
     }
 
     public static List<Deck> deckList() {

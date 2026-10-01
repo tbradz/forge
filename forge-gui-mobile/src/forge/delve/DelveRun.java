@@ -90,6 +90,11 @@ public class DelveRun {
         return current;
     }
 
+    /** Drop the in-memory run without deleting its save (switching save slots). */
+    static void forget() {
+        current = null;
+    }
+
     public static void clear() {
         current = null;
         DelveRunSave.delete();

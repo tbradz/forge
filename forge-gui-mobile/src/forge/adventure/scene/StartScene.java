@@ -140,7 +140,7 @@ public class StartScene extends UIScene {
     }
 
     public boolean delve() {
-        Forge.switchScene(forge.delve.DelveHubScene.instance());
+        Forge.switchScene(forge.delve.DelveSavesScene.instance());
         return true;
     }
 
