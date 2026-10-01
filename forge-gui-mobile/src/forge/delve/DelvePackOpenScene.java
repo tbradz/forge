@@ -124,7 +124,7 @@ public class DelvePackOpenScene extends DelveScene {
                 Actions.run(() -> {
                     flash.addAction(Actions.sequence(
                             Actions.parallel(Actions.fadeIn(0.08f), Actions.scaleTo(1.4f, 1.4f, 0.25f, Interpolation.pow2Out)),
-                            Actions.fadeOut(0.45f)));
+                            Actions.fadeOut(0.45f), Actions.removeActor()));
                     spill(cx, cy);
                 }),
                 Actions.removeActor()));
@@ -160,7 +160,15 @@ public class DelvePackOpenScene extends DelveScene {
                 glow.getColor().a = 0;
                 glow.setTouchable(Touchable.disabled);
             }
-            RewardActor card = new RewardActor(new Reward(pc, true), true, RewardScene.Type.Shop, false);
+            // a faded actor drawn just before (the burst flash, a rare's glow) leaves its alpha on the
+            // batch, and RewardActor doesn't reset it - so reset it here or that card draws invisible
+            RewardActor card = new RewardActor(new Reward(pc, true), true, RewardScene.Type.Shop, false) {
+                @Override
+                public void draw(com.badlogic.gdx.graphics.g2d.Batch batch, float parentAlpha) {
+                    batch.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+                    super.draw(batch, parentAlpha);
+                }
+            };
             card.ownedLabel = null; // that label counts Adventure's collection, not Delve's
             card.setBounds(cx - cardW / 2f, cy - cardH / 2f, cardW, cardH);
             track(card);
