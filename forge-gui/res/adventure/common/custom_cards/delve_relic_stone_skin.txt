@@ -1,0 +1,5 @@
+Name:Delve Relic Stone Skin
+ManaCost:no cost
+Types:Artifact
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Creature.YouCtrl | AddToughness$ 1 | Description$ Creatures you control get +0/+1.
+Oracle:Creatures you control get +0/+1.

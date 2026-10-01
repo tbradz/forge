@@ -50,6 +50,10 @@ public final class DelveRunSave {
             p.setProperty("step", Integer.toString(run.step));
             p.setProperty("fightsWon", Integer.toString(run.fightsWon));
             p.setProperty("nextFoeLife", Integer.toString(run.nextFoeLife));
+            StringBuilder rel = new StringBuilder();
+            for (DelveRelic r : run.relics) rel.append(rel.length() > 0 ? "," : "").append(r.name());
+            p.setProperty("relics", rel.toString());
+            p.setProperty("startRelicChosen", String.valueOf(run.startRelicChosen));
             p.setProperty("deckName", run.deck.getName());
             StringBuilder ch = new StringBuilder();
             for (int c : run.chosen) {
@@ -92,6 +96,12 @@ public final class DelveRunSave {
             run.step = Integer.parseInt(p.getProperty("step", "0"));
             run.fightsWon = Integer.parseInt(p.getProperty("fightsWon", "0"));
             run.nextFoeLife = Integer.parseInt(p.getProperty("nextFoeLife", "0"));
+            // runs saved before relics existed skip the starting choice
+            run.startRelicChosen = Boolean.parseBoolean(p.getProperty("startRelicChosen", p.getProperty("relics") == null ? "true" : "false"));
+            for (String r : p.getProperty("relics", "").split(",")) {
+                DelveRelic rel = DelveRelic.byName(r.trim());
+                if (rel != null && !run.relics.contains(rel)) run.relics.add(rel);
+            }
             String ch = p.getProperty("chosen", "");
             if (!ch.isEmpty())
                 for (String c : ch.split(",")) run.chosen.add(Integer.parseInt(c.trim()));

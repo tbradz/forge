@@ -210,7 +210,7 @@ public class DelveDay {
     }
 
     /** Deck strength for generated opponents. */
-    public enum Tier { FIGHT, ELITE, BOSS, CASTLE }
+    public enum Tier { EARLY, FIGHT, LATE, ELITE, BOSS, CASTLE }
 
     private final java.util.Map<String, Deck> enemyDecks = new java.util.HashMap<>();
 
@@ -227,10 +227,12 @@ public class DelveDay {
         ColorSet colors = enemyColors(enemy, rng);
         int[] q; // commons, uncommons, rares (of 23 spells)
         switch (tier) {
-            case ELITE: q = new int[]{13, 8, 2}; break;
-            case BOSS: q = new int[]{9, 9, 5}; break;
+            case EARLY: q = new int[]{21, 2, 0}; break;  // near the entrance: gentle
+            case LATE: q = new int[]{15, 7, 1}; break;   // close to the boss
+            case ELITE: q = new int[]{12, 8, 3}; break;
+            case BOSS: q = new int[]{7, 9, 7}; break;
             case CASTLE: q = new int[]{8, 10, 5}; break;
-            default: q = new int[]{18, 5, 0}; // ordinary fights: a bit weaker than starters
+            default: q = new int[]{18, 5, 0};
         }
         Deck d = buildDeck(colors, q[0], q[1], q[2], true, rng);
         d.setName(enemy.getName());

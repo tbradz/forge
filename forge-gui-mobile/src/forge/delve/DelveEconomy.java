@@ -33,6 +33,10 @@ public final class DelveEconomy {
         }
     }
 
+    // ---- relics at the dungeon merchant ------------------------------------------------
+    public static final int RELIC_PRICE = 60;
+    public static final int RELIC_PRICE_RARE = 90;
+
     // ---- clearing a tier (choose one reward) ----------------------------------------
     public static final int CLEAR_PACKS = 3;      // boosters of the tier's set
     public static final int CLEAR_GOLD = 120;     // on top of the gold found

@@ -54,7 +54,10 @@ public class DelveDuelScene extends DuelScene {
     private final List<forge.adventure.data.EnemyData> foes = new ArrayList<>();
     private final List<Deck> foeDecks = new ArrayList<>();
     private boolean commander;
-    private DelvePerk perk; // the first foe's boss perk, if any
+    private DelvePerk perk, perk2; // the first foe's perks, if any
+    private DelveRun run;          // the dungeon run this duel belongs to (null in town)
+    private int lifeCap = DelveRun.MAX_LIFE;
+    private String aiProfile = "Default";
     private int enemyLife;
     private boolean boss;
     private int gamesPerMatch = 1;
@@ -72,14 +75,22 @@ public class DelveDuelScene extends DuelScene {
 
     /** Prepare a dungeon duel. Call before Forge.switchScene(DelveDuelScene.instance()). */
     public void setup(DelveRun run, DelveRun.Node node, BiConsumer<Boolean, Integer> onFinished) {
+        int depth = DelveMapGen.depth(run, run.step);
         DelveDay.Tier tier = node.type == DelveRun.NodeType.BOSS ? DelveDay.Tier.BOSS
-                : node.type == DelveRun.NodeType.ELITE ? DelveDay.Tier.ELITE : DelveDay.Tier.FIGHT;
+                : node.type == DelveRun.NodeType.ELITE ? DelveDay.Tier.ELITE
+                : depth == 0 ? DelveDay.Tier.EARLY : depth == 2 ? DelveDay.Tier.LATE : DelveDay.Tier.FIGHT;
         Deck enemyDeck = run.day.enemyDeck(node.enemy, tier); // era cards in the enemy's colors
         int foeLife = Math.max(1, node.enemyLife + run.nextFoeLife);
         run.nextFoeLife = 0; // blessings and curses last for one fight
-        setup(run.deck, run.life, node.enemy, enemyDeck, foeLife, 1,
+        int life = run.life + (run.has(DelveRelic.IRON_BUCKLER) ? 4 : 0);
+        setup(run.deck, life, node.enemy, enemyDeck, foeLife, 1,
                 node.type == DelveRun.NodeType.BOSS, onFinished);
         this.perk = node.perk;
+        this.perk2 = node.perk2;
+        this.run = run;
+        this.lifeCap = run.maxLife();
+        // the opening fights get a careless opponent; everyone else plays Forge's best AI
+        this.aiProfile = node.type == DelveRun.NodeType.FIGHT && depth == 0 ? "Reckless" : "Default";
     }
 
     /**
@@ -118,6 +129,10 @@ public class DelveDuelScene extends DuelScene {
         this.boss = boss;
         this.commander = commander;
         this.perk = null;
+        this.perk2 = null;
+        this.run = null;
+        this.lifeCap = DelveRun.MAX_LIFE;
+        this.aiProfile = "Default";
         this.onFinished = onFinished;
         this.finished = false;
         DuelScene.setOverride(this);
@@ -150,12 +165,13 @@ public class DelveDuelScene extends DuelScene {
         human.setPlayer(me);
         human.setTeamNumber(0);
         human.setStartingLife(startingLife);
+        if (run != null) applyRelics(human);
 
         List<RegisteredPlayer> players = new ArrayList<>();
         for (int i = 0; i < foes.size(); i++) {
             forge.adventure.data.EnemyData enemy = foes.get(i);
             RegisteredPlayer ai = RegisteredPlayer.forVariants(nPlayers, variants, foeDecks.get(i), null, false, null, null);
-            LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(enemy.getName(), "");
+            LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(enemy.getName(), aiProfile);
             try {
                 TextureRegion avatar = new EnemySprite(enemy).getAvatar();
                 if (avatar != null) {
@@ -226,7 +242,7 @@ public class DelveDuelScene extends DuelScene {
             e.printStackTrace();
         }
         final boolean fWon = won;
-        final int fLife = Math.max(0, Math.min(life, DelveRun.MAX_LIFE));
+        final int fLife = Math.max(0, Math.min(life, lifeCap));
         // keep the override until exitDuelScene() has been routed here too
         afterTransition = () -> Gdx.app.postRunnable(() -> {
             DuelScene.setOverride(null);
@@ -242,8 +258,25 @@ public class DelveDuelScene extends DuelScene {
         this.returnLabel = label;
     }
 
-    /** The perk's card starts in the boss's command zone; Rampant also starts with a land in play. */
+    /** Relic cards start in your command zone; Lucky Coin adds a card to your opening hand. */
+    private void applyRelics(RegisteredPlayer human) {
+        List<forge.item.IPaperCard> cmd = new ArrayList<>();
+        for (DelveRelic r : run.relics) {
+            forge.item.IPaperCard c = r.card();
+            if (c != null) cmd.add(c);
+            else if (r.cardName != null) System.err.println("Delve: relic card missing: " + r.cardName);
+        }
+        if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);
+        if (run.has(DelveRelic.LUCKY_COIN)) human.setStartingHand(human.getStartingHand() + 1);
+    }
+
+    /** The perk cards start in the boss's command zone; Rampant also starts with a land in play. */
     private void applyPerk(RegisteredPlayer ai, Deck deck) {
+        if (perk2 != null && perk2.card() != null) {
+            List<forge.item.IPaperCard> extra = new ArrayList<>();
+            extra.add(perk2.card());
+            ai.addExtraCardsInCommandZone(extra);
+        }
         forge.item.IPaperCard card = perk.card();
         if (card == null) {
             System.err.println("Delve: perk card missing: " + perk.cardName);

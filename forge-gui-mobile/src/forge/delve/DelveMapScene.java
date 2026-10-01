@@ -39,6 +39,50 @@ public class DelveMapScene extends DelveScene {
         if (run != null) chosen = run.chosen;
         build();
         super.enter();
+        if (run != null && !run.over && !run.startRelicChosen) offerStartRelic(run);
+    }
+
+    // ---- relics -------------------------------------------------------------------
+
+    /** Before the first room: pick one of three relics to carry through the run. */
+    private void offerStartRelic(DelveRun run) {
+        relicChoice(run, "Choose a starting relic", "Relics help you in every fight for the rest of this run.",
+                DelveRelic.offer(run.rng, run.relics, 3, 0.0), false, () -> {
+                    run.startRelicChosen = true;
+                    build();
+                });
+    }
+
+    /** Pick one relic from {@code options} (optionally skip), then run {@code then}. */
+    private void relicChoice(DelveRun run, String title, String text, List<DelveRelic> options, boolean canSkip, Runnable then) {
+        if (options.isEmpty()) {
+            if (then != null) then.run();
+            return;
+        }
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        StringBuilder body = new StringBuilder("[%85]" + text + "\n");
+        for (DelveRelic r : options) {
+            body.append("\n[%85][GOLD]").append(r.title).append(r.rare ? " (rare)" : "").append("[WHITE]: ").append(r.description);
+            labels.add("Take the " + r.title);
+            actions.add(() -> {
+                run.gainRelic(r);
+                DelveRunSave.save(run);
+                if (then != null) then.run();
+            });
+        }
+        if (canSkip) {
+            labels.add("Leave them");
+            actions.add(() -> { if (then != null) then.run(); });
+        }
+        choose(title, body.toString(), labels, null, actions);
+    }
+
+    private void showRelics(DelveRun run) {
+        StringBuilder sb = new StringBuilder();
+        for (DelveRelic r : run.relics)
+            sb.append(sb.length() > 0 ? "\n" : "").append("[GOLD]").append(r.title).append("[WHITE]: ").append(r.description);
+        info("Your relics", sb.length() == 0 ? "No relics yet. Elites, Treasure Rooms and merchants have them." : sb.toString(), null);
     }
 
     // ---- the trail map ----------------------------------------------------------------
@@ -81,7 +125,7 @@ public class DelveMapScene extends DelveScene {
         if (!run.over) DelveRunSave.save(run);
         // header bar
         label("[%90][GOLD]" + run.day.themeName() + "[]  [%70]Tier " + (run.day.tier + 1), 8, 5, 180, 16, Align.left);
-        label("[%90][RED]Life[] " + run.life + "/" + DelveRun.MAX_LIFE + "    [GOLD]Gold[] " + run.gold
+        label("[%90][RED]Life[] " + run.life + "/" + run.maxLife() + "    [GOLD]Gold[] " + run.gold
                         + "    Deck " + run.deckSize() + "/" + DelveRun.MIN_DECK + "    Wins " + run.fightsWon,
                 150, 5, 322, 16, Align.right);
 
@@ -133,6 +177,7 @@ public class DelveMapScene extends DelveScene {
         standAt(heroGroup, spot[0] + (run.step == 0 ? 16 : -20), spot[1] + 4);
         track(heroGroup);
 
+        button("[%80]Relics (" + run.relics.size() + ")", 210, 246, 80, 18, () -> showRelics(run));
         button("[%80]View deck", 300, 246, 80, 18, this::viewDeck);
         button("[%80]Abandon run", 390, 246, 84, 18, () ->
                 confirm("Abandon run", "End this run now? You'll bring home a share of the gold you found, by how far you got.",
@@ -189,7 +234,7 @@ public class DelveMapScene extends DelveScene {
             case MERCHANT: type = "[GOLD]Merchant"; break;
             case TREASURE: type = "[GOLD]Treasure"; break;
             case SHRINE: type = "[#ff6060]Cursed Shrine"; break;
-            case BOSS: type = "[RED]Boss" + (node.perk != null ? " - " + node.perk.title : ""); break;
+            case BOSS: type = "[RED]Boss" + (node.perk != null ? " - " + node.perk.title : "") + (node.perk2 != null ? " +1" : ""); break;
             case ELITE: type = "[ORANGE]Elite" + (node.perk != null ? " - " + node.perk.title : ""); break;
             default: type = "Fight";
         }
@@ -296,8 +341,9 @@ public class DelveMapScene extends DelveScene {
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
                         + "They start at " + Math.max(1, node.enemyLife + run.nextFoeLife) + " life"
                         + (run.nextFoeLife < 0 ? " (blessed: " + run.nextFoeLife + ")" : run.nextFoeLife > 0 ? " (cursed: +" + run.nextFoeLife + ")" : "")
-                        + ". You have " + run.life + "."
-                        + (node.perk != null ? "\n[GOLD]" + (node.perk.elite ? "Elite" : "Boss") + " perk - " + node.perk.title + ":[] " + node.perk.description : ""),
+                        + ". You have " + run.life + (run.has(DelveRelic.IRON_BUCKLER) ? " (+4 from your Iron Buckler)" : "") + "."
+                        + (node.perk != null ? "\n[GOLD]" + (node.perk.elite ? "Elite" : "Boss") + " perk - " + node.perk.title + ":[] " + node.perk.description : "")
+                        + (node.perk2 != null ? "\n[GOLD]Second perk - " + node.perk2.title + ":[] " + node.perk2.description : ""),
                 () -> walkTo(run, step, index, () -> fight(run, node, index)));
     }
 
@@ -320,6 +366,7 @@ public class DelveMapScene extends DelveScene {
         run.fightsWon++;
         boolean elite = node.type == NodeType.ELITE;
         int gold = DelveEconomy.fightGold(node.type, run.rng);
+        if (run.has(DelveRelic.GOLD_IDOL)) gold = gold * 3 / 2;
         run.gainGold(gold);
         completeStep(run, index);
         if (node.type == NodeType.BOSS) {
@@ -327,7 +374,12 @@ public class DelveMapScene extends DelveScene {
             endRun(true, false);
             return;
         }
-        offerCard(run, (elite ? "Elite reward" : "Victory") + " (+" + gold + " gold): add one card to your deck", elite);
+        String header = (elite ? "Elite reward" : "Victory") + " (+" + gold + " gold): add one card to your deck";
+        if (elite) // elites also guard a relic
+            relicChoice(run, "The elite's hoard", "Among its belongings you find relics. Take one.",
+                    DelveRelic.offer(run.rng, run.relics, 3, 0.5), true, () -> offerCard(run, header, true));
+        else
+            offerCard(run, header, false);
     }
 
     /** Pick 1 of 3 cards for the run deck, with a Reroll button while the player has Reroll tokens. */
@@ -405,10 +457,12 @@ public class DelveMapScene extends DelveScene {
             PaperCard pc = run.randomCard(DelveEvents.RarityTier.RARE, rares.size() < 2);
             if (pc != null && !rares.contains(pc)) rares.add(pc);
         }
-        DelvePickScene.instance().show("Treasure Room (+15 gold): take one rare", rares, 1, 1, "Leave it", picks -> {
-            addPicks(run, picks);
-            Forge.switchScene(this);
-        });
+        relicChoice(run, "Treasure Room", "A relic glints among the coins (+15 gold). Take one, then look over the rares.",
+                DelveRelic.offer(run.rng, run.relics, 2, 0.6), true,
+                () -> DelvePickScene.instance().show("Treasure Room: take one rare", rares, 1, 1, "Leave it", picks -> {
+                    addPicks(run, picks);
+                    Forge.switchScene(this);
+                }));
     }
 
     /** Cursed Shrine: power at a price. */
@@ -453,10 +507,25 @@ public class DelveMapScene extends DelveScene {
         int removable = run.removableCount();
         String text = "\"Cards bought, cards sold. Coin is coin.\"\n\nYou have " + run.gold + " gold. Your deck has "
                 + run.deckSize() + " cards" + (removable > 0 ? " (you can sell up to " + removable + ")." : " (at the minimum, nothing to sell).");
+        String key = run.step + "." + index;
+        if (!run.merchantRelics.containsKey(key)) {
+            List<DelveRelic> r = DelveRelic.offer(run.rng, run.relics, 1, 0.35);
+            run.merchantRelics.put(key, r.isEmpty() ? null : r.get(0));
+        }
+        DelveRelic relic = run.merchantRelics.get(key);
+        boolean relicForSale = relic != null && !run.has(relic);
+        int relicPrice = relic != null && relic.rare ? DelveEconomy.RELIC_PRICE_RARE : DelveEconomy.RELIC_PRICE;
+        if (relicForSale) text += "\n\n[GOLD]" + relic.title + "[WHITE]: " + relic.description;
         choose("Merchant", text,
-                List.of("Buy a card (" + node.stock.size() + " for sale)", "Sell cards from your deck", "Leave"),
-                List.of(!node.stock.isEmpty(), removable > 0, true),
+                List.of("Buy a card (" + node.stock.size() + " for sale)",
+                        relicForSale ? "Buy the " + relic.title + " (" + relicPrice + "g)" : "No relics left",
+                        "Sell cards from your deck", "Leave"),
+                List.of(!node.stock.isEmpty(), relicForSale && run.gold >= relicPrice, removable > 0, true),
                 List.of(() -> merchantBuy(run, node, index),
+                        () -> {
+                            run.spendGold(relicPrice);
+                            info("Merchant", run.gainRelic(relic), () -> merchant(run, node, index));
+                        },
                         () -> merchantSell(run, node, index),
                         () -> completeStep(run, index)));
     }

@@ -58,7 +58,32 @@ final class DelveMapGen {
         add(run, late.get(0), late.get(1));
         Node bossRoom = fight(boss, NodeType.BOSS);
         bossRoom.perk = DelvePerk.random(run.rng);
+        bossRoom.perk2 = DelvePerk.random(extra, true);
         add(run, bossRoom);
+        scaleLife(run);
+    }
+
+    /**
+     * Difficulty curve: fights near the entrance are softer and they toughen toward the
+     * boss. Bosses also grow a little with the tier.
+     */
+    private static void scaleLife(DelveRun run) {
+        int steps = run.layers.size();
+        for (int s = 0; s < steps; s++)
+            for (Node n : run.layers.get(s)) {
+                switch (n.type) {
+                    case FIGHT: n.enemyLife = s < steps / 3 ? 12 : s < 2 * steps / 3 ? 15 : 17; break;
+                    case ELITE: n.enemyLife = 22; break;
+                    case BOSS: n.enemyLife = Math.min(40, 30 + run.day.tier / 4); break;
+                    default: break;
+                }
+            }
+    }
+
+    /** How deep a step is: 0 = first third, 1 = middle, 2 = last third. */
+    static int depth(DelveRun run, int step) {
+        int steps = run.layers.size();
+        return step < steps / 3 ? 0 : step < 2 * steps / 3 ? 1 : 2;
     }
 
     private static void add(DelveRun run, Node... nodes) {

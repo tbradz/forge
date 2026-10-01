@@ -26,10 +26,11 @@ public class DelveRun {
     public static class Node {
         public final NodeType type;
         public final EnemyData enemy;            // fights only
-        public final int enemyLife;
+        public int enemyLife;                   // set by the map generator from the room's depth
         public final DelveEvents.Event event;    // events only
         public List<PaperCard> stock;            // merchant only, filled on first visit
-        public DelvePerk perk;                   // bosses only
+        public DelvePerk perk;                   // bosses and elites
+        public DelvePerk perk2;                  // bosses get a second, milder perk
         Node(NodeType type, EnemyData enemy, int enemyLife, DelveEvents.Event event) {
             this.type = type;
             this.enemy = enemy;
@@ -56,6 +57,29 @@ public class DelveRun {
     public final DelveDay day;
     public final Deck deck;
     public int life = MAX_LIFE;
+    /** relics found this run (see {@link DelveRelic}) */
+    public final List<DelveRelic> relics = new ArrayList<>();
+    /** whether the starting-relic choice has been made */
+    public boolean startRelicChosen;
+    /** the relic a merchant offers, per merchant room ("step.index" -> relic) */
+    public final java.util.Map<String, DelveRelic> merchantRelics = new java.util.HashMap<>();
+
+    /** Maximum life, including relics. */
+    public int maxLife() {
+        return MAX_LIFE + (relics.contains(DelveRelic.VITALITY_CHARM) ? 5 : 0);
+    }
+
+    public boolean has(DelveRelic r) {
+        return relics.contains(r);
+    }
+
+    /** Gain a relic (Vitality Charm also heals 5 right away). */
+    public String gainRelic(DelveRelic r) {
+        if (r == null || relics.contains(r)) return "";
+        relics.add(r);
+        if (r == DelveRelic.VITALITY_CHARM) life = Math.min(maxLife(), life + 5);
+        return "You gain the " + r.title + ": " + r.description;
+    }
     public int gold = 0;
     /** layers.get(i) = the choices on step i of the map */
     public final List<List<Node>> layers = new ArrayList<>();
@@ -159,7 +183,7 @@ public class DelveRun {
 
     public String heal(int amount) {
         int before = life;
-        life = Math.min(MAX_LIFE, life + amount);
+        life = Math.min(maxLife(), life + amount);
         return "You heal " + (life - before) + " (life " + life + ").";
     }
 

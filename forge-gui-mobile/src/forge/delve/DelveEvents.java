@@ -95,7 +95,7 @@ public final class DelveEvents {
                 "Clear water bubbles up from the stone. It tastes of magic, and of loss.",
                 List.of(
                         choice("Drink deeply (heal to full, lose a random card)",
-                                r -> r.heal(DelveRun.MAX_LIFE) + " " + r.loseRandomCard()),
+                                r -> r.heal(r.maxLife()) + " " + r.loseRandomCard()),
                         choice("Sip (heal 3)", r -> r.heal(3)))));
 
         e.add(new Event("The Gambler",
@@ -153,8 +153,8 @@ public final class DelveEvents {
         e.add(new Event("Healer's Tent",
                 "A cleric tends the wounded by lantern light. Her services aren't free.",
                 List.of(
-                        choice("Pay 25 gold (heal to full)", r -> r.gold >= 25 && r.life < DelveRun.MAX_LIFE,
-                                r -> r.spendGold(25) + " " + r.heal(DelveRun.MAX_LIFE)),
+                        choice("Pay 25 gold (heal to full)", r -> r.gold >= 25 && r.life < r.maxLife(),
+                                r -> r.spendGold(25) + " " + r.heal(r.maxLife())),
                         choice("Ask for a bandage (heal 3)", r -> r.heal(3)))));
 
         e.add(new Event("Blood Pact",
