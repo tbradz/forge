@@ -113,6 +113,25 @@ public class DelveRun {
         return layers.isEmpty() ? 0 : Math.min(1.0, step / (double) layers.size());
     }
 
+    /**
+     * Whether room j of layer s-1 has a path to room k of layer s. Paths join rooms whose
+     * vertical positions are close (like Slay the Spire), so the map reads as lanes instead of
+     * everything connecting to everything. Pure layout maths, so saved runs get the same paths.
+     */
+    public boolean connected(int s, int j, int k) {
+        if (s <= 0) return true; // the entrance reaches every first room
+        int n = layers.get(s - 1).size(), m = layers.get(s).size();
+        float a = n == 1 ? 0.5f : j / (float) (n - 1), b = m == 1 ? 0.5f : k / (float) (m - 1);
+        return Math.abs(a - b) <= 0.5f + 1e-4f;
+    }
+
+    /** Whether room k of the current step can be entered from where the player stands. */
+    public boolean reachable(int k) {
+        if (step == 0) return true;
+        int from = step - 1 < chosen.size() ? chosen.get(step - 1) : -1;
+        return from < 0 || connected(step, from, k);
+    }
+
     public List<Node> nextChoices() {
         return step < layers.size() ? layers.get(step) : new ArrayList<>();
     }
@@ -182,7 +201,7 @@ public class DelveRun {
         if (lost == null) return "";
         deck.getMain().remove(lost);
         if (deckSize() < MIN_DECK) {
-            PaperCard replacement = randomCard(DelveEvents.RarityTier.COMMON, true);
+            PaperCard replacement = sameColorCard(DelveEvents.RarityTier.COMMON, lost);
             deck.getMain().add(replacement);
             return "You lose " + lost.getName() + ". Your deck can't drop below " + MIN_DECK
                     + ", so " + replacement.getName() + " takes its place.";
@@ -196,10 +215,24 @@ public class DelveRun {
         if (old == null) return "Nothing happens.";
         DelveEvents.RarityTier tier = old.getRarity() == CardRarity.Common
                 ? DelveEvents.RarityTier.UNCOMMON : DelveEvents.RarityTier.RARE;
-        PaperCard neu = randomCard(tier, false);
+        PaperCard neu = sameColorCard(tier, old);
         deck.getMain().remove(old);
         deck.getMain().add(neu);
         return old.getName() + " becomes " + neu.getName() + ".";
+    }
+
+    /** A random card of the given rarity with the same colors as {@code like} (colorless stays colorless). */
+    PaperCard sameColorCard(DelveEvents.RarityTier tier, PaperCard like) {
+        byte want = like.getRules().getColorIdentity().getColor();
+        for (DelveEvents.RarityTier t : new DelveEvents.RarityTier[]{tier, DelveEvents.RarityTier.UNCOMMON, DelveEvents.RarityTier.COMMON}) {
+            List<PaperCard> match = new ArrayList<>();
+            for (PaperCard pc : DelveEvents.tierPool(day, t))
+                if (pc.getRules().getColorIdentity().getColor() == want && !pc.getName().equals(like.getName())
+                        && pc.getRules().getType().isLand() == like.getRules().getType().isLand())
+                    match.add(pc);
+            if (!match.isEmpty()) return match.get(rng.nextInt(match.size()));
+        }
+        return randomCard(tier, true);
     }
 
     PaperCard randomDeckCard() {

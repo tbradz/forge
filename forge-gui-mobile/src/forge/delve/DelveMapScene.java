@@ -103,11 +103,12 @@ public class DelveMapScene extends DelveScene {
             }
             for (int f = 0; f < from.size(); f++) {
                 for (int k = 0; k < layer.size(); k++) {
+                    if (!run.connected(s, f, k)) continue;
                     boolean walked = fromOnPath.get(f) && s < run.step && s < chosen.size() && chosen.get(s) == k;
                     boolean open = fromOnPath.get(f) && s == run.step;
-                    boolean ahead = s > run.step;
-                    float alpha = walked || open ? 1f : ahead ? 0.45f : 0.15f;
-                    trail(from.get(f)[0], from.get(f)[1], nodeX(run, s), nodeY(run, s, k), walked, alpha);
+                    boolean ahead = s > run.step || (s == run.step && !fromOnPath.get(f));
+                    if (!walked && !open && !ahead) continue; // roads not taken are cleared away
+                    trail(from.get(f)[0], from.get(f)[1], nodeX(run, s), nodeY(run, s, k), walked || open, walked ? 1f : open ? 0.95f : 0.6f);
                 }
             }
         }
@@ -143,11 +144,12 @@ public class DelveMapScene extends DelveScene {
     /** A dotted trail between two points. */
     private void trail(float x1, float y1, float x2, float y2, boolean gold, float alpha) {
         float dx = x2 - x1, dy = y2 - y1, len = (float) Math.sqrt(dx * dx + dy * dy);
-        int n = (int) (len / 7f);
-        for (int i = 2; i < n - 1; i++) {
+        int n = (int) (len / 6f);
+        float size = gold ? 5 : 4;
+        for (int i = 3; i < n - 2; i++) { // stop short of the plates so lines don't run under them
             float t = i / (float) n;
             com.badlogic.gdx.scenes.scene2d.ui.Image d = image(gold ? "ui/delve/dot_gold.png" : "ui/delve/dot.png",
-                    x1 + dx * t - 2, y1 + dy * t - 2, 4, 4);
+                    x1 + dx * t - size / 2, y1 + dy * t - size / 2, size, size);
             d.getColor().a = alpha;
         }
     }
@@ -157,7 +159,7 @@ public class DelveMapScene extends DelveScene {
         float x = nodeX(run, s), y = nodeY(run, s, k);
         boolean done = s < run.step;
         boolean wasChosen = done && s < chosen.size() && chosen.get(s) == k;
-        boolean open = s == run.step && !run.over;
+        boolean open = s == run.step && !run.over && run.reachable(k);
         float dim = open || wasChosen ? 1f : done ? 0.3f : 0.6f;
 
         com.badlogic.gdx.scenes.scene2d.ui.Image plate = image("ui/delve/plate.png", x - 18, y - 6, 36, 19);
@@ -280,7 +282,7 @@ public class DelveMapScene extends DelveScene {
 
     private void choose(int step, int index) {
         DelveRun run = DelveRun.current();
-        if (run == null || step != run.step || walking) return;
+        if (run == null || step != run.step || walking || !run.reachable(index)) return;
         Node node = run.layers.get(step).get(index);
         switch (node.type) {
             case REST: walkTo(run, step, index, () -> rest(run, index)); return;
