@@ -32,7 +32,30 @@ Game install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (launch with `Delve.cm
 ## Where we left off (2026-10-02)
 - Side-view town (make_town_diorama.py) and Bram's walking tour (DelveTourScene) are built, installed and
   playtested by Tyler: all good. Builds now run locally on Tyler's PC (see DEV_NOTES "Building locally").
-- Backlog: visual pass 2 (shop/tavern/castle/pack-opening backdrops, dungeon room bases), player storefront,
-  story by tier, more event formats (Pauper, Standard-style, sealed/draft), set-themed dungeons, optional run
-  modes, Tavern NPCs/rumors, Castle rankings/titles, Outfitter items, Commander packs, balance pass,
-  phone layout/installer, remove the Dev save before release.
+
+## Backlog (Tyler's list, 2026-10-02)
+Next up
+- Visual pass 2: Card Shop, Tavern, Castle and pack-opening screens get the same treatment as the town;
+  dungeon map rooms and paths get a matching stone look.
+- Player storefront: a stall in town where you list cards at your own prices; townsfolk buy overnight
+  depending on price vs the card's value; sales report each morning.
+- Story by tier: each set is a chapter with new town characters, events and quests, building to a final
+  arc at the newest set.
+
+More ways to play
+- More event formats: Pauper, Standard-style (recent sets only), sealed or draft nights at the Castle.
+- Set-themed dungeons: enemies, bosses and events that fit each set (Phyrexians in Mirrodin, dragons in Onslaught).
+- Optional run modes: preconstructed decks, chaos (random) decks, special rules per set.
+- Commander packs.
+
+Town and world
+- Tavern NPCs and rumors.
+- Castle rankings and titles that unlock things.
+- More Outfitter items: playmats, portraits, dice.
+- Pai Gow: an "older sets" page in the pack menu (it only lists the newest 5 sets now).
+
+Polish and release
+- Balance pass from playtests: gold, prices, enemy decks, AI difficulty.
+- Phone layout and a proper installer.
+- Remove the temporary Dev save before any release.
+- Untested: Treasure Map double reward.
