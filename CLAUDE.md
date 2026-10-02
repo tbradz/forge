@@ -45,7 +45,7 @@ Next up
 More ways to play
 - More event formats: Pauper, Standard-style (recent sets only), sealed or draft nights at the Castle.
 - Set-themed dungeons: enemies, bosses and events that fit each set (Phyrexians in Mirrodin, dragons in Onslaught).
-- Optional run modes: preconstructed decks, chaos (random) decks, special rules per set.
+- Optional run modes: see "Optional modes" below.
 - Commander packs.
 
 Town and world
@@ -59,3 +59,16 @@ Polish and release
 - Phone layout and a proper installer.
 - Remove the temporary Dev save before any release.
 - Untested: Treasure Map double reward.
+
+## Optional modes (customization)
+Tyler wants player-chosen options collected here so they can become a customization screen. Per-save
+options are stored in the save's profile.properties (like `era`) and chosen when the save is made
+(`DelveSavesScene.chooseSets` is the pattern); per-run options would go in run.properties.
+- [built] All sets: climb every set since Eighth Edition (96 tiers) instead of Modern (Zendikar Rising
+  onward, 31 tiers, the default). Per save, chosen at New save (`DelveProfile.allSets()`).
+- [idea] Difficulty modifiers: enemy life, enemy deck strength, AI profile, gold multiplier, permadeath-style rules.
+- [idea] Dungeon length: short / standard / long floors (map generator versions already exist).
+- [idea] Preconstructed decks instead of the Jumpstart half-decks.
+- [idea] Chaos decks: random decks each run.
+- [idea] Per-set special rules (rejected as default rules, kept as an option).
+- [idea] Choose any starting set.

@@ -9,19 +9,23 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * One dungeon size with a random length: 6-9 steps, each offering 1-3 rooms.
+ * One dungeon size with a random length: 10-13 steps (generator 2; generator 1 was 6-9),
+ * each offering 1-3 rooms.
  *
  *   first:        Fight
  *   middle:       mixes of Fight / Event / Merchant / Rest
- *   halfway:      Elite | Rest   (a second elite in 8-9 step dungeons)
+ *   1/3 and 2/3:  Elite | Rest or Event   (gen 1: one at halfway, a second in 8-9 step dungeons)
  *   before boss:  two of Rest / Merchant / Event
  *   last:         Boss
  *
- * Rooms within a step are shuffled; everything comes from the run's seed, so a
- * saved run rebuilds the same map.
+ * Rooms within a step are shuffled; everything comes from the run's seed and generator
+ * version, so a saved run rebuilds the same map.
  */
 final class DelveMapGen {
     private DelveMapGen() {}
+
+    /** Generator for new runs. 2 = longer floors (10-13 steps) with the gold per fight scaled down to match. */
+    static final int CURRENT_GEN = 2;
 
     /** Rolls added after release (special rooms, elite perks) use their own generator so a saved
      *  run's seed still rebuilds the same rooms and enemies it had before. */
@@ -36,9 +40,16 @@ final class DelveMapGen {
         Picker elite = new Picker(day.eliteEnemies.isEmpty() ? day.weakEnemies : day.eliteEnemies, run);
         Picker boss = new Picker(day.bossEnemies.isEmpty() ? day.eliteEnemies : day.bossEnemies, run);
 
-        int steps = 6 + run.rng.nextInt(4); // 6..9
-        int eliteAt = steps / 2;              // 0-based layer index
-        int secondEliteAt = steps >= 8 ? steps - 3 : -1;
+        int steps, eliteAt, secondEliteAt;    // 0-based layer indexes
+        if (run.gen >= 2) {
+            steps = 10 + run.rng.nextInt(4);  // 10..13
+            eliteAt = steps / 3;
+            secondEliteAt = 2 * steps / 3;
+        } else {
+            steps = 6 + run.rng.nextInt(4);   // 6..9
+            eliteAt = steps / 2;
+            secondEliteAt = steps >= 8 ? steps - 3 : -1;
+        }
         add(run, fight(weak, NodeType.FIGHT));
         for (int i = 1; i < steps - 2; i++) {
             if (i == eliteAt || i == secondEliteAt) {

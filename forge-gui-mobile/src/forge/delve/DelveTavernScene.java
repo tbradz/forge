@@ -67,7 +67,7 @@ public class DelveTavernScene extends DelveScene {
         label("[%90]Tonight: " + wins + " won, " + losses + " lost", 240, 5, 232, 16, Align.right);
         image("ui/delve/panel.png", 40, 32, 400, 204);
         label("[%110]Practice games", 40, 40, 400, 18, Align.center);
-        button("[%80]Talk to Bram", 352, 38, 80, 16, () -> DelveIntroScene.instance().play(false,
+        button("[%80]Talk to Bram", 352, 38, 80, 16, () -> DelveTourScene.instance().play(false,
                 () -> forge.Forge.switchScene(this)));
         label("[%75]No fee. Test a deck against tonight's patrons as often as you like, or play for gold or an ante.\n[%75]"
                         + "They play " + DelveDay.today().edition.getName() + " decks. Sleep at Your House when you're ready for tomorrow.",

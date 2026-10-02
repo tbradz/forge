@@ -11,9 +11,10 @@ import forge.Forge;
 import forge.adventure.character.CharacterSprite;
 
 /**
- * Bram walks you into town and shows you each building: the two of you walk from
- * stop to stop on the town scene, the building you're at lights up, and Bram explains
- * it in a dialogue box. Part of the new-save intro; replayable from the Tavern.
+ * The new-save intro, all on the town scene: you walk up the road into town, Bram the
+ * innkeeper meets you on the plaza and walks you from building to building (the one
+ * you're at lights up) explaining each, leaving his Tavern for last, where he heads
+ * back inside. Replayable from the Tavern ("Talk to Bram").
  */
 public class DelveTourScene extends DelveScene {
     private static DelveTourScene object;
@@ -36,32 +37,38 @@ public class DelveTourScene extends DelveScene {
         }
     }
 
+    /** "{FIRST_SET}" in a page is replaced with this save's first tier's set. */
     private static final Stop[] STOPS = {
             new Stop(null, "Welcome to town", 250, 258,
-                    "Here we are. Not much to look at, but it's home, and every building here matters to a delver. Come on, I'll show you around."),
+                    "Well now, a new face! You'll be the delver the town council sent for. I'm Bram. I keep the inn here, "
+                            + "and anyone who goes down into the ruins drinks at my place first.",
+                    "Under the old ruins there's a dungeon, and it shifts every single day. Folk here are counting on someone to clear it. "
+                            + "Come on, I'll walk you through town. Best you know where everything is."),
             new Stop("b_dungeon", "The Dungeon Gate", 250, 252,
                     "This is why you're here: the Dungeon Gate. The dungeon below shifts every single day, and you get one trip down each morning.",
                     "Before you go in, you pick two of three half-decks, each built around a color and a plan from the set the dungeon is steeped in. "
-                            + "Shuffled together, that's your deck. Eighth Edition, to start.",
+                            + "Shuffled together, that's your deck. {FIRST_SET}, to start.",
                     "Down below you choose your path room by room. Fights pay gold, and merchants down there sell cards that make your deck stronger. "
                             + "Elites guard relics, and the boss at the bottom has tricks of its own.",
                     "Beat the boss and you bring home every coin, plus a reward: packs, gold, cards from your deck, or the whole deck locked as it is. "
                             + "Clearing it also opens the next set's dungeon. Fall, and you keep only part of your gold."),
-            new Stop("b_tavern", "The Tavern", 330, 216,
-                    "And this is my place, the Tavern. Evenings, the regulars will play you for free as long as you like. Good way to test a deck.",
-                    "If you're feeling bold, you can play them for a little gold, or ante a card. Just don't come crying to me when you lose your best rare."),
-            new Stop("b_outfitter", "The Outfitter", 414, 228,
-                    "The Outfitter. Sleeves and the like. Doesn't win you games, but you'll look good losing them."),
             new Stop("b_castle", "The Castle", 250, 140,
                     "Up on the hill, the Castle. Every evening there's a tournament: eight duelists, best of three. Or a four-player Commander pod, if that's your game.",
                     "One event a night, and the entry isn't free. Win, and the prizes are worth it. The nobles keep a list of champions, too."),
+            new Stop("b_house", "Your House", 70, 230,
+                    "This one's yours. Build your decks here from the cards you collect, and sleep when you're ready for the next day."),
             new Stop("b_shop", "The Card Shop", 150, 216,
                     "The Card Shop. Singles and booster packs, new stock every day. The last single is always a legend that can lead a Commander deck.",
                     "The owner runs a prerelease once a day: open six packs, build a deck, play three rounds. And there's Pai Gow at the counter, if you fancy a gamble."),
-            new Stop("b_house", "Your House", 70, 230,
-                    "And this one's yours. Build your decks here from the cards you collect, and sleep when you're ready for the next day.",
-                    "That's the whole town. The gate opens at dawn. Good luck, delver. The town's counting on you."),
+            new Stop("b_outfitter", "The Outfitter", 414, 228,
+                    "The Outfitter. Sleeves and the like. Doesn't win you games, but you'll look good losing them."),
+            new Stop("b_tavern", "The Tavern", 330, 216,
+                    "And last, my place: the Tavern. Evenings, the regulars will play you for free as long as you like. Good way to test a deck.",
+                    "If you're feeling bold, you can play them for a little gold, or ante a card. Just don't come crying to me when you lose your best rare.",
+                    "That's the whole town. The gate opens at dawn. I'd best get back behind the bar. Come find me tonight, delver."),
     };
+    /** Bram's door: where he walks to before heading inside at the end (bottom-centre of b_tavern). */
+    private static final float DOOR_X = 336, DOOR_Y = 207;
 
     private int stop, page;
     private boolean walking, firstVisit;
@@ -109,7 +116,8 @@ public class DelveTourScene extends DelveScene {
         try {
             bramSprite = new CharacterSprite(INNKEEPER);
             bram = standing(bramSprite, SCALE);
-            standAt(bram, 222, 300); // below the screen: you walk in up the road
+            standAt(bram, STOPS[0].x - 26, STOPS[0].y + 2); // waiting on the plaza; you walk in up the road
+            bramSprite.setDirection(CharacterSprite.AnimationDirections.Right);
             track(bram);
             bramFace = bramSprite.getAvatar();
         } catch (Exception e) {
@@ -197,12 +205,13 @@ public class DelveTourScene extends DelveScene {
         }
         p(label("[%90][GOLD]Bram", 74, py + 6, 120, 12, Align.left));
         p(label("[%80][#c0a060]" + s.heading, 250, py + 6, 208, 12, Align.right));
-        com.github.tommyettinger.textra.TextraLabel text = p(label("[%80]" + s.pages[page], 74, py + 20, 386, 40, Align.topLeft));
+        String words = s.pages[page].replace("{FIRST_SET}", DelveDay.tiers().get(0).getName());
+        com.github.tommyettinger.textra.TextraLabel text = p(label("[%80]" + words, 74, py + 20, 386, 40, Align.topLeft));
         text.setAlignment(Align.topLeft);
         boolean last = stop == STOPS.length - 1 && page == s.pages.length - 1;
         if (stop > 0 || page > 0) p(button("[%80]Back", 74, py + 62, 60, 15, this::back1));
         p(button(last ? "[GOLD]Head into town" : "[GOLD]Next", 330, py + 61, 100, 17, this::next));
-        if (!last) p(button("[%70]Skip", 432, py + 62, 30, 15, this::finish));
+        if (!last) p(button("[%70]Skip", 432, py + 62, 30, 15, this::skip));
     }
 
     private void next() {
@@ -216,8 +225,26 @@ public class DelveTourScene extends DelveScene {
             page = 0;
             walkTo(STOPS[stop], this::build);
         } else {
-            finish();
+            bramGoesInside();
         }
+    }
+
+    /** The end of the tour: Bram walks to the Tavern door and goes in, and the town is yours. */
+    private void bramGoesInside() {
+        if (bram == null) {
+            finish();
+            return;
+        }
+        walking = true;
+        clearPanel();
+        highlight("b_tavern");
+        float t = Math.max(0.2f, move(bram, bramSprite, DOOR_X, DOOR_Y));
+        face(heroSprite, CharacterSprite.AnimationDirections.Right);
+        bram.addAction(Actions.sequence(Actions.delay(t), Actions.fadeOut(0.35f), Actions.delay(0.25f),
+                Actions.run(() -> {
+                    walking = false;
+                    finish();
+                })));
     }
 
     private void back1() {
@@ -232,6 +259,11 @@ public class DelveTourScene extends DelveScene {
         }
     }
 
+    /** Skip the rest of the tour straight into town. */
+    private void skip() {
+        if (!walking) finish();
+    }
+
     private void finish() {
         DelveProfile.get().setIntroSeen();
         highlight(null);
@@ -243,7 +275,7 @@ public class DelveTourScene extends DelveScene {
 
     @Override
     public boolean back() {
-        finish();
+        if (!walking) finish();
         return true;
     }
 }

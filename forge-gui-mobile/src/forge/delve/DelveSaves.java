@@ -111,7 +111,8 @@ public final class DelveSaves {
             return "?";
         }
         int tier = Integer.parseInt(p.getProperty("tier", "0"));
-        String tierName = tier < DelveDay.tiers().size() ? DelveDay.tiers().get(tier).getName() : "?";
+        List<forge.card.CardEdition> tiers = DelveDay.tiers(!"modern".equals(p.getProperty("era", "all")));
+        String tierName = tier < tiers.size() ? tiers.get(tier).getName() : "?";
         boolean run = new File(new File(savesDir(), name), "run.properties").exists();
         return "Day " + p.getProperty("day", "1") + "  -  Tier " + (tier + 1) + ": " + tierName
                 + "  -  " + p.getProperty("gold", "0") + " gold" + (run ? "  -  run in progress" : "");

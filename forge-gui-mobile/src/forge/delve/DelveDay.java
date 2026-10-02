@@ -19,8 +19,9 @@ import java.util.Random;
 /**
  * The card world for one tier on one in-game day.
  *
- * Tiers: every regular expansion/core set (150+ cards) from mid-2003 on is a tier,
- * in release order. The player starts at tier 0 and unlocks the next tier by
+ * Tiers: every regular expansion/core set (150+ cards) from a start date on is a tier,
+ * in release order. Each save picks its list when it's made: Modern (from Zendikar Rising,
+ * the default) or All sets (from mid-2003). The player starts at tier 0 and unlocks the next tier by
  * clearing a dungeon run at their highest tier; any unlocked tier can be replayed.
  * A run's draft, rewards and enemy decks come from its tier's set. The town (shop,
  * Castle, Tavern) uses the player's highest unlocked tier.
@@ -28,8 +29,10 @@ import java.util.Random;
  * The day number still seeds daily things (shop stock, enemy roster order).
  */
 public class DelveDay {
-    /** Tier 0 is the first set released on or after this date. */
+    /** All-sets saves: tier 0 is the first set released on or after this date (Eighth Edition). */
     static final String ERA_START = "2003-07-01";
+    /** Modern saves (the default): tier 0 is the first set on or after this date (Zendikar Rising). */
+    static final String MODERN_START = "2020-09-25";
     /** Sets (ending at the tier's set) used for the shop's "era" stock and second pack type. */
     static final int ERA_WIDTH = 3;
     /** Sets (ending at the tier's set) used for Commander decks, which need a deeper pool. */
@@ -37,6 +40,8 @@ public class DelveDay {
 
     public final int dayNumber;
     public final int tier;
+    /** which tier list {@link #tier} indexes (see {@link #tiers(boolean)}) */
+    public final boolean allSets;
     public final long seed;
     public final CardEdition edition;
     /** the tier's set plus a couple before it */
@@ -50,7 +55,7 @@ public class DelveDay {
     public final List<EnemyData> bossEnemies = new ArrayList<>();
 
     private static DelveDay cached;
-    private static List<CardEdition> tierCache;
+    private static final java.util.Map<Boolean, List<CardEdition>> tierCache = new java.util.HashMap<>();
 
     /** The town's card world: today, at the player's highest unlocked tier. */
     public static DelveDay today() {
@@ -63,22 +68,32 @@ public class DelveDay {
     }
 
     public static DelveDay forTier(int dayNumber, int tier) {
-        tier = Math.max(0, Math.min(tier, tiers().size() - 1));
-        if (cached == null || cached.dayNumber != dayNumber || cached.tier != tier)
-            cached = new DelveDay(dayNumber, tier);
+        boolean all = allSetsMode();
+        tier = Math.max(0, Math.min(tier, tiers(all).size() - 1));
+        if (cached == null || cached.dayNumber != dayNumber || cached.tier != tier || cached.allSets != all)
+            cached = new DelveDay(dayNumber, tier, all);
         return cached;
     }
 
-    /** Every tier's set, oldest first. */
+    /** The current save's tiers, oldest first. */
     public static List<CardEdition> tiers() {
-        if (tierCache == null) {
+        return tiers(allSetsMode());
+    }
+
+    /** Every tier's set, oldest first: from Eighth Edition ({@code allSets}) or from Zendikar Rising. */
+    public static List<CardEdition> tiers(boolean allSets) {
+        return tierCache.computeIfAbsent(allSets, k -> {
             List<CardEdition> all = allSets();
-            java.util.Date startDate = java.sql.Date.valueOf(ERA_START);
-            tierCache = new ArrayList<>();
-            for (CardEdition e : all) if (!e.getDate().before(startDate)) tierCache.add(e);
-            if (tierCache.isEmpty()) tierCache.addAll(all);
-        }
-        return tierCache;
+            java.util.Date startDate = java.sql.Date.valueOf(allSets ? ERA_START : MODERN_START);
+            List<CardEdition> out = new ArrayList<>();
+            for (CardEdition e : all) if (!e.getDate().before(startDate)) out.add(e);
+            if (out.isEmpty()) out.addAll(all);
+            return out;
+        });
+    }
+
+    private static boolean allSetsMode() {
+        return DelveProfile.get().allSets();
     }
 
     public static String tierName(int tier) {
@@ -88,13 +103,14 @@ public class DelveDay {
         return "Tier " + (tier + 1) + ": " + e.getName() + " (" + c.get(java.util.Calendar.YEAR) + ")";
     }
 
-    private DelveDay(int dayNumber, int tier) {
+    private DelveDay(int dayNumber, int tier, boolean allSetsList) {
         this.dayNumber = dayNumber;
         this.tier = tier;
+        this.allSets = allSetsList;
         this.seed = dayNumber * 0x9E3779B97F4A7C15L + tier * 0x632BE59BD9B4E019L + 12345L;
         Random rng = new Random(seed);
         List<CardEdition> all = allSets();
-        this.edition = tiers().get(tier);
+        this.edition = tiers(allSetsList).get(tier);
         int at = all.indexOf(edition);
         for (int i = Math.max(0, at - ERA_WIDTH + 1); i <= at; i++) eraSets.add(all.get(i));
         for (int i = Math.max(0, at - COMMANDER_WIDTH + 1); i <= at; i++) commanderSets.add(all.get(i));

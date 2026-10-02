@@ -175,6 +175,20 @@ public class DelveProfile {
 
     // ---- tiers ------------------------------------------------------------------
 
+    /**
+     * Which set list this save climbs (chosen when the save is made, see {@link DelveDay#tiers()}):
+     * false = Modern (Zendikar Rising onward, the default), true = every set since 2003.
+     * Saves made before the choice existed have no setting and keep the full list they were made with.
+     */
+    public boolean allSets() {
+        return !"modern".equals(stats.getProperty("era", "all"));
+    }
+
+    public void setAllSets(boolean all) {
+        stats.setProperty("era", all ? "all" : "modern");
+        saveStats();
+    }
+
     /** Highest unlocked tier (0 = the first set). */
     /** TEMPORARY dev shortcut: unlock every set tier. */
     public void devUnlockAllTiers() {

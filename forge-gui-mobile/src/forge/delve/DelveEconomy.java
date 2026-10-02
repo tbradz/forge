@@ -8,9 +8,10 @@ import java.util.Random;
  * Every gold number in Delve, in one place so balance can be tuned later.
  *
  * Model: you enter the dungeon with nothing, and all gold found inside comes
- * home with you (even if you die) into your town wallet. A typical Standard run
- * earns roughly 200-300 gold: ~5 fights at 25-35, an elite at 60, and a little
- * from events and selling cards.
+ * home with you (even if you die) into your town wallet. A typical run earns
+ * roughly 250-300 gold: ~7-8 fights at 12-18, two elites at 45, the boss at 75, and
+ * a little from events and selling cards. (Before the longer floors - map generator 1 -
+ * it was ~4-5 fights at 25-35 and one or two elites at 60; old saved runs still pay that.)
  *
  * Prices are set so a merchant purchase is a real choice against saving for the
  * town: a good run affords one rare or two or three commons, not everything.
@@ -20,16 +21,21 @@ public final class DelveEconomy {
     private DelveEconomy() {}
 
     // ---- earning ------------------------------------------------------------------
-    public static final int FIGHT_GOLD_MIN = 25;
-    public static final int FIGHT_GOLD_MAX = 35;
-    public static final int ELITE_GOLD = 60;
+    public static final int FIGHT_GOLD_MIN = 12;
+    public static final int FIGHT_GOLD_MAX = 18;
+    public static final int ELITE_GOLD = 45;
     public static final int BOSS_GOLD = 75;
+    /** map generator 1 (6-9 step floors) */
+    private static final int GEN1_FIGHT_MIN = 25, GEN1_FIGHT_MAX = 35, GEN1_ELITE = 60;
 
-    public static int fightGold(DelveRun.NodeType type, Random rng) {
+    public static int fightGold(DelveRun.NodeType type, Random rng, int gen) {
+        boolean old = gen < 2;
         switch (type) {
             case BOSS: return BOSS_GOLD;
-            case ELITE: return ELITE_GOLD;
-            default: return FIGHT_GOLD_MIN + rng.nextInt(FIGHT_GOLD_MAX - FIGHT_GOLD_MIN + 1);
+            case ELITE: return old ? GEN1_ELITE : ELITE_GOLD;
+            default:
+                int lo = old ? GEN1_FIGHT_MIN : FIGHT_GOLD_MIN, hi = old ? GEN1_FIGHT_MAX : FIGHT_GOLD_MAX;
+                return lo + rng.nextInt(hi - lo + 1);
         }
     }
 

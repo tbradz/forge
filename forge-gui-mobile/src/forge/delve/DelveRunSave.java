@@ -45,6 +45,7 @@ public final class DelveRunSave {
             p.setProperty("day", Integer.toString(run.day.dayNumber));
             p.setProperty("tier", Integer.toString(run.day.tier));
             p.setProperty("seed", Long.toString(run.seed));
+            p.setProperty("gen", Integer.toString(run.gen));
             p.setProperty("life", Integer.toString(run.life));
             p.setProperty("gold", Integer.toString(run.gold));
             p.setProperty("step", Integer.toString(run.step));
@@ -89,7 +90,9 @@ public final class DelveRunSave {
             deck.setName(p.getProperty("deckName", deck.getName()));
             DelveDay day = DelveDay.forTier(Integer.parseInt(p.getProperty("day", "1")),
                     Integer.parseInt(p.getProperty("tier", "0")));
-            DelveRun run = DelveRun.restore(day, deck, Long.parseLong(p.getProperty("seed")));
+            // runs saved before map versions existed were built by generator 1
+            DelveRun run = DelveRun.restore(day, deck, Long.parseLong(p.getProperty("seed")),
+                    Integer.parseInt(p.getProperty("gen", "1")));
             run.life = Integer.parseInt(p.getProperty("life", "20"));
             run.gold = Integer.parseInt(p.getProperty("gold", "0"));
             run.step = Integer.parseInt(p.getProperty("step", "0"));

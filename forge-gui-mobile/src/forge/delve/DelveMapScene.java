@@ -80,13 +80,45 @@ public class DelveMapScene extends DelveScene {
     // ---- the trail map ----------------------------------------------------------------
 
     private static final float ENTRANCE_X = 26, TRAIL_RIGHT = 436, TRAIL_MID = 150, ROW_GAP = 56;
+    /** Narrowest column spacing; longer floors run past the screen and the map scrolls. */
+    private static final float COL_MIN = 52;
     private com.badlogic.gdx.scenes.scene2d.Group heroGroup;
     private CharacterSprite heroSprite;
     private boolean walking;
+    /** the scrolling part of the map (trails, rooms, hero), and how far it's panned right */
+    private com.badlogic.gdx.scenes.scene2d.Group mapLayer;
+    private float scroll;
+    private TextraButton panLeft, panRight;
 
-    /** x of a map column; column 0 is the entrance, column s+1 is step s. */
+    private static float colSpacing(DelveRun run) {
+        return Math.max(COL_MIN, (TRAIL_RIGHT - ENTRANCE_X) / run.layers.size());
+    }
+
+    /** x of a map column (in map coordinates); column 0 is the entrance, column s+1 is step s. */
     private float colX(DelveRun run, int col) {
-        return ENTRANCE_X + col * (TRAIL_RIGHT - ENTRANCE_X) / run.layers.size();
+        return ENTRANCE_X + col * colSpacing(run);
+    }
+
+    private float maxScroll(DelveRun run) {
+        return Math.max(0, colX(run, run.layers.size()) + 44 - W); // room for the boss and its label
+    }
+
+    /** Pan the map so {@code target} (map x) is at the left edge, over {@code seconds}. */
+    private void panTo(float target, float seconds) {
+        DelveRun run = DelveRun.current();
+        if (run == null || mapLayer == null) return;
+        scroll = Math.max(0, Math.min(maxScroll(run), target));
+        mapLayer.clearActions();
+        if (seconds <= 0) mapLayer.setX(-scroll);
+        else mapLayer.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(-scroll, 0, seconds,
+                com.badlogic.gdx.math.Interpolation.sine));
+        if (panLeft != null) panLeft.setVisible(scroll > 0.5f);
+        if (panRight != null) panRight.setVisible(scroll < maxScroll(run) - 0.5f);
+    }
+
+    /** Keep a map x in view, a little left of centre so you can see what's coming. */
+    private void follow(float x, float seconds) {
+        panTo(x - W * 0.3f, seconds);
     }
 
     /** y (top-down) of node k in a layer of n nodes: where its plate's centre sits. */
@@ -121,6 +153,19 @@ public class DelveMapScene extends DelveScene {
         label("[%90][RED]Life[] " + run.life + "/" + run.maxLife() + "    [GOLD]Gold[] " + run.gold
                         + "    Deck " + run.deckSize() + "/" + DelveRun.MIN_DECK + "    Wins " + run.fightsWon,
                 150, 5, 322, 16, Align.right);
+
+        // drag anywhere on the map to look ahead (rooms sit above this and still take clicks)
+        com.badlogic.gdx.scenes.scene2d.Actor dragger = new com.badlogic.gdx.scenes.scene2d.Actor();
+        dragger.setBounds(0, 0, W, H);
+        dragger.addListener(new com.badlogic.gdx.scenes.scene2d.utils.DragListener() {
+            @Override
+            public void drag(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer) {
+                if (!walking) panTo(scroll - getDeltaX(), 0);
+            }
+        });
+        track(dragger);
+        mapLayer = track(new com.badlogic.gdx.scenes.scene2d.Group());
+        trackInto(mapLayer); // trails, rooms and the hero scroll together
 
         int steps = run.layers.size();
         // trails: gold where you've walked, grey ahead, faint for roads not taken
@@ -169,6 +214,12 @@ public class DelveMapScene extends DelveScene {
         heroGroup = standing(heroSprite, 2f);
         standAt(heroGroup, spot[0] + (run.step == 0 ? 16 : -20), spot[1] + 4);
         track(heroGroup);
+        trackInto(null);
+
+        // long floors run off the screen: arrows (and dragging) look along the map
+        panLeft = button("[%90]<", 2, 136, 16, 26, () -> panTo(scroll - W * 0.6f, 0.35f));
+        panRight = button("[%90]>", W - 18, 136, 16, 26, () -> panTo(scroll + W * 0.6f, 0.35f));
+        follow(spot[0], 0);
 
         button("[%80]Relics (" + run.relics.size() + ")", 210, 246, 80, 18, () -> showRelics(run));
         button("[%80]View deck", 300, 246, 80, 18, this::viewDeck);
@@ -231,7 +282,7 @@ public class DelveMapScene extends DelveScene {
             case ELITE: type = "[ORANGE]Elite" + (node.perk != null ? " - " + node.perk.title : ""); break;
             default: type = "Fight";
         }
-        float spacing = (TRAIL_RIGHT - ENTRANCE_X) / run.layers.size();
+        float spacing = colSpacing(run);
         boolean roomy = spacing >= 50;
         String name = node.enemy != null && roomy ? "\n[%50]" + shortName(node.enemy.getName()) : "";
         float lw = Math.min(64, spacing + 4);
@@ -305,6 +356,7 @@ public class DelveMapScene extends DelveScene {
         heroSprite.setAnimation(CharacterSprite.AnimationTypes.Walk);
         heroSprite.setDirection(dir);
         float dist = (float) Math.sqrt(dx * dx + dy * dy);
+        follow(tx, dist / 70f); // the map pans along with you
         heroGroup.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
                 com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(tx, H - ty, dist / 70f),
                 com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
@@ -379,7 +431,7 @@ public class DelveMapScene extends DelveScene {
         run.life = Math.max(1, life);
         run.fightsWon++;
         boolean elite = node.type == NodeType.ELITE;
-        int gold = DelveEconomy.fightGold(node.type, run.rng);
+        int gold = DelveEconomy.fightGold(node.type, run.rng, run.gen);
         if (run.has(DelveRelic.GOLD_IDOL)) gold = gold * 3 / 2;
         run.gainGold(gold);
         DelveAudio.coins();

@@ -85,9 +85,21 @@ abstract class DelveScene extends UIScene {
         return label("[%130]" + text, 0, 8, W, 22, Align.center);
     }
 
+    /** While set, track() puts actors into this group (e.g. a map that scrolls) instead of the screen. */
+    private com.badlogic.gdx.scenes.scene2d.Group into;
+
+    /** Place following widgets inside {@code g} (which must itself be tracked); null = back to the screen. */
+    protected void trackInto(com.badlogic.gdx.scenes.scene2d.Group g) {
+        into = g;
+    }
+
     protected <T extends Actor> T track(T a) {
-        ui.addActor(a);
-        dynamic.add(a);
+        if (into != null) {
+            into.addActor(a); // removed with the group on clearScreen()
+        } else {
+            ui.addActor(a);
+            dynamic.add(a);
+        }
         if (a instanceof TextraButton)
             addToSelectable(a);
         return a;
@@ -95,6 +107,7 @@ abstract class DelveScene extends UIScene {
 
     /** Remove everything placed in code (keeps the backdrop). */
     protected void clearScreen() {
+        into = null;
         for (Actor a : dynamic)
             a.remove();
         dynamic.clear();

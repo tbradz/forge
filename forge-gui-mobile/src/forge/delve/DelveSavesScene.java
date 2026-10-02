@@ -62,30 +62,48 @@ public class DelveSavesScene extends DelveScene {
         button("Back", W / 2f + 10, 238, 100, 22, () -> Forge.switchScene(StartScene.instance()));
     }
 
-    /** A new save: create your character (for good), meet Bram, then into town. */
+    /** A new save: pick which sets to climb, create your character (for good), then Bram shows you the town. */
     private void newSave() {
-        DelveSaves.load(DelveSaves.create());
+        chooseSets(allSets -> {
+            DelveSaves.load(DelveSaves.create());
+            DelveProfile.get().setAllSets(allSets);
+            meetTheTown();
+        });
+    }
+
+    /** Optional mode, chosen per save: the Modern climb (default) or every set since Eighth Edition. */
+    private void chooseSets(java.util.function.Consumer<Boolean> then) {
+        List<String> labels = List.of(
+                "[GOLD]Modern[]: " + DelveDay.tiers(false).get(0).getName() + " onward (" + DelveDay.tiers(false).size() + " sets)",
+                "All sets: " + DelveDay.tiers(true).get(0).getName() + " onward (" + DelveDay.tiers(true).size() + " sets)",
+                "Cancel");
+        List<Runnable> actions = List.of(() -> then.accept(false), () -> then.accept(true), () -> { });
+        choose("Where does your climb begin?", "[%80]Each set is a dungeon tier: clear one to unlock the next. "
+                + "Modern is the standard game. All sets is a much longer climb through twenty years of Magic.", labels, null, actions);
+    }
+
+    private void meetTheTown() {
         DelveCharacterScene.instance().open(() ->
-                DelveIntroScene.instance().play(true, () -> Forge.switchScene(DelveHubScene.instance())));
+                DelveTourScene.instance().play(true, () -> Forge.switchScene(DelveHubScene.instance())));
     }
 
     /** TEMPORARY dev start: a new save with lots of gold, optionally every tier unlocked. */
     private void devSave() {
         List<String> labels = List.of("Gold only", "Gold + every tier unlocked", "Cancel");
-        List<Runnable> actions = List.of(() -> startDev(false), () -> startDev(true), () -> { });
+        List<Runnable> actions = List.of(() -> chooseSets(all -> startDev(false, all)), () -> chooseSets(all -> startDev(true, all)), () -> { });
         choose("Dev save", "[%80]Testing shortcut: a new save that starts with " + DEV_GOLD
                 + " gold. Optionally unlock every set tier too.", labels, null, actions);
     }
 
     static final int DEV_GOLD = 50000;
 
-    private void startDev(boolean allTiers) {
+    private void startDev(boolean allTiers, boolean allSets) {
         DelveSaves.load(DelveSaves.create());
         DelveProfile prof = DelveProfile.get();
+        prof.setAllSets(allSets);
         prof.addGold(DEV_GOLD);
         if (allTiers) prof.devUnlockAllTiers();
-        DelveCharacterScene.instance().open(() ->
-                DelveIntroScene.instance().play(true, () -> Forge.switchScene(DelveHubScene.instance())));
+        meetTheTown();
     }
 
     private void play(String name) {
