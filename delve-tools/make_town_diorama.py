@@ -27,7 +27,7 @@ SCALE = 4                  # -> 960x540
 # whole-building crops in buildings.png (x, y, w, h), checked with margins
 SPRITES = {
     "castle": (384, 128, 64, 48),
-    "dungeon": (32, 113, 32, 30),
+    "dungeon": (192, 304, 32, 32),   # crypt gate in the rocks (Tyler's pick; the old arch read as a colosseum)
     "house": (321, 624, 31, 32),
     "shop": (352, 624, 32, 32),
     "tavern": (288, 624, 32, 32),

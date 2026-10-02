@@ -59,10 +59,10 @@
       "type": "Image",
       "name": "b_dungeon",
       "image": "ui/delve/dungeon.png",
-      "x": 208,
-      "y": 182,
-      "width": 64,
-      "height": 60
+      "x": 209,
+      "y": 178,
+      "width": 62,
+      "height": 64
     },
     {
       "type": "TextButton",
