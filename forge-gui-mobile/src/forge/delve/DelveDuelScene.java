@@ -223,7 +223,9 @@ public class DelveDuelScene extends DuelScene {
         for (int i = 0; i < foes.size(); i++) {
             forge.adventure.data.EnemyData enemy = foes.get(i);
             RegisteredPlayer ai = RegisteredPlayer.forVariants(nPlayers, variants, foeDecks.get(i), null, false, null, null);
-            LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(enemy.getName(), aiProfile);
+            // town folk play under their own names; dungeon monsters keep theirs
+            String aiName = run == null ? DelvePersona.name(enemy) : enemy.getName();
+            LobbyPlayer aiLobby = GamePlayerUtil.createAiPlayer(aiName, aiProfile);
             try {
                 TextureRegion avatar = new EnemySprite(enemy).getAvatar();
                 if (avatar != null) {

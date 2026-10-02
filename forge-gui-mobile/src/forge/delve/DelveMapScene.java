@@ -335,7 +335,8 @@ public class DelveMapScene extends DelveScene {
                         + ". You have " + run.life + (run.has(DelveRelic.IRON_BUCKLER) ? " (+4 from your Iron Buckler)" : "") + "."
                         + (node.perk != null ? "\n[GOLD]" + (node.perk.elite ? "Elite" : "Boss") + " perk - " + node.perk.title + ":[] " + node.perk.description : "")
                         + (node.perk2 != null ? "\n[GOLD]Second perk - " + node.perk2.title + ":[] " + node.perk2.description : "")
-                        + (node.type == NodeType.BOSS ? "\n[GOLD]Its deck:[] " + run.day.bossTheme(node.enemy).name : ""),
+                        + (node.type == NodeType.BOSS ? "\n[GOLD]Its deck:[] " + run.day.bossTheme(node.enemy).name : "")
+                        + (node.type == NodeType.FIGHT ? "\n\n" + quote(node.enemy, DelvePersona.Moment.GREET) : ""),
                 () -> walkTo(run, step, index, () -> fight(run, node, index)));
     }
 
@@ -343,11 +344,30 @@ public class DelveMapScene extends DelveScene {
 
     private void fight(DelveRun run, Node node, int index) {
         run.currentNode = node;
-        DelveDuelScene.instance().setup(run, node, (won, life) -> afterFight(run, node, index, won, life));
-        Forge.switchScene(DelveDuelScene.instance());
+        Runnable go = () -> {
+            DelveDuelScene.instance().setup(run, node, (won, life) -> afterFight(run, node, index, won, life));
+            Forge.switchScene(DelveDuelScene.instance());
+        };
+        if (node.type == NodeType.FIGHT) go.run();
+        else DelveTalkScene.before(DelveTalkScene.DUNGEON, node.enemy, false, node.type == NodeType.BOSS,
+                node.type == NodeType.BOSS ? "[RED]Boss" : "[GOLD]Elite", go);
     }
 
+    /** A quoted line (or a described action, for things that don't talk) for dialogs. */
+    private static String quote(forge.adventure.data.EnemyData e, DelvePersona.Moment m) {
+        String line = DelvePersona.line(e, m, false, new java.util.Random());
+        return line.startsWith("*") || !DelvePersona.talks(e) ? "[#c0b090]" + line + "[WHITE]" : "[#c0b090]\"" + line + "\"[WHITE]";
+    }
+
+    /** Elites, bosses and any defeat get a word from the opponent first. */
     private void afterFight(DelveRun run, Node node, int index, boolean won, int life) {
+        if (!won || node.type != NodeType.FIGHT)
+            DelveTalkScene.after(DelveTalkScene.DUNGEON, node.enemy, won, false, node.type == NodeType.BOSS,
+                    () -> settleFight(run, node, index, won, life));
+        else settleFight(run, node, index, won, life);
+    }
+
+    private void settleFight(DelveRun run, Node node, int index, boolean won, int life) {
         Forge.switchScene(this);
         if (!won) {
             run.life = 0;
@@ -371,7 +391,7 @@ public class DelveMapScene extends DelveScene {
             relicChoice(run, "The elite's hoard", "You take " + gold + " gold, and among its belongings you find relics. Take one.",
                     DelveRelic.offer(run.rng, run.relics, 3, 0.5), true, () -> { });
         else
-            info("Victory", node.enemy.getName() + " is beaten. You find [GOLD]" + gold + " gold[WHITE] (" + run.gold
+            info("Victory", quote(node.enemy, DelvePersona.Moment.THEY_LOST) + "\n\n" + node.enemy.getName() + " is beaten. You find [GOLD]" + gold + " gold[WHITE] (" + run.gold
                     + " this run). Spend it with merchants to strengthen your deck.", null);
     }
 

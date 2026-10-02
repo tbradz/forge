@@ -178,7 +178,7 @@ public class DelvePaiGowScene extends DelveScene {
         Collections.shuffle(myPiles, rng); // your opponent shuffles your piles
         building = false;
         build();
-        info("Pai Gow", foe.getName() + " shuffles your piles face down. You won't know which pile you'll get until each game starts.\n\n"
+        info("Pai Gow", DelvePersona.name(foe) + " shuffles your piles face down. You won't know which pile you'll get until each game starts.\n\n"
                 + "Every game: your pile is your hand, no library, 5 life, unlimited mana. The loser of a game goes first in the next. First to "
                 + TO_WIN + " wins takes " + DelveEconomy.PAI_GOW_TAKE + " cards from the other's pack.", null);
     }
@@ -211,7 +211,7 @@ public class DelvePaiGowScene extends DelveScene {
 
     private void buildPiles() {
         label("[%95][GOLD]Pai Gow[WHITE]  Split your pack into " + PILES + " piles of " + PILE_SIZE, 8, 5, 340, 16, Align.left);
-        label("[%80]vs " + foe.getName(), 300, 5, 172, 16, Align.right);
+        label("[%80]vs " + DelvePersona.name(foe), 300, 5, 172, 16, Align.right);
 
         // your pack on the left (unused cards just stay in your collection)
         int n = pool.size();
@@ -277,13 +277,13 @@ public class DelvePaiGowScene extends DelveScene {
 
     private void buildTable() {
         label("[%95][GOLD]Pai Gow[WHITE]  " + set.getName(), 8, 5, 300, 16, Align.left);
-        label("[%90]You " + wins(WON) + " - " + wins(LOST) + " " + foe.getName(), 200, 5, 272, 16, Align.right);
+        label("[%90]You " + wins(WON) + " - " + wins(LOST) + " " + DelvePersona.name(foe), 200, 5, 272, 16, Align.right);
 
         image("ui/delve/panel.png", 20, 28, W - 40, 192);
         portrait(null, 60, 74);
         label("[%85][GOLD]You", 30, 78, 60, 12, Align.center);
         portrait(foe, W - 60, 74);
-        label("[%85]" + foe.getName(), W - 110, 78, 100, 12, Align.center);
+        label("[%85]" + DelvePersona.name(foe), W - 110, 78, 100, 12, Align.center);
 
         // one column per game: result and, once played, the pile you had
         float colW = 74, x0 = W / 2f - 2 * colW;
@@ -309,7 +309,7 @@ public class DelvePaiGowScene extends DelveScene {
             button("[GOLD]Play game " + (game + 1), W / 2f - 70, 170, 140, 22, this::play);
         } else {
             int me = wins(WON), them = wins(LOST);
-            String verdict = me > them ? "[GOLD]You win the match!" : me < them ? "[RED]" + foe.getName() + " wins the match." : "A tie: everyone keeps their own pack.";
+            String verdict = me > them ? "[GOLD]You win the match!" : me < them ? "[RED]" + DelvePersona.name(foe) + " wins the match." : "A tie: everyone keeps their own pack.";
             label("[%100]" + verdict, 30, 160, W - 60, 16, Align.center);
             button("Back to the shop", W / 2f - 70, 184, 140, 22, () -> {
                 myPack = null;
@@ -323,17 +323,29 @@ public class DelvePaiGowScene extends DelveScene {
     private void play() {
         int first = 0; // game 1: coin flip
         if (game > 0) first = results[game - 1] == LOST ? 1 : results[game - 1] == WON ? 2 : 0;
-        DelveDuelScene.instance().setupPaiGow(myPiles.get(game), foe, foePiles.get(game), first,
-                (won, life) -> result(won));
-        Forge.switchScene(DelveDuelScene.instance());
+        final int f = first;
+        Runnable go = () -> {
+            DelveDuelScene.instance().setupPaiGow(myPiles.get(game), foe, foePiles.get(game), f, (won, life) -> result(won));
+            Forge.switchScene(DelveDuelScene.instance());
+        };
+        if (game == 0) DelveTalkScene.before(DelveTalkScene.SHOP, foe, true, false, "Pai Gow", go);
+        else go.run();
     }
 
     private void result(boolean won) {
-        Forge.switchScene(this);
         boolean draw = !won && DelveDuelScene.instance().lastWasDraw();
         results[game] = won ? WON : draw ? DRAW : LOST;
         game++;
-        if (wins(WON) >= TO_WIN || wins(LOST) >= TO_WIN || game >= PILES) finish();
+        if (wins(WON) >= TO_WIN || wins(LOST) >= TO_WIN || game >= PILES) {
+            // the match is over: a word from your opponent, then the cards change hands
+            DelveTalkScene.after(DelveTalkScene.SHOP, foe, wins(WON) >= wins(LOST), true, false, () -> {
+                Forge.switchScene(this);
+                finish();
+                build();
+            });
+            return;
+        }
+        Forge.switchScene(this);
         build();
     }
 
@@ -346,7 +358,7 @@ public class DelvePaiGowScene extends DelveScene {
             List<PaperCard> theirs = new ArrayList<>(foePack);
             theirs.sort(Comparator.comparingDouble(DelvePaiGowScene::value).reversed());
             DelvePickScene.instance().withAllSelected().show("You win! Take " + DelveEconomy.PAI_GOW_TAKE + " cards from "
-                            + foe.getName() + "'s pack", theirs, DelveEconomy.PAI_GOW_TAKE, DelveEconomy.PAI_GOW_TAKE, null,
+                            + DelvePersona.name(foe) + "'s pack", theirs, DelveEconomy.PAI_GOW_TAKE, DelveEconomy.PAI_GOW_TAKE, null,
                     picked -> {
                         prof.addToCollection(picked);
                         DelveAudio.coins();
@@ -361,7 +373,7 @@ public class DelvePaiGowScene extends DelveScene {
                 prof.removeFromCollection(pc);
                 names.append(names.length() > 0 ? " and " : "").append(pc.getName());
             }
-            info("Pai Gow", foe.getName() + " takes " + names + " from your pack. The rest of the pack stays in your collection.", null);
+            info("Pai Gow", DelvePersona.name(foe) + " takes " + names + " from your pack. The rest of the pack stays in your collection.", null);
         }
     }
 

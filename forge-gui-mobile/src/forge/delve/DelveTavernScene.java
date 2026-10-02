@@ -75,8 +75,8 @@ public class DelveTavernScene extends DelveScene {
         for (int i = 0; i < patrons.size(); i++) {
             EnemyData e = patrons.get(i);
             float x = i % 2 == 0 ? 66 : 250, y = 100 + (i / 2) * 44;
-            button("Play " + shorten(e.getName()), x, y, 164, 22, () -> chooseDeck(e));
-            label("[%75]" + colorsOf(e), x, y + 24, 164, 12, Align.center);
+            button("Play " + DelvePersona.name(e), x, y, 164, 22, () -> chooseDeck(e));
+            label("[%70]" + shorten(e.getName()) + "[WHITE]   " + colorsOf(e), x, y + 24, 164, 12, Align.center);
         }
         button("[GOLD]Commander with the patrons", 140, 192, 200, 20, this::chooseCommanderDeck)
                 .setDisabled(patrons.size() < 3);
@@ -124,14 +124,17 @@ public class DelveTavernScene extends DelveScene {
         }
         labels.add("Cancel");
         actions.add(() -> { });
-        choose("Play " + foe.getName(), "Choose your deck.", labels, null, actions);
+        choose("Play " + DelvePersona.title(foe), "Choose your deck.", labels, null, actions);
     }
 
     private void play(Deck deck, EnemyData foe) {
         Deck foeDeck = DelveDay.today().enemyDeck(foe, DelveDay.Tier.ELITE);
-        DelveDuelScene.instance().setup(deck, 20, foe, foeDeck, 20, 1, false, (won, life) -> result(won));
-        DelveDuelScene.instance().setReturnLabel("Back to the Tavern");
-        Forge.switchScene(DelveDuelScene.instance());
+        DelveTalkScene.before(DelveTalkScene.TAVERN, foe, true, false, null, () -> {
+            DelveDuelScene.instance().setup(deck, 20, foe, foeDeck, 20, 1, false,
+                    (won, life) -> DelveTalkScene.after(DelveTalkScene.TAVERN, foe, won, true, false, () -> result(won)));
+            DelveDuelScene.instance().setReturnLabel("Back to the Tavern");
+            Forge.switchScene(DelveDuelScene.instance());
+        });
     }
 
     private void result(boolean won) {
@@ -160,7 +163,7 @@ public class DelveTavernScene extends DelveScene {
         clearStakes();
         DelveProfile prof = DelveProfile.get();
         int n = foes.size();
-        String who = n == 1 ? foes.get(0).getName() : "the patrons";
+        String who = n == 1 ? DelvePersona.name(foes.get(0)) : "the patrons";
         List<String> labels = new ArrayList<>();
         List<Boolean> enabled = new ArrayList<>();
         List<Runnable> actions = new ArrayList<>();
@@ -295,9 +298,13 @@ public class DelveTavernScene extends DelveScene {
         List<Deck> decks = new ArrayList<>();
         commanderFoes(foes, decks);
         if (foes.isEmpty()) return;
-        DelveDuelScene.instance().setupCommander(deck, foes, decks, (won, life) -> result(won));
-        DelveDuelScene.instance().setReturnLabel("Back to the Tavern");
-        Forge.switchScene(DelveDuelScene.instance());
+        EnemyData host = foes.get(0);
+        DelveTalkScene.before(DelveTalkScene.TAVERN, host, true, false, "Commander", () -> {
+            DelveDuelScene.instance().setupCommander(deck, foes, decks,
+                    (won, life) -> DelveTalkScene.after(DelveTalkScene.TAVERN, host, won, true, false, () -> result(won)));
+            DelveDuelScene.instance().setReturnLabel("Back to the Tavern");
+            Forge.switchScene(DelveDuelScene.instance());
+        });
     }
 
     @Override

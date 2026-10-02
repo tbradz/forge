@@ -79,7 +79,7 @@ public class DelvePrereleaseScene extends DelveScene {
     }
 
     private String name(int i) {
-        return i == 0 ? "You" : field.get(i - 1).getName();
+        return i == 0 ? "You" : DelvePersona.name(field.get(i - 1));
     }
 
     private void build() {
@@ -118,9 +118,12 @@ public class DelvePrereleaseScene extends DelveScene {
     private void play(int foe) {
         EnemyData e = field.get(foe - 1);
         Deck foeDeck = day.enemyDeck(e, DelveDay.Tier.LATE); // a decent sealed-strength deck from the same set
-        DelveDuelScene.instance().setup(deck, 20, e, foeDeck, 20, 1, false, (won, life) -> result(foe, won));
-        DelveDuelScene.instance().setReturnLabel("Back to the prerelease");
-        Forge.switchScene(DelveDuelScene.instance());
+        DelveTalkScene.before(DelveTalkScene.SHOP, e, true, false, "Round " + (round + 1), () -> {
+            DelveDuelScene.instance().setup(deck, 20, e, foeDeck, 20, 1, false,
+                    (won, life) -> DelveTalkScene.after(DelveTalkScene.SHOP, e, won, true, false, () -> result(foe, won)));
+            DelveDuelScene.instance().setReturnLabel("Back to the prerelease");
+            Forge.switchScene(DelveDuelScene.instance());
+        });
     }
 
     private void result(int foe, boolean won) {

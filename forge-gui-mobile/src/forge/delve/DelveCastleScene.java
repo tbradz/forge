@@ -76,6 +76,13 @@ public class DelveCastleScene extends DelveScene {
         return "You";
     }
 
+    /** Bracket entries are keyed by enemy name; show the person's own name. */
+    private String display(String key) {
+        if (key == null || key.equals(me())) return key;
+        EnemyData e = enemyNamed(key);
+        return e == null ? key : DelvePersona.name(e);
+    }
+
     private void build() {
         clearScreen();
         DelveProfile prof = DelveProfile.get();
@@ -200,7 +207,7 @@ public class DelveCastleScene extends DelveScene {
         names[0] = "You";
         cmds[0] = commanderName(pod.deck) + (pod.loaner ? " (borrowed)" : "");
         for (int i = 0; i < pod.foes.size(); i++) {
-            names[i + 1] = pod.foes.get(i).getName();
+            names[i + 1] = DelvePersona.name(pod.foes.get(i));
             cmds[i + 1] = commanderName(pod.decks.get(i));
         }
         for (int i = 0; i < 4 && names[i] != null; i++) {
@@ -221,11 +228,15 @@ public class DelveCastleScene extends DelveScene {
     }
 
     private void playPod() {
-        DelveDuelScene.instance().setupCommander(pod.deck, pod.foes, pod.decks, (won, life) -> {
-            Forge.switchScene(this);
-            finishPod(won);
+        EnemyData host = pod.foes.isEmpty() ? null : pod.foes.get(0);
+        DelveTalkScene.before(DelveTalkScene.CASTLE, host, true, false, "Commander pod", () -> {
+            DelveDuelScene.instance().setupCommander(pod.deck, pod.foes, pod.decks, (won, life) ->
+                    DelveTalkScene.after(DelveTalkScene.CASTLE, host, won, true, false, () -> {
+                        Forge.switchScene(this);
+                        finishPod(won);
+                    }));
+            Forge.switchScene(DelveDuelScene.instance());
         });
-        Forge.switchScene(DelveDuelScene.instance());
     }
 
     private void finishPod(boolean won) {
@@ -316,13 +327,13 @@ public class DelveCastleScene extends DelveScene {
                 String n = names.get(i);
                 boolean mine = n.equals(me());
                 float y = 54 + slotH * i + slotH / 2f - 7;
-                label("[%70]" + (mine ? "[GOLD]" : "") + shorten(n), colX[r], y, 110, 14, Align.left);
+                label("[%70]" + (mine ? "[GOLD]" : "") + shorten(display(n)), colX[r], y, 110, 14, Align.left);
             }
         }
 
         String opponent = currentOpponent();
         if (!t.out && opponent != null) {
-            button("[GOLD]Play the " + ROUND_NAMES[t.round].toLowerCase() + " vs " + shorten(opponent), 110, 238, 200, 22,
+            button("[GOLD]Play the " + ROUND_NAMES[t.round].toLowerCase() + " vs " + shorten(display(opponent)), 110, 238, 200, 22,
                     this::playMatch);
             button("Forfeit", 320, 238, 80, 22, () -> confirm("Forfeit", "Leave the tournament? Your entry fee is lost.",
                     () -> finish(t.round)));
@@ -354,9 +365,11 @@ public class DelveCastleScene extends DelveScene {
         EnemyData foe = enemyNamed(currentOpponent());
         if (foe == null) return;
         Deck foeDeck = DelveDay.today().enemyDeck(foe, DelveDay.Tier.CASTLE);
-        DelveDuelScene.instance().setup(t.deck, 20, foe, foeDeck, 20, 3, t.round == 2,
-                (won, life) -> afterMatch(won));
-        Forge.switchScene(DelveDuelScene.instance());
+        DelveTalkScene.before(DelveTalkScene.CASTLE, foe, true, false, ROUND_NAMES[t.round], () -> {
+            DelveDuelScene.instance().setup(t.deck, 20, foe, foeDeck, 20, 3, t.round == 2,
+                    (won, life) -> DelveTalkScene.after(DelveTalkScene.CASTLE, foe, won, true, false, () -> afterMatch(won)));
+            Forge.switchScene(DelveDuelScene.instance());
+        });
     }
 
     private void afterMatch(boolean won) {
