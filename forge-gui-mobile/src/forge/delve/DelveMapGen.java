@@ -161,7 +161,8 @@ final class DelveMapGen {
         for (int s = 0; s < steps; s++)
             for (Node n : run.layers.get(s)) {
                 switch (n.type) {
-                    case FIGHT: n.enemyLife = s < steps / 3 ? 12 : s < 2 * steps / 3 ? 15 : 17; break;
+                    // gen 3+: the very first fight is a gentle 10 (Tyler)
+                    case FIGHT: n.enemyLife = s == 0 && run.gen >= 3 ? 10 : s < steps / 3 ? 12 : s < 2 * steps / 3 ? 15 : 17; break;
                     case ELITE: n.enemyLife = 22; break;
                     case BOSS: n.enemyLife = Math.min(40, 30 + run.day.tier / 4); break;
                     default: break;

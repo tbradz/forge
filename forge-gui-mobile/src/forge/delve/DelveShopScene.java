@@ -103,17 +103,35 @@ public class DelveShopScene extends DelveScene {
                 () -> DelvePrereleaseScene.instance().begin());
     }
 
-    /** Pai Gow: pick which set's pack to buy (your tiers), then play. */
+    /** Sets per page in the Pai Gow pack menu (newest first). */
+    private static final int PAI_GOW_PAGE = 4; // + Older / Newer / Not now keeps the dialog to 7 buttons
+
     private void paiGow() {
+        paiGow(0);
+    }
+
+    /** Pai Gow: pick which set's pack to buy (any unlocked tier, a page at a time), then play. */
+    private void paiGow(int page) {
         DelveProfile prof = DelveProfile.get();
         List<String> labels = new java.util.ArrayList<>();
         List<Boolean> enabled = new java.util.ArrayList<>();
         List<Runnable> actions = new java.util.ArrayList<>();
-        for (int t = prof.topTier(); t >= 0 && labels.size() < 5; t--) {
+        int newest = prof.topTier() - page * PAI_GOW_PAGE;
+        for (int t = newest; t >= 0 && t > newest - PAI_GOW_PAGE; t--) {
             CardEdition set = DelveDay.tiers().get(t);
             labels.add(set.getName() + "  " + DelveEconomy.PACK_PRICE + "g");
             enabled.add(prof.gold() >= DelveEconomy.PACK_PRICE);
             actions.add(() -> DelvePaiGowScene.instance().begin(set));
+        }
+        if (newest - PAI_GOW_PAGE >= 0) {
+            labels.add("[%85]Older sets...");
+            enabled.add(true);
+            actions.add(() -> paiGow(page + 1));
+        }
+        if (page > 0) {
+            labels.add("[%85]Newer sets...");
+            enabled.add(true);
+            actions.add(() -> paiGow(page - 1));
         }
         labels.add("Not now");
         enabled.add(true);
