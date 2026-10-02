@@ -85,6 +85,72 @@ public class DelveShopScene extends DelveScene {
                 px, 224, pw, 18, this::paiGow).setDisabled(pgLeft <= 0 || prof.gold() < DelveEconomy.PACK_PRICE);
 
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+        button("[GOLD]Sell rares", 300, 245, 110, 18, () -> sellRares(0));
+    }
+
+    // ---- selling rares to the shop -------------------------------------------------------
+
+    /** Cards shown per page when selling (the pick screen shrinks cards to fit, so keep pages small). */
+    private static final int SELL_PAGE = 12;
+
+    /**
+     * Rares and mythics you can sell: every copy beyond what your most demanding built deck
+     * (House or Commander) uses, so selling never breaks a deck. Best payout first.
+     */
+    private static List<PaperCard> sellableRares() {
+        java.util.Map<PaperCard, Integer> needed = new java.util.HashMap<>();
+        List<forge.deck.Deck> decks = new java.util.ArrayList<>();
+        for (forge.deck.Deck d : DelveDeckEditScene.decks()) decks.add(d);
+        for (forge.deck.Deck d : DelveDeckEditScene.commanderDecks()) decks.add(d);
+        for (forge.deck.Deck d : decks) {
+            java.util.Map<PaperCard, Integer> inDeck = new java.util.HashMap<>();
+            for (java.util.Map.Entry<forge.deck.DeckSection, forge.deck.CardPool> part : d)
+                for (java.util.Map.Entry<PaperCard, Integer> e : part.getValue())
+                    inDeck.merge(e.getKey(), e.getValue(), Integer::sum);
+            inDeck.forEach((pc, n) -> needed.merge(pc, n, Math::max));
+        }
+        List<PaperCard> out = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<PaperCard, Integer> e : DelveProfile.get().collection()) {
+            PaperCard pc = e.getKey();
+            if (!DelveEconomy.shopBuys(pc)) continue;
+            for (int i = needed.getOrDefault(pc, 0); i < e.getValue(); i++) out.add(pc);
+        }
+        out.sort(java.util.Comparator.comparingInt((PaperCard pc) -> -DelveEconomy.shopSellPayout(pc))
+                .thenComparing(PaperCard::getName));
+        return out;
+    }
+
+    /** Sell rares and mythics to the owner, a page at a time; each page's sale happens on Confirm. */
+    private void sellRares(int page) {
+        List<PaperCard> all = sellableRares();
+        if (all.isEmpty()) {
+            Forge.switchScene(this);
+            info("Sell rares", "The owner only buys rares and mythics, and you have none to spare. "
+                    + "Copies your built decks use stay in your collection. Commons and uncommons are bulk: the shop doesn't take them.", null);
+            return;
+        }
+        int pages = (all.size() + SELL_PAGE - 1) / SELL_PAGE;
+        int p = page % pages;
+        List<PaperCard> shown = new java.util.ArrayList<>(all.subList(p * SELL_PAGE, Math.min(all.size(), (p + 1) * SELL_PAGE)));
+        if (pages > 1)
+            DelvePickScene.instance().withExtra("Page " + ((p + 1) % pages + 1) + " of " + pages, () -> sellRares(p + 1));
+        DelvePickScene.instance().show("Sell rares: the owner pays a card's value less a " + DelveEconomy.SHOP_SELL_FEE
+                        + "g fee" + (pages > 1 ? "   (page " + (p + 1) + " of " + pages + ")" : ""),
+                shown, 0, shown.size(), "Done", pc -> "Sell " + DelveEconomy.shopSellPayout(pc) + "g", sold -> {
+                    Forge.switchScene(this);
+                    if (sold.isEmpty()) return;
+                    DelveProfile prof = DelveProfile.get();
+                    int total = 0, count = 0;
+                    for (PaperCard pc : sold)
+                        if (prof.removeFromCollection(pc)) {
+                            total += DelveEconomy.shopSellPayout(pc);
+                            count++;
+                        }
+                    prof.addGold(total);
+                    DelveAudio.coins();
+                    build();
+                    info("Card Shop", "You sell " + count + (count == 1 ? " card" : " cards") + " for " + total + " gold.", null);
+                });
     }
 
     private void packButton(int type, CardEdition set, float x, float y, float w) {

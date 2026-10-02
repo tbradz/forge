@@ -74,6 +74,19 @@ public final class DelveEconomy {
     public static final int PAI_GOW_PER_DAY = 3, PAI_GOW_TAKE = 2;
     public static final int PACKS_PER_DAY = 3; // of each pack type
 
+    /** The Card Shop's cut on every card it buys from you. */
+    public static final int SHOP_SELL_FEE = 5;
+
+    /** The Card Shop only buys rares and mythics; commons and uncommons are bulk (no use for bulk yet). */
+    public static boolean shopBuys(PaperCard pc) {
+        return pc.getRarity() == forge.card.CardRarity.Rare || pc.getRarity() == forge.card.CardRarity.MythicRare;
+    }
+
+    /** What the Card Shop pays for a card you sell it: its sell value less the counter fee. */
+    public static int shopSellPayout(PaperCard pc) {
+        return Math.max(1, sellPrice(pc) - SHOP_SELL_FEE);
+    }
+
     public static int shopPrice(PaperCard pc) {
         switch (pc.getRarity()) {
             case MythicRare: return 100;

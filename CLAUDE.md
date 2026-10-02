@@ -35,12 +35,13 @@ Game install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (launch with `Delve.cm
 
 ## Backlog (Tyler's list, 2026-10-02)
 Next up
-- Visual pass 2: Card Shop, Tavern, Castle and pack-opening screens get the same treatment as the town;
-  dungeon map rooms and paths get a matching stone look.
-- Player storefront: a stall in town where you list cards at your own prices; townsfolk buy overnight
-  depending on price vs the card's value; sales report each morning.
-- Story by tier: each set is a chapter with new town characters, events and quests, building to a final
-  arc at the newest set.
+- [done] Visual pass 2 (make_interiors.py). [done] Card Shop buys spare rares/mythics (value less a 5g fee).
+- Town dungeon sprite: replace the colosseum-looking one with a real dungeon entrance (options mocked up
+  in Forge Fork/art-review/dungeon-icon, waiting on Tyler's pick).
+- Bulk: commons/uncommons can't be sold; decide what bulk is for later (Tyler).
+- Story by tier (later, after the rest of the game is ironed out): each set is a chapter with new town
+  characters, events and quests, building to a final arc at the newest set.
+- (Dropped: player storefront; the Card Shop covers selling.)
 
 More ways to play
 - More event formats: Pauper, Standard-style (recent sets only), sealed or draft nights at the Castle.
