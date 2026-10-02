@@ -326,6 +326,19 @@ public class DelveProfile {
 
     // ---- Card Shop prerelease: once a day ------------------------------------------
 
+    /** Pai Gow matches played today at the Card Shop. */
+    public int paiGowToday() {
+        if (!String.valueOf(day()).equals(stats.getProperty("paigow.day"))) return 0;
+        try { return Integer.parseInt(stats.getProperty("paigow.count", "0")); } catch (NumberFormatException e) { return 0; }
+    }
+
+    public void markPaiGow() {
+        int n = paiGowToday() + 1;
+        stats.setProperty("paigow.day", String.valueOf(day()));
+        stats.setProperty("paigow.count", String.valueOf(n));
+        saveStats();
+    }
+
     public boolean prereleaseToday() {
         return String.valueOf(day()).equals(stats.getProperty("prerelease.day"));
     }

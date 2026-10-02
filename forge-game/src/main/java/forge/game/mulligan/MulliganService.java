@@ -21,6 +21,9 @@ public class MulliganService {
     }
 
     public void perform() {
+        if (!game.getRules().allowsMulligans()) {
+            return;
+        }
         initializeMulligans();
         runPlayerMulligans();
         runPostMulligans();

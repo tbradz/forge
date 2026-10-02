@@ -66,6 +66,11 @@ public class DelveDuelScene extends DuelScene {
     private BiConsumer<Boolean, Integer> onFinished; // (won, lifeRemaining)
     private boolean finished;
     private Runnable afterTransition;
+    // Pai Gow: 3-card piles as opening hands, 5 life, unlimited mana, no library
+    static final int PAI_GOW_LIFE = 5, PAI_GOW_WELLS = 12;
+    private boolean paiGow;
+    private int paiGowFirst; // 0 = coin flip, 1 = you, 2 = the opponent
+    private boolean lastDraw;
 
     public static DelveDuelScene instance() {
         if (object == null)
@@ -135,7 +140,53 @@ public class DelveDuelScene extends DuelScene {
         this.aiProfile = "Default";
         this.onFinished = onFinished;
         this.finished = false;
+        this.paiGow = false;
+        this.paiGowFirst = 0;
+        this.lastDraw = false;
         DuelScene.setOverride(this);
+    }
+
+    /**
+     * Prepare one Pai Gow game: each player's pile is their whole hand.
+     *
+     * @param first 0 = coin flip, 1 = you go first, 2 = the opponent goes first
+     */
+    public void setupPaiGow(List<forge.item.PaperCard> myPile, forge.adventure.data.EnemyData enemy,
+                            List<forge.item.PaperCard> foePile, int first, BiConsumer<Boolean, Integer> onFinished) {
+        Deck mine = new Deck("Your pile"), theirs = new Deck(enemy.getName() + "'s pile");
+        mine.getMain().add(myPile);
+        theirs.getMain().add(foePile);
+        prepare(mine, PAI_GOW_LIFE, List.of(enemy), List.of(theirs), PAI_GOW_LIFE, 1, false, false, onFinished);
+        this.paiGow = true;
+        this.paiGowFirst = first;
+        this.returnLabel = "Back to the table";
+    }
+
+    /** True if the last finished match was a draw (nobody won). */
+    public boolean lastWasDraw() {
+        return lastDraw;
+    }
+
+    private void applyPaiGow(RegisteredPlayer p, int pileSize, boolean goesFirst) {
+        p.setStartingHand(pileSize);
+        List<forge.item.IPaperCard> cmd = new ArrayList<>();
+        forge.item.IPaperCard rules = FModel.getMagicDb().getCommonCards().getCard("Delve Pai Gow Rules");
+        if (rules != null) cmd.add(rules);
+        else System.err.println("Delve: Pai Gow rules card missing");
+        if (goesFirst) {
+            // a Conspiracy, so it lives in the variant card database
+            forge.item.IPaperCard pp = FModel.getMagicDb().getVariantCards().getCard("Power Play");
+            if (pp == null) pp = FModel.getMagicDb().getCommonCards().getCard("Power Play");
+            if (pp != null) cmd.add(pp);
+            else System.err.println("Delve: Power Play missing; starting player falls back to a coin flip");
+        }
+        if (!cmd.isEmpty()) p.addExtraCardsInCommandZone(cmd);
+        forge.item.IPaperCard well = FModel.getMagicDb().getCommonCards().getCard("Pai Gow Wellspring");
+        if (well != null) {
+            List<forge.item.IPaperCard> bf = new ArrayList<>();
+            for (int i = 0; i < PAI_GOW_WELLS; i++) bf.add(well);
+            p.addExtraCardsOnBattlefield(bf);
+        } else System.err.println("Delve: Pai Gow wellspring card missing");
     }
 
     @Override
@@ -166,6 +217,7 @@ public class DelveDuelScene extends DuelScene {
         human.setTeamNumber(0);
         human.setStartingLife(startingLife);
         if (run != null) applyRelics(human);
+        if (paiGow) applyPaiGow(human, playerDeck.getMain().countAll(), paiGowFirst == 1);
 
         List<RegisteredPlayer> players = new ArrayList<>();
         for (int i = 0; i < foes.size(); i++) {
@@ -188,6 +240,7 @@ public class DelveDuelScene extends DuelScene {
             ai.setTeamNumber(i + 1); // free-for-all: everyone on their own team
             ai.setStartingLife(enemyLife);
             if (i == 0 && perk != null) applyPerk(ai, foeDecks.get(i));
+            if (paiGow) applyPaiGow(ai, foeDecks.get(i).getMain().countAll(), paiGowFirst == 2);
             players.add(ai);
         }
         players.add(human);
@@ -201,6 +254,7 @@ public class DelveDuelScene extends DuelScene {
         rules.setPlayForAnte(false);
         rules.setManaBurn(false);
         rules.setWarnAboutAICards(false);
+        if (paiGow) rules.setMulligans(false);
 
         match = MatchController.hostMatch();
         match.startMatch(rules, variants, players, guiMap,
@@ -234,6 +288,7 @@ public class DelveDuelScene extends DuelScene {
         int life = 0;
         try {
             won = human == match.getGame().getMatch().getWinner();
+            lastDraw = match.getGame().getOutcome() != null && match.getGame().getOutcome().isDraw();
             for (Player p : match.getGame().getPlayers()) {
                 if (p.getController() instanceof PlayerControllerHuman)
                     life = p.getLife();

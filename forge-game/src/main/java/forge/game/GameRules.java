@@ -62,6 +62,15 @@ public class GameRules {
         this.gamesToWinMatch = gamesPerMatch / 2 + 1;
     }
 
+    private boolean mulligans = true;
+    /** False for formats where the opening hand is fixed (e.g. Pai Gow piles). */
+    public boolean allowsMulligans() {
+        return mulligans;
+    }
+    public void setMulligans(final boolean allowed) {
+        this.mulligans = allowed;
+    }
+
     public boolean useAnte() {
         return playForAnte;
     }

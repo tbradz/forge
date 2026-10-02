@@ -1,0 +1,7 @@
+Name:Pai Gow Wellspring
+ManaCost:no cost
+Types:Land
+K:Indestructible
+K:Shroud
+A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.
+Oracle:Indestructible, shroud\n{T}: Add one mana of any color.\n(Pai Gow: each player has unlimited mana.)

@@ -60,6 +60,8 @@ public final class DelveEconomy {
 
     // ---- town Card Shop (paid from town gold) ---------------------------------------
     public static final int PACK_PRICE = 60;
+    /** Pai Gow at the Card Shop: you buy your own pack (PACK_PRICE), 3 matches a day, winner takes 2 cards. */
+    public static final int PAI_GOW_PER_DAY = 3, PAI_GOW_TAKE = 2;
     public static final int PACKS_PER_DAY = 3; // of each pack type
 
     public static int shopPrice(PaperCard pc) {

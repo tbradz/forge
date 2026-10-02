@@ -75,11 +75,14 @@ public class DelveShopScene extends DelveScene {
         packButton(0, day.edition, px, 70, pw);
         packButton(1, day.recentPackSet(), px, 116, pw);
         label("[%70]Singles and packs go straight into your collection. The last single is always a legend that can lead a Commander deck.", px, 160, pw, 34, Align.center);
-        button("[GOLD]Run tokens", px, 208, pw / 2f - 3, 22, this::tokenCounter);
+        button("[GOLD]Run tokens", px, 202, pw / 2f - 3, 19, this::tokenCounter);
         boolean pre = prof.prereleaseToday();
         button(pre ? "[GRAY]Prerelease done" : "[GOLD]Prerelease " + DelveEconomy.PRERELEASE_ENTRY + "g",
-                px + pw / 2f + 3, 208, pw / 2f - 3, 22, this::prerelease)
+                px + pw / 2f + 3, 202, pw / 2f - 3, 19, this::prerelease)
                 .setDisabled(pre || prof.gold() < DelveEconomy.PRERELEASE_ENTRY);
+        int pgLeft = DelveEconomy.PAI_GOW_PER_DAY - prof.paiGowToday();
+        button(pgLeft > 0 ? "[GOLD]Pai Gow[WHITE]  (" + pgLeft + " left today)" : "[GRAY]Pai Gow: come back tomorrow",
+                px, 224, pw, 18, this::paiGow).setDisabled(pgLeft <= 0 || prof.gold() < DelveEconomy.PACK_PRICE);
 
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }
@@ -98,6 +101,27 @@ public class DelveShopScene extends DelveScene {
                         + " boosters, build a sealed deck, and play three rounds.\nYou keep every card you open. Prize packs by record: "
                         + "3-0 four, 2-1 two, 1-2 one.\n\nEntry " + DelveEconomy.PRERELEASE_ENTRY + " gold, once a day. Sign up?",
                 () -> DelvePrereleaseScene.instance().begin());
+    }
+
+    /** Pai Gow: pick which set's pack to buy (your tiers), then play. */
+    private void paiGow() {
+        DelveProfile prof = DelveProfile.get();
+        List<String> labels = new java.util.ArrayList<>();
+        List<Boolean> enabled = new java.util.ArrayList<>();
+        List<Runnable> actions = new java.util.ArrayList<>();
+        for (int t = prof.topTier(); t >= 0 && labels.size() < 5; t--) {
+            CardEdition set = DelveDay.tiers().get(t);
+            labels.add(set.getName() + "  " + DelveEconomy.PACK_PRICE + "g");
+            enabled.add(prof.gold() >= DelveEconomy.PACK_PRICE);
+            actions.add(() -> DelvePaiGowScene.instance().begin(set));
+        }
+        labels.add("Not now");
+        enabled.add(true);
+        actions.add(() -> { });
+        choose("Pai Gow", "[%75]Booster Blitz with a regular. You each buy a pack and split it into 4 piles of 3. "
+                + "Each game your pile is your whole hand: no library, 5 life, unlimited mana. First to 3 wins takes "
+                + "2 cards of their choice from the other's pack. Your pack is yours either way, minus 2 if you lose.\n"
+                + "Which pack do you buy?", labels, enabled, actions);
     }
 
     /** The token counter: buy run tokens with town gold (no daily limit). */
