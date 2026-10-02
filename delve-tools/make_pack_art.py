@@ -98,7 +98,7 @@ def table():
 pack()
 flash()
 glow()
-table()
+# table(): the opening table now comes from make_interiors.py
 print("ok")
 
 
@@ -119,4 +119,4 @@ def shop_bg():
     im.save(OUT + "/shop_bg.png")
 
 
-shop_bg()
+# shop_bg(): the Card Shop backdrop now comes from make_interiors.py
