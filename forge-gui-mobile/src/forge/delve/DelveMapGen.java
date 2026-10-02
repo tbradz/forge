@@ -9,23 +9,27 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * One dungeon size with a random length: 10-13 steps (generator 2; generator 1 was 6-9),
+ * One dungeon size with a random length: 10-13 steps (generators 2+; generator 1 was 6-9),
  * each offering 1-3 rooms.
  *
  *   first:        Fight
- *   middle:       mixes of Fight / Event / Merchant / Rest
+ *   middle:       a Fight plus 1-2 of Event / Merchant / Rest (gen 3: so 2 or 3 rooms, and no kind
+ *                 comes up two steps running; events never do, a merchant or rest only to fill the pre-boss step)
  *   1/3 and 2/3:  Elite | Rest or Event   (gen 1: one at halfway, a second in 8-9 step dungeons)
  *   before boss:  two of Rest / Merchant / Event
  *   last:         Boss
  *
- * Rooms within a step are shuffled; everything comes from the run's seed and generator
- * version, so a saved run rebuilds the same map.
+ * How rooms connect is in {@link DelveRun#connected}. Rooms within a step are shuffled;
+ * everything comes from the run's seed and generator version, so a saved run rebuilds the same map.
  */
 final class DelveMapGen {
     private DelveMapGen() {}
 
-    /** Generator for new runs. 2 = longer floors (10-13 steps) with the gold per fight scaled down to match. */
-    static final int CURRENT_GEN = 2;
+    /**
+     * Generator for new runs. 2 = longer floors (10-13 steps) with the gold per fight scaled down to match.
+     * 3 = open paths (every room reaches 2-3 rooms ahead, no locked lanes) and better-spread room types.
+     */
+    static final int CURRENT_GEN = 3;
 
     /** Rolls added after release (special rooms, elite perks) use their own generator so a saved
      *  run's seed still rebuilds the same rooms and enemies it had before. */
@@ -51,6 +55,85 @@ final class DelveMapGen {
             secondEliteAt = steps >= 8 ? steps - 3 : -1;
         }
         add(run, fight(weak, NodeType.FIGHT));
+        if (run.gen >= 3) {
+            spreadRooms(run, steps, eliteAt, secondEliteAt, weak, elite);
+        } else {
+            classicRooms(run, steps, eliteAt, secondEliteAt, weak, elite);
+        }
+        Node bossRoom = fight(boss, NodeType.BOSS);
+        bossRoom.perk = DelvePerk.random(run.rng);
+        bossRoom.perk2 = DelvePerk.random(extra, true);
+        add(run, bossRoom);
+        scaleLife(run);
+    }
+
+    /** Generator 3's middle and pre-boss steps: varied widths, no event two steps running. */
+    private static void spreadRooms(DelveRun run, int steps, int eliteAt, int secondEliteAt, Picker weak, Picker elite) {
+        java.util.Set<NodeType> prev = java.util.EnumSet.noneOf(NodeType.class);
+        for (int i = 1; i < steps - 2; i++) {
+            List<Node> rooms = new ArrayList<>();
+            if (i == eliteAt || i == secondEliteAt) {
+                Node eliteRoom = fight(elite, NodeType.ELITE);
+                eliteRoom.perk = DelvePerk.random(extra, true);
+                rooms.add(eliteRoom);
+                rooms.addAll(sideRooms(run, prev, 1, 1, false, NodeType.REST, NodeType.EVENT));
+            } else {
+                rooms.add(fight(weak, NodeType.FIGHT));
+                int count = run.rng.nextInt(10) < 6 ? 2 : 1; // 3-room steps a bit more often than 2
+                rooms.addAll(sideRooms(run, prev, count, 1, true, NodeType.EVENT, NodeType.MERCHANT, NodeType.REST));
+            }
+            prev = kinds(rooms);
+            add(run, rooms.toArray(new Node[0]));
+        }
+        // the step before the boss always offers a choice
+        add(run, sideRooms(run, prev, 2, 2, false, NodeType.REST, NodeType.MERCHANT, NodeType.EVENT).toArray(new Node[0]));
+    }
+
+    /**
+     * Up to {@code count} different non-fight rooms of kinds that weren't in the previous step, so
+     * no kind comes up two steps running. If fewer than {@code least} kinds are new, a merchant or
+     * rest may repeat to make up the number; an event-like room (event, Treasure, Shrine) never does.
+     * (Tuned with a simulation of 5000 maps: every step has 2-3 rooms, every room reaches 2-3 ahead.)
+     */
+    private static List<Node> sideRooms(DelveRun run, java.util.Set<NodeType> prev, int count, int least,
+                                        boolean specials, NodeType... options) {
+        List<NodeType> pool = new ArrayList<>();
+        List<Integer> weights = new ArrayList<>();
+        for (NodeType t : options) {
+            if (prev.contains(t)) continue;
+            pool.add(t);
+            weights.add(t == NodeType.EVENT ? 4 : 3);
+        }
+        List<Node> out = new ArrayList<>();
+        while (out.size() < count && !pool.isEmpty()) {
+            int total = 0;
+            for (int w : weights) total += w;
+            int roll = run.rng.nextInt(total), at = 0;
+            while (roll >= weights.get(at)) roll -= weights.get(at++);
+            NodeType t = pool.remove(at);
+            weights.remove(at);
+            out.add(t == NodeType.EVENT ? (specials ? eventOrSpecial(run) : event(run)) : t == NodeType.MERCHANT ? merchant() : rest());
+        }
+        while (out.size() < least) { // not enough new kinds: repeat a merchant or rest that isn't here yet
+            List<NodeType> fill = new ArrayList<>();
+            for (NodeType t : options)
+                if (t != NodeType.EVENT && !kinds(out).contains(t)) fill.add(t);
+            if (fill.isEmpty()) break;
+            out.add(fill.get(run.rng.nextInt(fill.size())) == NodeType.MERCHANT ? merchant() : rest());
+        }
+        return out;
+    }
+
+    /** Room kinds in a step, with Treasure and Shrine counted as events (they're surprises too). */
+    private static java.util.Set<NodeType> kinds(List<Node> rooms) {
+        java.util.Set<NodeType> out = java.util.EnumSet.noneOf(NodeType.class);
+        for (Node n : rooms)
+            out.add(n.type == NodeType.TREASURE || n.type == NodeType.SHRINE ? NodeType.EVENT : n.type);
+        return out;
+    }
+
+    /** Generators 1-2: the original middle and pre-boss steps (kept so saved runs rebuild the same). */
+    private static void classicRooms(DelveRun run, int steps, int eliteAt, int secondEliteAt, Picker weak, Picker elite) {
         for (int i = 1; i < steps - 2; i++) {
             if (i == eliteAt || i == secondEliteAt) {
                 Node eliteRoom = fight(elite, NodeType.ELITE);
@@ -67,11 +150,6 @@ final class DelveMapGen {
         List<Node> late = new ArrayList<>(List.of(rest(), merchant(), event(run)));
         Collections.shuffle(late, run.rng);
         add(run, late.get(0), late.get(1));
-        Node bossRoom = fight(boss, NodeType.BOSS);
-        bossRoom.perk = DelvePerk.random(run.rng);
-        bossRoom.perk2 = DelvePerk.random(extra, true);
-        add(run, bossRoom);
-        scaleLife(run);
     }
 
     /**

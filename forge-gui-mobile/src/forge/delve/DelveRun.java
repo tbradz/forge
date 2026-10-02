@@ -142,10 +142,14 @@ public class DelveRun {
      * Whether room j of layer s-1 has a path to room k of layer s. Paths join rooms whose
      * vertical positions are close (like Slay the Spire), so the map reads as lanes instead of
      * everything connecting to everything. Pure layout maths, so saved runs get the same paths.
+     * From generator 3 on, a two-room step connects to everything on both sides; only three-room
+     * steps in a row keep lanes (outer rooms reach two, the middle reaches all three). So you always
+     * have 2-3 choices and never get locked into a lane (top-to-top / bottom-to-bottom).
      */
     public boolean connected(int s, int j, int k) {
         if (s <= 0) return true; // the entrance reaches every first room
         int n = layers.get(s - 1).size(), m = layers.get(s).size();
+        if (gen >= 3 && (m <= 2 || n <= 2)) return true;
         float a = n == 1 ? 0.5f : j / (float) (n - 1), b = m == 1 ? 0.5f : k / (float) (m - 1);
         return Math.abs(a - b) <= 0.5f + 1e-4f;
     }
