@@ -25,8 +25,8 @@ public class DelveIntroScene extends DelveScene {
                     + "Each morning you get one trip down. Folk here are counting on someone to clear it.", "The Dungeon Gate"},
             {"Before you go in, you'll pick two of three half-decks, each built around a colour and a plan from the set "
                     + "the dungeon is steeped in. Eighth Edition, to start. Shuffle them together and that's your deck.", "Your deck"},
-            {"Down below, you pick your path room by room. Every fight you win offers a better card for your deck, "
-                    + "so it grows stronger the deeper you go. Elites guard relics that help you for the rest of the trip. The boss at the bottom has tricks of its own.",
+            {"Down below, you pick your path room by room. Every fight you win pays gold, and the merchants down there "
+                    + "sell cards that make your deck stronger the deeper you go. Elites guard relics that help you for the rest of the trip. The boss at the bottom has tricks of its own.",
                     "The dungeon"},
             {"Beat the boss and you bring home every coin you found, plus a reward: packs, gold, cards from your deck, "
                     + "or the whole deck locked just as it is. Clearing it also opens the next set's dungeon. "

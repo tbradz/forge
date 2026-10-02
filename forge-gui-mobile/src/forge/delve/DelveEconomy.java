@@ -9,7 +9,7 @@ import java.util.Random;
  *
  * Model: you enter the dungeon with nothing, and all gold found inside comes
  * home with you (even if you die) into your town wallet. A typical Standard run
- * earns roughly 150-250 gold: ~5 fights at 20-30, an elite at ~45, and a little
+ * earns roughly 200-300 gold: ~5 fights at 25-35, an elite at 60, and a little
  * from events and selling cards.
  *
  * Prices are set so a merchant purchase is a real choice against saving for the
@@ -20,9 +20,9 @@ public final class DelveEconomy {
     private DelveEconomy() {}
 
     // ---- earning ------------------------------------------------------------------
-    public static final int FIGHT_GOLD_MIN = 20;
-    public static final int FIGHT_GOLD_MAX = 30;
-    public static final int ELITE_GOLD = 45;
+    public static final int FIGHT_GOLD_MIN = 25;
+    public static final int FIGHT_GOLD_MAX = 35;
+    public static final int ELITE_GOLD = 60;
     public static final int BOSS_GOLD = 75;
 
     public static int fightGold(DelveRun.NodeType type, Random rng) {

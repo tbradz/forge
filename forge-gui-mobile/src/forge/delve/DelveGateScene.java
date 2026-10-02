@@ -61,7 +61,7 @@ public class DelveGateScene extends DelveScene {
         String[][] steps = {
                 {"1. Your deck", "Pick two of three " + set + " half-decks. Shuffled together they make your "
                         + DECK_SIZE + "-card starting deck."},
-                {"2. The dungeon", "Win fights to add better cards, find relics, and face a boss with a plan."},
+                {"2. The dungeon", "Fights pay gold: spend it with merchants on upgrades. Elites guard relics. The boss has a plan."},
                 {"3. Clear it", "Keep all your gold and pick a reward: packs, gold, cards from your deck, or lock it."}};
         float colW = (W - 112) / 3f;
         for (int i = 0; i < 3; i++) {

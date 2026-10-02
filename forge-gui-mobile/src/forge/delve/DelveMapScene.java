@@ -367,12 +367,12 @@ public class DelveMapScene extends DelveScene {
             endRun(true, false);
             return;
         }
-        String header = (elite ? "Elite reward" : "Victory") + " (+" + gold + " gold): add one card to your deck";
-        if (elite) // elites also guard a relic
-            relicChoice(run, "The elite's hoard", "Among its belongings you find relics. Take one.",
-                    DelveRelic.offer(run.rng, run.relics, 3, 0.5), true, () -> offerCard(run, header, true));
+        if (elite) // elites guard a relic as well as gold
+            relicChoice(run, "The elite's hoard", "You take " + gold + " gold, and among its belongings you find relics. Take one.",
+                    DelveRelic.offer(run.rng, run.relics, 3, 0.5), true, () -> { });
         else
-            offerCard(run, header, false);
+            info("Victory", node.enemy.getName() + " is beaten. You find [GOLD]" + gold + " gold[WHITE] (" + run.gold
+                    + " this run). Spend it with merchants to strengthen your deck.", null);
     }
 
     /** Pick 1 of 3 upgrades for the run deck (Reroll while you have tokens), then add it or swap out your weakest card. */
@@ -394,9 +394,15 @@ public class DelveMapScene extends DelveScene {
 
     /** Add a new card, or replace the deck's weakest card with it (keeps the deck lean). */
     private void addOrSwap(DelveRun run, PaperCard pc) {
+        addOrSwap(run, pc, null);
+    }
+
+    private void addOrSwap(DelveRun run, PaperCard pc, Runnable then) {
         PaperCard weak = DelveDay.weakest(run.deck);
         if (weak == null || pc.getRules().getType().isLand()) {
             addPicks(run, List.of(pc));
+            build();
+            if (then != null) then.run();
             return;
         }
         choose("Upgrade", "You take " + pc.getName() + ".\nSwap out your weakest card, [GOLD]" + weak.getName()
@@ -406,9 +412,11 @@ public class DelveMapScene extends DelveScene {
                     run.deck.getMain().remove(weak);
                     addPicks(run, List.of(pc));
                     build();
+                    if (then != null) then.run();
                 }, () -> {
                     addPicks(run, List.of(pc));
                     build();
+                    if (then != null) then.run();
                 }));
     }
 
@@ -521,8 +529,12 @@ public class DelveMapScene extends DelveScene {
             int depth = DelveMapGen.depth(run, Math.min(run.layers.size() - 1, run.step));
             List<PaperCard> a = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth);
             List<PaperCard> b = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth + 1);
+            // the merchant is where your deck gets better, so a decent spread: 2 solid upgrades and 2 strong ones
             node.stock.addAll(a.subList(0, Math.min(2, a.size())));
-            if (!b.isEmpty() && !node.stock.contains(b.get(0))) node.stock.add(b.get(0));
+            for (PaperCard pc : b) {
+                if (node.stock.size() >= 4) break;
+                if (!node.stock.contains(pc)) node.stock.add(pc);
+            }
         }
         int removable = run.removableCount();
         String text = "\"Cards bought, cards sold. Coin is coin.\"\n\nYou have " + run.gold + " gold. Your deck has "
@@ -566,9 +578,8 @@ public class DelveMapScene extends DelveScene {
                     }
                     run.spendGold(price);
                     node.stock.remove(pc);
-                    addPicks(run, List.of(pc));
-                    build();
-                    info("Merchant", "You buy " + pc.getName() + " for " + price + " gold.", () -> merchant(run, node, index));
+                    DelveAudio.coins();
+                    addOrSwap(run, pc, () -> merchant(run, node, index));
                 });
     }
 
