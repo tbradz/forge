@@ -30,9 +30,8 @@ Game install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (launch with `Delve.cm
 - Tyler prefers the side-view town diorama (not the top-down Adventure-map look).
 
 ## Where we left off (2026-10-02)
-- Just built, NOT yet tested or installed: the rebuilt side-view town (make_town_diorama.py) and Bram's
-  walking tour (DelveTourScene: after the Tavern welcome, Bram walks you to each building and explains it).
-  Next: test both (new save -> intro), fix anything off, install, then report.
+- Side-view town (make_town_diorama.py) and Bram's walking tour (DelveTourScene) are built, installed and
+  playtested by Tyler: all good. Builds now run locally on Tyler's PC (see DEV_NOTES "Building locally").
 - Backlog: visual pass 2 (shop/tavern/castle/pack-opening backdrops, dungeon room bases), player storefront,
   story by tier, more event formats (Pauper, Standard-style, sealed/draft), set-themed dungeons, optional run
   modes, Tavern NPCs/rumors, Castle rankings/titles, Outfitter items, Commander packs, balance pass,

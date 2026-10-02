@@ -57,6 +57,12 @@
 - Smoke test: xvfb-run + xdotool; prefs `UI_SELECTOR_MODE=Adventure`, `DEV_MODE_ENABLED=true` (Dev → Win Game after keeping hand). Run with cwd `forge-gui/`. Kill with `pkill -x java` (never `pkill -f` with the jar name — it matches the shell).
 - Balance sims: AI-vs-AI via forge-gui-desktop `sim`; deferred per Tyler (AI difficulty later).
 
+## Building locally (Tyler's PC)
+- Repo clone: `C:\Users\tyler\OneDrive\Desktop\Forge Fork\forge`. Git (winget), Maven 3.10 at `C:\Users\tyler\tools\apache-maven-3.10.0` (user PATH), Java 17.
+- Plain build, no proxy/offline flags: `mvn -B -q -DskipTests -Dcheckstyle.skip -pl forge-gui-mobile-dev -am package`. Copy the jar straight to the install as `delve.jar` (no splitting). Back up first to `Forge Fork\backups\`.
+- To watch the game log, launch with the java line from `Delve.cmd` and redirect output to a file.
+- The cloud-built jars (up to 2026-10-02) carried ~76MB of stray `target/classes/target/...` build output; the local build (~56MB) doesn't.
+
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
 - Jar >20MB: split into 18MB chunks, device_commit_files to `_delve_incoming/`, `cat` back together, verify sha256, delete `_delve_incoming`.
@@ -83,3 +89,4 @@
 - 2026-10-02: Fights pay gold only (25-35, elite 60 + relic choice); no card picks after fights. Merchant stock 4 (2 at depth, 2 at depth+1), purchases go through addOrSwap. Card offers remain in events/treasure. Verified headless.
 - 2026-10-02: Opponent personalities (DelvePersona: unique names per enemy type, people first get curated names; 6 personalities + 7 monster kinds; GREET/THEY_LOST/THEY_WON lines; boss bossIntro/bossInsult). DelveTalkScene (per-backdrop instances DUNGEON/TAVERN/SHOP/CASTLE) before+after town matches, elites, bosses, defeats. AI plays under the personal name in town (run == null). Verified headless.
 - 2026-10-02: Visual overhaul pass 1. delve-tools/render_tmx.py renders Adventure .tmx maps; delve-tools/make_world_art.py builds the town hub from maps/map/towns/mountain_town.tmx (houses erased from Foreground+AboveSprites; distinct sprites hub_*.png from buildings.png placed by delve_hub.json in map pixels; night = graded + door glows) and the dungeon backdrops (path_bg/dungeon_bg) from crypt_3.tmx floor tiles with banded value-noise light, dark edges, torch glows (run with --dungeon). DelveScene.atmosphere(torches) adds flickering torch_glow.png + drifting fog.png (map, gate, dungeon talk). Hub buildings get permanent name signs and a moonlit tint at night. Merchant stock: 2 affordable at current gold (upgradeChoices maxPrice) + 2 stronger, sorted by price.
+- 2026-10-02: Back to the side-view town (make_town_diorama.py, buildings at sprite pixel scale, whole-building crops; old hub_*.png removed) + Bram's walking tour (`DelveTourScene`: intro cut to 2 pages, then "Show me around" walks hero + Bram to the 6 buildings with highlight, Next/Back/Skip). Built locally, installed, playtested by Tyler on a Dev save: all good.
