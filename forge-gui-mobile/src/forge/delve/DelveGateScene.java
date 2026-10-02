@@ -59,9 +59,9 @@ public class DelveGateScene extends DelveScene {
         // three steps of a run, side by side
         String set = DelveDay.tiers().get(selectedTier).getName();
         String[][] steps = {
-                {"1. Your deck", "Open " + PRERELEASE_PACKS + " " + set + " boosters and build a " + DECK_SIZE
-                        + "-card deck. Basic lands are free."},
-                {"2. The dungeon", "6-9 steps of fights, events and shops, an elite or two, and a boss with a perk."},
+                {"1. Your deck", "Pick two of three " + set + " half-decks. Shuffled together they make your "
+                        + DECK_SIZE + "-card starting deck."},
+                {"2. The dungeon", "Win fights to add better cards, find relics, and face a boss with a plan."},
                 {"3. Clear it", "Keep all your gold and pick a reward: packs, gold, cards from your deck, or lock it."}};
         float colW = (W - 112) / 3f;
         for (int i = 0; i < 3; i++) {
@@ -72,19 +72,44 @@ public class DelveGateScene extends DelveScene {
         }
 
         boolean canDelve = !prof.delvedToday() && !prof.isEvening();
-        button(canDelve ? "[GOLD]Open your packs" : "[GRAY]The gate is sealed until morning", W / 2f - 100, 174, 200, 22,
+        button(canDelve ? "[GOLD]Choose your decks" : "[GRAY]The gate is sealed until morning", W / 2f - 100, 174, 200, 22,
                 this::startDraft).setDisabled(!canDelve);
         button("Back", W / 2f - 50, 236, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }
 
-    // ---- prerelease -------------------------------------------------------------
+    // ---- Jumpstart start ----------------------------------------------------------
 
-    /** Open the boosters one at a time, then build a deck from everything opened. */
+    /** Pick two of three half-decks from the tier's set; together they're the run's 40-card deck. */
     private void startDraft() {
         DelveDay day = DelveDay.forTier(selectedTier);
         Random rng = new Random(day.seed ^ System.nanoTime());
-        DelvePackOpenScene.instance().open(day, PRERELEASE_PACKS, rng,
-                pool -> DelveSealedScene.instance().open(day, pool, deck -> begin(day, deck)));
+        List<DelveDay.HalfDeck> halves = day.halfDecks(rng);
+        if (halves.size() < 2) {
+            info("Dungeon Gate", "This set doesn't have enough single-colour cards for half-decks.", null);
+            return;
+        }
+        List<PaperCard> faces = new ArrayList<>();
+        StringBuilder names = new StringBuilder();
+        for (DelveDay.HalfDeck h : halves) {
+            faces.add(h.face);
+            names.append(names.length() > 0 ? "   |   " : "").append(h.name);
+        }
+        DelvePickScene.instance().show("Pick two half-decks:  " + names, faces, 2, 2, null,
+                pc -> halfFor(halves, pc).name, picked -> {
+                    DelveDay.HalfDeck a = halfFor(halves, picked.get(0)), b = halfFor(halves, picked.get(1));
+                    Deck deck = DelveDay.combine(a, b);
+                    List<PaperCard> view = new ArrayList<>();
+                    for (PaperCard pc : deck.getMain().toFlatList())
+                        if (!pc.getRules().getType().isBasicLand() && !view.contains(pc)) view.add(pc);
+                    view.sort(java.util.Comparator.comparingInt(pc -> pc.getRules().getManaCost().getCMC()));
+                    DelvePickScene.instance().show(deck.getName() + "  (24 spells + 16 basic lands)", view, 0, 0,
+                            "Into the dungeon", x -> begin(day, deck));
+                });
+    }
+
+    private static DelveDay.HalfDeck halfFor(List<DelveDay.HalfDeck> halves, PaperCard face) {
+        for (DelveDay.HalfDeck h : halves) if (h.face.equals(face)) return h;
+        return halves.get(0);
     }
 
     /** The picks plus {@code lands} basic lands split by the colored mana symbols in the picks. */

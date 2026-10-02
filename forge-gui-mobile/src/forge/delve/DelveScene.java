@@ -136,4 +136,21 @@ abstract class DelveScene extends UIScene {
         }, this::removeDialog});
         showDialog(d);
     }
+    /** A seat's standing portrait (null = the player's hero), feet at (x, yTop), scaled to ~34 tall. */
+    protected void portrait(forge.adventure.data.EnemyData enemy, float x, float yTop) {
+        try {
+            forge.adventure.character.CharacterSprite who = enemy == null
+                    ? new forge.adventure.character.CharacterSprite(DelveProfile.get().heroAtlas())
+                    : new forge.adventure.character.EnemySprite(enemy);
+            who.setAnimation(forge.adventure.character.CharacterSprite.AnimationTypes.Idle);
+            float h = Math.max(who.getHeight(), who.getWidth());
+            float scale = h > 0 ? Math.min(2f, 34f / h) : 2f;
+            com.badlogic.gdx.scenes.scene2d.Group g = standing(who, scale);
+            standAt(g, x, yTop);
+            track(g);
+        } catch (Exception e) {
+            e.printStackTrace(); // portraits are cosmetic
+        }
+    }
+
 }

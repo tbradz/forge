@@ -75,7 +75,11 @@ public class DelveShopScene extends DelveScene {
         packButton(0, day.edition, px, 70, pw);
         packButton(1, day.recentPackSet(), px, 116, pw);
         label("[%70]Singles and packs go straight into your collection. The last single is always a legend that can lead a Commander deck.", px, 160, pw, 34, Align.center);
-        button("[GOLD]Run tokens", px + 24, 208, pw - 48, 22, this::tokenCounter);
+        button("[GOLD]Run tokens", px, 208, pw / 2f - 3, 22, this::tokenCounter);
+        boolean pre = prof.prereleaseToday();
+        button(pre ? "[GRAY]Prerelease done" : "[GOLD]Prerelease " + DelveEconomy.PRERELEASE_ENTRY + "g",
+                px + pw / 2f + 3, 208, pw / 2f - 3, 22, this::prerelease)
+                .setDisabled(pre || prof.gold() < DelveEconomy.PRERELEASE_ENTRY);
 
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }
@@ -86,6 +90,14 @@ public class DelveShopScene extends DelveScene {
         TextraButton b = button("[%85]" + set.getName() + "\n[%70]" + (left > 0 ? left + " left" : "sold out"),
                 x, y, w, 38, () -> buyPack(type, set));
         b.setDisabled(left <= 0 || prof.gold() < DelveEconomy.PACK_PRICE);
+    }
+
+    private void prerelease() {
+        DelveDay day = DelveDay.today();
+        confirm("Prerelease", "Today's prerelease: open " + DelveGateScene.PRERELEASE_PACKS + " " + day.edition.getName()
+                        + " boosters, build a sealed deck, and play three rounds.\nYou keep every card you open. Prize packs by record: "
+                        + "3-0 four, 2-1 two, 1-2 one.\n\nEntry " + DelveEconomy.PRERELEASE_ENTRY + " gold, once a day. Sign up?",
+                () -> DelvePrereleaseScene.instance().begin());
     }
 
     /** The token counter: buy run tokens with town gold (no daily limit). */

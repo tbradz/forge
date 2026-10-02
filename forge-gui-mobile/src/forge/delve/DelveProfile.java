@@ -324,6 +324,17 @@ public class DelveProfile {
         save();
     }
 
+    // ---- Card Shop prerelease: once a day ------------------------------------------
+
+    public boolean prereleaseToday() {
+        return String.valueOf(day()).equals(stats.getProperty("prerelease.day"));
+    }
+
+    public void markPrerelease() {
+        stats.setProperty("prerelease.day", String.valueOf(day()));
+        saveStats();
+    }
+
     // ---- Tavern antes: limited per tier ----------------------------------------------
 
     public static final int ANTES_PER_TIER = 3;

@@ -237,10 +237,24 @@ public class DelveRun {
         if (old == null) return "Nothing happens.";
         DelveEvents.RarityTier tier = old.getRarity() == CardRarity.Common
                 ? DelveEvents.RarityTier.UNCOMMON : DelveEvents.RarityTier.RARE;
-        PaperCard neu = sameColorCard(tier, old);
+        PaperCard neu = betterSameColor(old);
+        if (neu == null) neu = sameColorCard(tier, old);
         deck.getMain().remove(old);
         deck.getMain().add(neu);
         return old.getName() + " becomes " + neu.getName() + ".";
+    }
+
+    /** A random card of the same colours ranked better than {@code like}, or null. */
+    PaperCard betterSameColor(PaperCard like) {
+        byte want = like.getRules().getColorIdentity().getColor();
+        double sc = DelveRank.score(like);
+        List<PaperCard> match = new ArrayList<>();
+        for (List<PaperCard> src : List.of(day.commons, day.uncommons, day.rares))
+            for (PaperCard pc : src)
+                if (pc.getRules().getColorIdentity().getColor() == want && DelveRank.score(pc) > sc
+                        && !pc.getName().equals(like.getName()) && !pc.getRules().getType().isLand())
+                    match.add(pc);
+        return match.isEmpty() ? null : match.get(rng.nextInt(match.size()));
     }
 
     /** A random card of the given rarity with the same colors as {@code like} (colorless stays colorless). */

@@ -23,10 +23,10 @@ public class DelveIntroScene extends DelveScene {
                     + "I'm Bram, I keep the inn here, and anyone who goes down into the ruins drinks here first.", null},
             {"Under the old ruins east of town there's a dungeon, and it shifts every single day. "
                     + "Each morning you get one trip down. Folk here are counting on someone to clear it.", "The Dungeon Gate"},
-            {"Before you go in, you'll crack open six booster packs, all from the set the dungeon is steeped in. "
-                    + "Eighth Edition, to start. Build a 40-card deck from what you pull. Basic lands are free.", "Prerelease"},
-            {"Down below, you pick your path room by room: fights, strange happenings, merchants and quiet places to rest. "
-                    + "Elites guard relics that help you for the rest of the trip. The boss at the bottom has tricks of its own.",
+            {"Before you go in, you'll pick two of three half-decks, each built around a colour and a plan from the set "
+                    + "the dungeon is steeped in. Eighth Edition, to start. Shuffle them together and that's your deck.", "Your deck"},
+            {"Down below, you pick your path room by room. Every fight you win offers a better card for your deck, "
+                    + "so it grows stronger the deeper you go. Elites guard relics that help you for the rest of the trip. The boss at the bottom has tricks of its own.",
                     "The dungeon"},
             {"Beat the boss and you bring home every coin you found, plus a reward: packs, gold, cards from your deck, "
                     + "or the whole deck locked just as it is. Clearing it also opens the next set's dungeon. "
@@ -34,7 +34,7 @@ public class DelveIntroScene extends DelveScene {
             {"Evenings are for the Castle: a tournament or a Commander pod, once a night. "
                     + "Short on coin? My tables are free, and the regulars will play you as long as you like. "
                     + "Sleep at your house to start a new day.", "Evenings"},
-            {"The Card Shop sells singles and packs, the Outfitter sells sleeves, and your house is where you build decks "
+            {"The Card Shop sells singles and packs and runs a prerelease every day, the Outfitter sells sleeves, and your house is where you build decks "
                     + "from the cards you collect. That's everything. The gate opens at dawn. Good luck, delver.", "Around town"},
     };
 

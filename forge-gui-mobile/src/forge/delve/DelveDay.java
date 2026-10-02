@@ -234,9 +234,18 @@ public class DelveDay {
             case CASTLE: q = new int[]{8, 10, 5}; break;
             default: q = new int[]{18, 5, 0};
         }
-        Deck d = tier == Tier.BOSS
-                ? buildDeck(colors, q[0], q[1], q[2], true, rng, bossTheme(enemy).fits) // bosses play to a plan
-                : buildDeck(colors, q[0], q[1], q[2], true, rng);
+        // quality ramps with the tier of foe: early fights play the set's weaker cards, bosses its best
+        double lo = 0, hi = 1;
+        boolean best = false;
+        switch (tier) {
+            case EARLY: hi = 0.55; break;
+            case FIGHT: hi = 0.75; break;
+            case LATE: lo = 0.2; hi = 0.9; break;
+            case ELITE: lo = 0.3; break;
+            default: best = true; // BOSS, CASTLE
+        }
+        Deck d = buildDeck(colors, q[0], q[1], q[2], true, rng,
+                tier == Tier.BOSS ? bossTheme(enemy).fits : null, lo, hi, best); // bosses play to a plan
         d.setName(enemy.getName());
         enemyDecks.put(key, d);
         return d;
@@ -277,22 +286,28 @@ public class DelveDay {
                 if (!pc.getRules().getType().isLand() && !id.isColorless() && colors.containsAllColorsFrom(id.getColor()))
                     pool.add(pc);
             }
+        Theme best = themeFor(pool, rng);
+        bossThemes.put(key, best);
+        return best;
+    }
+
+    /** The strongest plan among {@code pool}: a creature type, flyers, control or swarm. */
+    static Theme themeFor(List<PaperCard> pool, Random rng) {
         List<Theme> themes = new ArrayList<>();
-        // tribal: the most common creature type in these colors
         java.util.Map<String, Integer> types = new java.util.HashMap<>();
         for (PaperCard pc : pool)
             for (String t : pc.getRules().getType().getCreatureTypes())
                 if (!t.equals("Human")) types.merge(t, 1, Integer::sum); // "Human" is rarely a real plan
         String tribe = null;
         for (java.util.Map.Entry<String, Integer> e : types.entrySet())
-            if (e.getValue() >= 7 && (tribe == null || e.getValue() > types.get(tribe))) tribe = e.getKey();
+            if (e.getValue() >= Math.max(5, pool.size() / 12) && (tribe == null || e.getValue() > types.get(tribe))) tribe = e.getKey();
         if (tribe != null) {
             final String t = tribe;
             themes.add(new Theme(t + (t.endsWith("f") ? "s" : t.endsWith("s") ? "" : "s"),
                     pc -> pc.getRules().getType().getCreatureTypes().contains(t) || oracle(pc).contains(t.toLowerCase())));
         }
         themes.add(new Theme("Flyers", pc -> pc.getRules().getType().isCreature() && oracle(pc).contains("flying")));
-        themes.add(new Theme("Removal and control", pc -> {
+        themes.add(new Theme("Control", pc -> {
             String o = oracle(pc);
             return !pc.getRules().getType().isCreature() && (o.contains("destroy target") || o.contains("exile target")
                     || (o.contains("deals") && o.contains("damage to target")) || o.contains("counter target")
@@ -309,8 +324,103 @@ public class DelveDay {
             if (th.name.equals("Swarm")) n = n * 2 / 3; // only when nothing else stands out
             if (n > bestCount) { best = th; bestCount = n; }
         }
-        bossThemes.put(key, best);
         return best;
+    }
+
+    // ---- Jumpstart half-decks: the run's starting deck ---------------------------------
+
+    /** 20 cards for one half of a starting deck: 12 spells of one colour around a theme, plus 8 basics. */
+    public static final class HalfDeck {
+        public final String name;
+        public final char color;            // W U B R G
+        public final List<PaperCard> spells;
+        public final PaperCard face;        // its best card, shown when choosing
+        HalfDeck(String name, char color, List<PaperCard> spells, PaperCard face) {
+            this.name = name; this.color = color; this.spells = spells; this.face = face;
+        }
+    }
+
+    private static final String[] COLOR_NAMES = {"White", "Blue", "Black", "Red", "Green"};
+    private static final String WUBRG = "WUBRG";
+    private static final String[] BASICS = {"Plains", "Island", "Swamp", "Mountain", "Forest"};
+
+    /**
+     * Three half-decks of different colours from the tier's set, built from the lower-middle
+     * of the set's quality rankings so every run starts solid but modest.
+     */
+    public List<HalfDeck> halfDecks(Random rng) {
+        List<Integer> colors = new ArrayList<>(List.of(0, 1, 2, 3, 4));
+        Collections.shuffle(colors, rng);
+        List<HalfDeck> out = new ArrayList<>();
+        for (int c : colors) {
+            if (out.size() >= 3) break;
+            HalfDeck h = halfDeck(c, rng);
+            if (h != null) out.add(h);
+        }
+        return out;
+    }
+
+    private HalfDeck halfDeck(int c, Random rng) {
+        byte mask = ColorSet.fromNames(String.valueOf(WUBRG.charAt(c)).toCharArray()).getColor();
+        List<PaperCard> pool = new ArrayList<>();
+        for (List<PaperCard> src : List.of(commons, uncommons, rares))
+            for (PaperCard pc : src) {
+                if (pc.getRules().getType().isLand() || pc.getRules().getAiHints().getRemAIDecks()) continue;
+                int cmc = pc.getRules().getManaCost().getCMC();
+                if (cmc < 1 || cmc > 6) continue;
+                if (pc.getRules().getColorIdentity().getColor() != mask) continue; // mono-colour only
+                pool.add(pc);
+            }
+        if (pool.size() < 16) return null;
+        Theme theme = themeFor(pool, rng);
+        // modest: skip the best quarter of the set and the very worst cards
+        List<PaperCard> band = new ArrayList<>();
+        for (double lo = 0.15, hi = 0.75; band.size() < 20 && hi <= 1.01; lo -= 0.05, hi += 0.05) {
+            band.clear();
+            for (PaperCard pc : pool) {
+                double sc = DelveRank.score(pc);
+                if (sc >= lo && sc <= hi) band.add(pc);
+            }
+        }
+        Collections.shuffle(band, rng);
+        band.sort((a, b) -> Boolean.compare(theme.fits.test(b), theme.fits.test(a))); // theme first (stable)
+        List<PaperCard> spells = new ArrayList<>();
+        int themed = 0;
+        for (PaperCard pc : band) { // up to 6 theme cards
+            if (themed >= 6 || !theme.fits.test(pc)) break;
+            spells.add(pc);
+            themed++;
+        }
+        int[][] curve = {{1, 1}, {2, 3}, {3, 2}, {4, 2}, {5, 1}}; // 9 creatures
+        for (int[] slot : curve) {
+            long have = spells.stream().filter(pc -> pc.getRules().getType().isCreature() && cmcSlot(pc) == slot[0]).count();
+            for (PaperCard pc : band) {
+                if (have >= slot[1]) break;
+                if (spells.contains(pc) || !pc.getRules().getType().isCreature() || cmcSlot(pc) != slot[0]) continue;
+                spells.add(pc);
+                have++;
+            }
+        }
+        for (PaperCard pc : band) if (spells.size() < 12 && !spells.contains(pc) && !pc.getRules().getType().isCreature()) spells.add(pc);
+        for (PaperCard pc : band) if (spells.size() < 12 && !spells.contains(pc)) spells.add(pc);
+        PaperCard face = spells.get(0);
+        for (PaperCard pc : spells) if (DelveRank.score(pc) > DelveRank.score(face)) face = pc;
+        return new HalfDeck(COLOR_NAMES[c] + " " + theme.name, WUBRG.charAt(c), spells, face);
+    }
+
+    private static int cmcSlot(PaperCard pc) {
+        return Math.min(5, pc.getRules().getManaCost().getCMC());
+    }
+
+    /** Two half-decks shuffled together: 24 spells and 16 basics. */
+    public static Deck combine(HalfDeck a, HalfDeck b) {
+        Deck d = new Deck(a.name + " + " + b.name);
+        d.getMain().add(a.spells);
+        d.getMain().add(b.spells);
+        for (HalfDeck h : List.of(a, b))
+            for (int i = 0; i < 8; i++)
+                d.getMain().add(FModel.getMagicDb().getCommonCards().getCard(BASICS[WUBRG.indexOf(h.color)]));
+        return d;
     }
 
     private static ColorSet enemyColors(EnemyData enemy, Random rng) {
@@ -336,6 +446,15 @@ public class DelveDay {
     /** As above; cards matching {@code prefer} are picked first at every rarity (a deck theme). */
     Deck buildDeck(ColorSet colors, int nCommon, int nUncommon, int nRare, boolean forAI, Random rng,
                    java.util.function.Predicate<PaperCard> prefer) {
+        return buildDeck(colors, nCommon, nUncommon, nRare, forAI, rng, prefer, 0, 1, false);
+    }
+
+    /**
+     * Full version: only cards ranked between {@code lo} and {@code hi} come from the tier's
+     * set (the wider era fills gaps), and {@code bestFirst} favours the set's top picks.
+     */
+    Deck buildDeck(ColorSet colors, int nCommon, int nUncommon, int nRare, boolean forAI, Random rng,
+                   java.util.function.Predicate<PaperCard> prefer, double lo, double hi, boolean bestFirst) {
         loadEraPool();
         java.util.function.Predicate<PaperCard> fits = pc -> {
             if (pc.getRules().getType().isLand()) return false;
@@ -348,8 +467,16 @@ public class DelveDay {
         List<List<PaperCard>> byRarity = new ArrayList<>(); // [rare, uncommon, common]: the tier's set
         for (List<PaperCard> src : List.of(rares, uncommons, commons)) {
             List<PaperCard> l = new ArrayList<>();
-            for (PaperCard pc : src) if (fits.test(pc)) l.add(pc);
+            for (PaperCard pc : src) {
+                double sc = DelveRank.score(pc);
+                if (fits.test(pc) && sc >= lo && sc <= hi) l.add(pc);
+            }
             Collections.shuffle(l, rng);
+            if (bestFirst) { // top picks first, with a little variety
+                java.util.Map<PaperCard, Double> key = new java.util.HashMap<>();
+                for (PaperCard pc : l) key.put(pc, DelveRank.score(pc) + rng.nextDouble() * 0.15);
+                l.sort((a, b) -> Double.compare(key.get(b), key.get(a)));
+            }
             if (prefer != null) l.sort((a, b) -> Boolean.compare(prefer.test(b), prefer.test(a))); // stable: theme first
             byRarity.add(l);
         }
@@ -597,6 +724,59 @@ public class DelveDay {
     }
 
     // ---- reward generation --------------------------------------------------
+
+    /**
+     * Upgrade choices: three cards in the deck's colours, each ranked better than the deck's
+     * weakest card, from a quality band that rises with depth (0 = early, 1 = middle,
+     * 2 = late, 3 = elite/special). Elite offers include a rare when the set has one.
+     */
+    public List<PaperCard> upgradeChoices(Random rng, Deck deck, ColorSet colors, int depth) {
+        double worst = 1.0;
+        java.util.Set<String> inDeck = new java.util.HashSet<>();
+        for (PaperCard pc : deck.getMain().toFlatList()) {
+            inDeck.add(pc.getName());
+            if (!pc.getRules().getType().isLand()) worst = Math.min(worst, DelveRank.score(pc));
+        }
+        if (worst >= 1.0) worst = 0;
+        double[][] bands = {{0.35, 0.80}, {0.50, 0.92}, {0.60, 1.0}, {0.72, 1.0}};
+        double[] band = bands[Math.max(0, Math.min(3, depth))];
+        List<PaperCard> all = new ArrayList<>();
+        for (List<PaperCard> src : List.of(commons, uncommons, rares)) all.addAll(src);
+        List<PaperCard> out = new ArrayList<>();
+        // widen step by step if the set is thin in these colours
+        for (int attempt = 0; attempt < 4 && out.size() < 3; attempt++) {
+            double lo = Math.max(worst + 0.001, band[0] - attempt * 0.1), hi = Math.min(1.0, band[1] + attempt * 0.05);
+            boolean onColorOnly = attempt < 3;
+            List<PaperCard> cand = new ArrayList<>();
+            for (PaperCard pc : all) {
+                if (pc.getRules().getType().isLand() || inDeck.contains(pc.getName()) || out.contains(pc)) continue;
+                double sc = DelveRank.score(pc);
+                if (sc < lo || sc > hi) continue;
+                ColorSet id = pc.getRules().getColorIdentity();
+                if (onColorOnly && !id.isColorless() && !colors.containsAllColorsFrom(id.getColor())) continue;
+                cand.add(pc);
+            }
+            Collections.shuffle(cand, rng);
+            if (depth >= 3 && out.isEmpty()) // elites: lead with a rare if there is one
+                for (PaperCard pc : cand)
+                    if (pc.getRarity() == CardRarity.Rare || pc.getRarity() == CardRarity.MythicRare) { out.add(pc); break; }
+            for (PaperCard pc : cand) {
+                if (out.size() >= 3) break;
+                if (!out.contains(pc)) out.add(pc);
+            }
+        }
+        return out;
+    }
+
+    /** The deck's lowest-ranked non-land card (the one an upgrade would replace). */
+    public static PaperCard weakest(Deck deck) {
+        PaperCard worst = null;
+        for (PaperCard pc : deck.getMain().toFlatList()) {
+            if (pc.getRules().getType().isLand()) continue;
+            if (worst == null || DelveRank.score(pc) < DelveRank.score(worst)) worst = pc;
+        }
+        return worst;
+    }
 
     /** Three cards to choose from after a fight; two lean toward the deck's colors. */
     public List<PaperCard> rewardChoices(Random rng, ColorSet deckColors, boolean elite) {

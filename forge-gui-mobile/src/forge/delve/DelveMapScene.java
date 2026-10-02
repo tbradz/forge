@@ -375,9 +375,10 @@ public class DelveMapScene extends DelveScene {
             offerCard(run, header, false);
     }
 
-    /** Pick 1 of 3 cards for the run deck, with a Reroll button while the player has Reroll tokens. */
+    /** Pick 1 of 3 upgrades for the run deck (Reroll while you have tokens), then add it or swap out your weakest card. */
     private void offerCard(DelveRun run, String header, boolean strong) {
-        List<PaperCard> offer = run.day.rewardChoices(run.rng, run.deckColors(), strong);
+        int depth = DelveMapGen.depth(run, Math.max(0, Math.min(run.layers.size() - 1, run.step - 1))) + (strong ? 1 : 0);
+        List<PaperCard> offer = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth);
         int rerolls = DelveProfile.get().tokens(DelveTokens.REROLL);
         if (rerolls > 0)
             DelvePickScene.instance().withExtra("Reroll (" + rerolls + ")", () -> {
@@ -385,9 +386,30 @@ public class DelveMapScene extends DelveScene {
                 offerCard(run, header, strong);
             });
         DelvePickScene.instance().show(header, offer, 1, 1, "Skip", picks -> {
-            addPicks(run, picks);
             Forge.switchScene(this);
+            if (picks.isEmpty()) return;
+            addOrSwap(run, picks.get(0));
         });
+    }
+
+    /** Add a new card, or replace the deck's weakest card with it (keeps the deck lean). */
+    private void addOrSwap(DelveRun run, PaperCard pc) {
+        PaperCard weak = DelveDay.weakest(run.deck);
+        if (weak == null || pc.getRules().getType().isLand()) {
+            addPicks(run, List.of(pc));
+            return;
+        }
+        choose("Upgrade", "You take " + pc.getName() + ".\nSwap out your weakest card, [GOLD]" + weak.getName()
+                        + "[], or add it and grow the deck to " + (run.deckSize() + 1) + "?",
+                List.of("Swap out " + weak.getName(), "Add to the deck"), null,
+                List.of(() -> {
+                    run.deck.getMain().remove(weak);
+                    addPicks(run, List.of(pc));
+                    build();
+                }, () -> {
+                    addPicks(run, List.of(pc));
+                    build();
+                }));
     }
 
     private static void addPicks(DelveRun run, List<PaperCard> picks) {
@@ -496,8 +518,9 @@ public class DelveMapScene extends DelveScene {
     private void merchant(DelveRun run, Node node, int index) {
         if (node.stock == null) {
             node.stock = new ArrayList<>();
-            List<PaperCard> a = run.day.rewardChoices(run.rng, run.deckColors(), false);
-            List<PaperCard> b = run.day.rewardChoices(run.rng, run.deckColors(), true);
+            int depth = DelveMapGen.depth(run, Math.min(run.layers.size() - 1, run.step));
+            List<PaperCard> a = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth);
+            List<PaperCard> b = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth + 1);
             node.stock.addAll(a.subList(0, Math.min(2, a.size())));
             if (!b.isEmpty() && !node.stock.contains(b.get(0))) node.stock.add(b.get(0));
         }

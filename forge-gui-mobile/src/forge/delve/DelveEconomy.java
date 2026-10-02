@@ -37,6 +37,9 @@ public final class DelveEconomy {
     public static final int RELIC_PRICE = 60;
     public static final int RELIC_PRICE_RARE = 90;
 
+    // ---- Card Shop prerelease (once a day): 6 packs you keep + prizes by record --------
+    public static final int PRERELEASE_ENTRY = 150;
+
     // ---- Tavern bets: about one dungeon fight's worth at most -------------------------
     public static final int[] TAVERN_BETS = {5, 10, 20};   // per opponent
     public static final int TAVERN_BET_MAX_TOTAL = 30;      // across all opponents (Commander)

@@ -193,23 +193,6 @@ public class DelveCastleScene extends DelveScene {
         build();
     }
 
-    /** A seat's standing portrait (null = the player's hero), feet at (x, yTop), scaled to ~34 tall. */
-    private void portrait(EnemyData enemy, float x, float yTop) {
-        try {
-            forge.adventure.character.CharacterSprite who = enemy == null
-                    ? new forge.adventure.character.CharacterSprite(DelveProfile.get().heroAtlas())
-                    : new forge.adventure.character.EnemySprite(enemy);
-            who.setAnimation(forge.adventure.character.CharacterSprite.AnimationTypes.Idle);
-            float h = Math.max(who.getHeight(), who.getWidth());
-            float scale = h > 0 ? Math.min(2f, 34f / h) : 2f;
-            com.badlogic.gdx.scenes.scene2d.Group g = standing(who, scale);
-            standAt(g, x, yTop);
-            track(g);
-        } catch (Exception e) {
-            e.printStackTrace(); // portraits are cosmetic
-        }
-    }
-
     private void buildPod() {
         image("ui/delve/panel.png", 40, 32, 400, 196);
         label("[%110]Tonight's pod", 40, 40, 400, 18, Align.center);
