@@ -216,11 +216,20 @@ public class DelveRun {
         return "-" + amount + " gold.";
     }
 
+    /** Cards that left / joined the deck since {@link #beginChanges()} (an event's outcome), for showing them. */
+    public final List<PaperCard> lostCards = new ArrayList<>(), gainedCards = new ArrayList<>();
+
+    public void beginChanges() {
+        lostCards.clear();
+        gainedCards.clear();
+    }
+
     public String gainRandomCard(DelveEvents.RarityTier tier) {
         PaperCard pc = randomCard(tier, true);
         if (pc == null) return "";
         deck.getMain().add(pc);
         picked.add(pc);
+        gainedCards.add(pc);
         return "You gain " + pc.getName() + ".";
     }
 
@@ -229,9 +238,11 @@ public class DelveRun {
         PaperCard lost = randomDeckCard();
         if (lost == null) return "";
         deck.getMain().remove(lost);
+        lostCards.add(lost);
         if (deckSize() < MIN_DECK) {
             PaperCard replacement = sameColorCard(DelveEvents.RarityTier.COMMON, lost);
             deck.getMain().add(replacement);
+            gainedCards.add(replacement);
             return "You lose " + lost.getName() + ". Your deck can't drop below " + MIN_DECK
                     + ", so " + replacement.getName() + " takes its place.";
         }
@@ -248,6 +259,8 @@ public class DelveRun {
         if (neu == null) neu = sameColorCard(tier, old);
         deck.getMain().remove(old);
         deck.getMain().add(neu);
+        lostCards.add(old);
+        gainedCards.add(neu);
         return old.getName() + " becomes " + neu.getName() + ".";
     }
 

@@ -479,19 +479,16 @@ public class DelveMapScene extends DelveScene {
             if (then != null) then.run();
             return;
         }
-        choose("Upgrade", "You take " + pc.getName() + ".\nSwap out your weakest card, [GOLD]" + weak.getName()
-                        + "[], or add it and grow the deck to " + (run.deckSize() + 1) + "?",
-                List.of("Swap out " + weak.getName(), "Add to the deck"), null,
-                List.of(() -> {
-                    run.deck.getMain().remove(weak);
-                    addPicks(run, List.of(pc));
-                    build();
-                    if (then != null) then.run();
-                }, () -> {
-                    addPicks(run, List.of(pc));
-                    build();
-                    if (then != null) then.run();
-                }));
+        DelveSwapScene.instance().swapOrAdd(weak, pc, run.deckSize() + 1, () -> {
+            run.deck.getMain().remove(weak);
+            addPicks(run, List.of(pc));
+            Forge.switchScene(this);
+            if (then != null) then.run();
+        }, () -> {
+            addPicks(run, List.of(pc));
+            Forge.switchScene(this);
+            if (then != null) then.run();
+        });
     }
 
     private static void addPicks(DelveRun run, List<PaperCard> picks) {
@@ -520,6 +517,7 @@ public class DelveMapScene extends DelveScene {
             enabled.add(c.available.test(run));
             actions.add(() -> {
                 int lifeBefore = run.life, goldBefore = run.gold;
+                run.beginChanges();
                 String result = c.apply.apply(run);
                 if (run.life < lifeBefore) DelveAudio.hurt();
                 else if (run.life > lifeBefore) DelveAudio.heal();
@@ -539,6 +537,10 @@ public class DelveMapScene extends DelveScene {
                                 if (!picks.isEmpty()) run.deck.getMain().remove(picks.get(0));
                                 Forge.switchScene(this);
                             });
+                } else if (!run.lostCards.isEmpty() || !run.gainedCards.isEmpty()) {
+                    // the deck changed: show the cards going and coming, not just their names
+                    DelveSwapScene.instance().report(e.title, result, new ArrayList<>(run.lostCards),
+                            new ArrayList<>(run.gainedCards), () -> Forge.switchScene(this));
                 } else {
                     info(e.title, result, null);
                 }
