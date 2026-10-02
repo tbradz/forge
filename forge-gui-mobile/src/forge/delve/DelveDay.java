@@ -731,6 +731,11 @@ public class DelveDay {
      * 2 = late, 3 = elite/special). Elite offers include a rare when the set has one.
      */
     public List<PaperCard> upgradeChoices(Random rng, Deck deck, ColorSet colors, int depth) {
+        return upgradeChoices(rng, deck, colors, depth, Integer.MAX_VALUE);
+    }
+
+    /** Upgrades that cost at most {@code maxPrice} at a dungeon merchant (for stock you can actually afford). */
+    public List<PaperCard> upgradeChoices(Random rng, Deck deck, ColorSet colors, int depth, int maxPrice) {
         double worst = 1.0;
         java.util.Set<String> inDeck = new java.util.HashSet<>();
         for (PaperCard pc : deck.getMain().toFlatList()) {
@@ -750,6 +755,7 @@ public class DelveDay {
             List<PaperCard> cand = new ArrayList<>();
             for (PaperCard pc : all) {
                 if (pc.getRules().getType().isLand() || inDeck.contains(pc.getName()) || out.contains(pc)) continue;
+                if (DelveEconomy.buyPrice(pc) > maxPrice) continue;
                 double sc = DelveRank.score(pc);
                 if (sc < lo || sc > hi) continue;
                 ColorSet id = pc.getRules().getColorIdentity();

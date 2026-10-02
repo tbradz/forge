@@ -6,6 +6,7 @@ import forge.Forge;
 import forge.adventure.character.CharacterSprite;
 import forge.delve.DelveRun.Node;
 import forge.delve.DelveRun.NodeType;
+import forge.card.CardRarity;
 import forge.item.PaperCard;
 
 import java.util.ArrayList;
@@ -106,6 +107,7 @@ public class DelveMapScene extends DelveScene {
 
     private void build() {
         clearScreen();
+        atmosphere(new float[][]{{30, 140}, {450, 120}, {240, 250}}); // matches path_bg.png's torches
         walking = false;
         DelveRun run = DelveRun.current();
         if (run == null) {
@@ -547,14 +549,19 @@ public class DelveMapScene extends DelveScene {
         if (node.stock == null) {
             node.stock = new ArrayList<>();
             int depth = DelveMapGen.depth(run, Math.min(run.layers.size() - 1, run.step));
-            List<PaperCard> a = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth);
+            // two upgrades you can afford right now, then two stronger ones to save up for
+            int budget = Math.max(run.gold, DelveEconomy.buyPrice(CardRarity.Common));
+            List<PaperCard> a = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth, budget);
+            if (a.size() < 2) // the set is thin at this price: fall back to commons
+                a = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), Math.max(0, depth - 1),
+                        DelveEconomy.buyPrice(CardRarity.Common));
             List<PaperCard> b = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth + 1);
-            // the merchant is where your deck gets better, so a decent spread: 2 solid upgrades and 2 strong ones
             node.stock.addAll(a.subList(0, Math.min(2, a.size())));
             for (PaperCard pc : b) {
                 if (node.stock.size() >= 4) break;
                 if (!node.stock.contains(pc)) node.stock.add(pc);
             }
+            node.stock.sort(java.util.Comparator.comparingInt(DelveRun::buyPrice));
         }
         int removable = run.removableCount();
         String text = "\"Cards bought, cards sold. Coin is coin.\"\n\nYou have " + run.gold + " gold. Your deck has "

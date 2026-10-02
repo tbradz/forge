@@ -40,6 +40,7 @@ public class DelveGateScene extends DelveScene {
 
     private void build() {
         clearScreen();
+        atmosphere(new float[][]{{60, 160}, {420, 160}}); // matches dungeon_bg.png's torches
         DelveProfile prof = DelveProfile.get();
         int top = prof.topTier();
         title("Dungeon Gate");

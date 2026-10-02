@@ -29,8 +29,11 @@ public class DelveTalkScene extends DelveScene {
     private String speaker, line, buttonText, heading;
     private Runnable then;
 
+    private final String layout;
+
     private DelveTalkScene(String layout) {
         super(layout);
+        this.layout = layout;
     }
 
     private static DelveTalkScene at(String layout) {
@@ -79,6 +82,7 @@ public class DelveTalkScene extends DelveScene {
     private void build() {
         clearScreen();
         if (who == null) return;
+        if (DUNGEON.equals(layout)) atmosphere(new float[][]{{60, 160}, {420, 160}});
         TextureRegion face = null;
         try { // the opponent on the left, scaled to a common height (some sprites are huge)
             EnemySprite foe = new EnemySprite(who);

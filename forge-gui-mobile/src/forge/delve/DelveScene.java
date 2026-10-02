@@ -153,4 +153,30 @@ abstract class DelveScene extends UIScene {
         }
     }
 
+
+    /**
+     * Dungeon atmosphere: drifting fog plus torchlight that flickers at the given points
+     * (top-down layout coordinates). Call right after clearScreen() so it sits under the UI.
+     */
+    protected void atmosphere(float[][] torches) {
+        java.util.Random r = new java.util.Random();
+        for (float[] t : torches) {
+            com.badlogic.gdx.scenes.scene2d.ui.Image g = image("ui/delve/torch_glow.png", t[0] - 64, t[1] - 45, 128, 90);
+            g.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
+            float base = 0.75f + r.nextFloat() * 0.2f;
+            g.getColor().a = base;
+            g.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.forever(
+                    com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+                            com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha(base - 0.25f - r.nextFloat() * 0.15f, 0.12f + r.nextFloat() * 0.18f),
+                            com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha(base + r.nextFloat() * 0.1f, 0.10f + r.nextFloat() * 0.25f))));
+        }
+        for (int i = 0; i < 2; i++) { // two copies side by side, sliding left and wrapping
+            com.badlogic.gdx.scenes.scene2d.ui.Image fog = image("ui/delve/fog.png", i * W, 0, W, H);
+            fog.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
+            fog.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.forever(
+                    com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+                            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveBy(-W, 0, 80f),
+                            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveBy(W, 0))));
+        }
+    }
 }

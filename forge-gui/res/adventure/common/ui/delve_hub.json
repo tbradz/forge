@@ -3,13 +3,67 @@
   "height": 270,
   "yDown": true,
   "elements": [
-    { "type": "Image", "name": "bg", "image": "ui/delve/town_bg.png", "width": 480, "height": 270 },
-    { "type": "Image", "name": "b_castle", "image": "ui/delve/castle.png", "x": 176, "y": 50, "width": 128, "height": 86 },
-    { "type": "Image", "name": "b_house", "image": "ui/delve/house.png", "x": 34, "y": 162, "width": 56, "height": 64 },
-    { "type": "Image", "name": "b_shop", "image": "ui/delve/shop.png", "x": 112, "y": 146, "width": 64, "height": 64 },
-    { "type": "Image", "name": "b_tavern", "image": "ui/delve/tavern.png", "x": 304, "y": 146, "width": 64, "height": 62 },
-    { "type": "Image", "name": "b_outfitter", "image": "ui/delve/outfitter.png", "x": 392, "y": 168, "width": 56, "height": 52 },
-    { "type": "Image", "name": "b_dungeon", "image": "ui/delve/dungeon.png", "x": 208, "y": 180, "width": 64, "height": 60 },
+    {
+      "type": "Image",
+      "name": "bg",
+      "image": "ui/delve/town_bg.png",
+      "width": 480,
+      "height": 270
+    },
+    {
+      "type": "Image",
+      "name": "b_castle",
+      "image": "ui/delve/hub_castle.png",
+      "x": 312,
+      "y": 44,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "type": "Image",
+      "name": "b_house",
+      "image": "ui/delve/hub_house.png",
+      "x": 353,
+      "y": 142,
+      "width": 31,
+      "height": 22
+    },
+    {
+      "type": "Image",
+      "name": "b_shop",
+      "image": "ui/delve/hub_shop.png",
+      "x": 156,
+      "y": 140,
+      "width": 41,
+      "height": 24
+    },
+    {
+      "type": "Image",
+      "name": "b_tavern",
+      "image": "ui/delve/hub_tavern.png",
+      "x": 76,
+      "y": 68,
+      "width": 48,
+      "height": 48
+    },
+    {
+      "type": "Image",
+      "name": "b_outfitter",
+      "image": "ui/delve/hub_outfitter.png",
+      "x": 252,
+      "y": 140,
+      "width": 41,
+      "height": 24
+    },
+    {
+      "type": "Image",
+      "name": "b_dungeon",
+      "image": "ui/delve/hub_dungeon.png",
+      "x": 208,
+      "y": 80,
+      "width": 32,
+      "height": 32
+    },
     {
       "type": "TextButton",
       "name": "leave",

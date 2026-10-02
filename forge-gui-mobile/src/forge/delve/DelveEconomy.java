@@ -50,7 +50,11 @@ public final class DelveEconomy {
 
     // ---- dungeon merchant ---------------------------------------------------------
     public static int buyPrice(PaperCard pc) {
-        switch (pc.getRarity()) {
+        return buyPrice(pc.getRarity());
+    }
+
+    public static int buyPrice(forge.card.CardRarity rarity) {
+        switch (rarity) {
             case MythicRare: return 110;
             case Rare: return 80;
             case Uncommon: return 40;

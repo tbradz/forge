@@ -20,7 +20,10 @@ import forge.adventure.util.Controls;
 public class DelveHubScene extends UIScene {
     private static DelveHubScene object;
 
-    private static final float DIM = 0.78f;
+    private static final float DIM = 0.82f;
+    /** Buildings at rest: a little dimmed by day, moonlit blue at night (hover lights them up). */
+    private float restR = DIM, restG = DIM, restB = DIM;
+    private final java.util.List<Actor> buildings = new java.util.ArrayList<>();
     private static final float HOVER_SCALE = 1.06f;
 
     private final TextraLabel nameplate;
@@ -59,7 +62,15 @@ public class DelveHubScene extends UIScene {
         if (b == null)
             return;
         b.setOrigin(Align.bottom);
-        b.setColor(DIM, DIM, DIM, 1f);
+        b.setColor(restR, restG, restB, 1f);
+        buildings.add(b);
+        // a small name sign under the building, so the town reads without hovering (and on touch screens)
+        TextraLabel sign = Controls.newTextraLabel("[%55][#e8d8b0]" + title);
+        sign.setAlignment(Align.center);
+        sign.pack();
+        sign.setPosition(b.getX() + b.getWidth() / 2f - sign.getWidth() / 2f, b.getY() - sign.getHeight() + 1f);
+        sign.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
+        ui.addActor(sign);
         b.addListener(new ClickListener() {
             @Override
             public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
@@ -74,7 +85,7 @@ public class DelveHubScene extends UIScene {
             public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
                 super.exit(event, x, y, pointer, toActor);
                 if (pointer != -1) return;
-                b.setColor(DIM, DIM, DIM, 1f);
+                b.setColor(restR, restG, restB, 1f);
                 b.setScale(1f);
                 nameplate.setVisible(false);
             }
@@ -207,6 +218,9 @@ public class DelveHubScene extends UIScene {
             ((com.badlogic.gdx.scenes.scene2d.ui.Image) bg).setDrawable(
                     new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(tex)));
         }
+        if (p.isEvening()) { restR = 0.55f; restG = 0.58f; restB = 0.78f; }
+        else { restR = DIM; restG = DIM; restB = DIM; }
+        for (Actor b : buildings) b.setColor(restR, restG, restB, 1f);
     }
 
     private void openHouse() {
