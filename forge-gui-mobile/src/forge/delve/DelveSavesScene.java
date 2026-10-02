@@ -57,12 +57,33 @@ public class DelveSavesScene extends DelveScene {
             button(">", 160, 210, 30, 18, () -> { page++; build(); }).setDisabled(page >= pages - 1);
         }
         button("[GOLD]New save", W / 2f - 110, 238, 100, 22, this::newSave);
+        // TEMPORARY: testing shortcut, remove before release
+        button("[%80][#c0a060]Dev save", 24, 238, 90, 22, this::devSave);
         button("Back", W / 2f + 10, 238, 100, 22, () -> Forge.switchScene(StartScene.instance()));
     }
 
     /** A new save: create your character (for good), meet Bram, then into town. */
     private void newSave() {
         DelveSaves.load(DelveSaves.create());
+        DelveCharacterScene.instance().open(() ->
+                DelveIntroScene.instance().play(true, () -> Forge.switchScene(DelveHubScene.instance())));
+    }
+
+    /** TEMPORARY dev start: a new save with lots of gold, optionally every tier unlocked. */
+    private void devSave() {
+        List<String> labels = List.of("Gold only", "Gold + every tier unlocked", "Cancel");
+        List<Runnable> actions = List.of(() -> startDev(false), () -> startDev(true), () -> { });
+        choose("Dev save", "[%80]Testing shortcut: a new save that starts with " + DEV_GOLD
+                + " gold. Optionally unlock every set tier too.", labels, null, actions);
+    }
+
+    static final int DEV_GOLD = 50000;
+
+    private void startDev(boolean allTiers) {
+        DelveSaves.load(DelveSaves.create());
+        DelveProfile prof = DelveProfile.get();
+        prof.addGold(DEV_GOLD);
+        if (allTiers) prof.devUnlockAllTiers();
         DelveCharacterScene.instance().open(() ->
                 DelveIntroScene.instance().play(true, () -> Forge.switchScene(DelveHubScene.instance())));
     }

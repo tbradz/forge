@@ -176,6 +176,12 @@ public class DelveProfile {
     // ---- tiers ------------------------------------------------------------------
 
     /** Highest unlocked tier (0 = the first set). */
+    /** TEMPORARY dev shortcut: unlock every set tier. */
+    public void devUnlockAllTiers() {
+        stats.setProperty("tier", String.valueOf(DelveDay.tiers().size() - 1));
+        saveStats();
+    }
+
     public int topTier() {
         return Integer.parseInt(stats.getProperty("tier", "0"));
     }
