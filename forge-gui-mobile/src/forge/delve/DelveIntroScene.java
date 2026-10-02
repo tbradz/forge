@@ -21,21 +21,8 @@ public class DelveIntroScene extends DelveScene {
     private static final String[][] PAGES = {
             {"Well now, a new face! You'll be the delver the town council sent for. Come in out of the cold. "
                     + "I'm Bram, I keep the inn here, and anyone who goes down into the ruins drinks here first.", null},
-            {"Under the old ruins east of town there's a dungeon, and it shifts every single day. "
-                    + "Each morning you get one trip down. Folk here are counting on someone to clear it.", "The Dungeon Gate"},
-            {"Before you go in, you'll pick two of three half-decks, each built around a colour and a plan from the set "
-                    + "the dungeon is steeped in. Eighth Edition, to start. Shuffle them together and that's your deck.", "Your deck"},
-            {"Down below, you pick your path room by room. Every fight you win pays gold, and the merchants down there "
-                    + "sell cards that make your deck stronger the deeper you go. Elites guard relics that help you for the rest of the trip. The boss at the bottom has tricks of its own.",
-                    "The dungeon"},
-            {"Beat the boss and you bring home every coin you found, plus a reward: packs, gold, cards from your deck, "
-                    + "or the whole deck locked just as it is. Clearing it also opens the next set's dungeon. "
-                    + "Fall, and you keep only part of your gold.", "Clearing it"},
-            {"Evenings are for the Castle: a tournament or a Commander pod, once a night. "
-                    + "Short on coin? My tables are free, and the regulars will play you as long as you like. "
-                    + "Sleep at your house to start a new day.", "Evenings"},
-            {"The Card Shop sells singles and packs and runs a prerelease every day, the Outfitter sells sleeves, and your house is where you build decks "
-                    + "from the cards you collect. That's everything. The gate opens at dawn. Good luck, delver.", "Around town"},
+            {"Under the old ruins there's a dungeon, and it shifts every single day. Folk here are counting on someone to clear it. "
+                    + "But first, finish your drink and I'll walk you through town. Best you know where everything is.", "Let's go"},
     };
 
     private int page;
@@ -119,11 +106,18 @@ public class DelveIntroScene extends DelveScene {
 
         boolean last = page == PAGES.length - 1;
         if (page > 0) button("[%85]Back", 86, 222, 70, 18, () -> { page--; build(); });
-        button(last ? "[GOLD]Head into town" : "[GOLD]Next", 320, 222, 100, 18, () -> {
-            if (last) finish();
+        button(last ? "[GOLD]Show me around" : "[GOLD]Next", 320, 222, 100, 18, () -> {
+            if (last) tour();
             else { page++; build(); }
         });
         if (!last) button("[%75]Skip", 424, 223, 38, 16, this::finish);
+    }
+
+    /** Bram walks you into town and shows you each building. */
+    private void tour() {
+        Runnable cb = onDone;
+        onDone = null;
+        DelveTourScene.instance().play(firstVisit, cb);
     }
 
     private void finish() {
