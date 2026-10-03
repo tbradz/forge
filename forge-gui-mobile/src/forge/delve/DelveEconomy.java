@@ -13,8 +13,9 @@ import java.util.Random;
  * a little from events and selling cards. (Before the longer floors - map generator 1 -
  * it was ~4-5 fights at 25-35 and one or two elites at 60; old saved runs still pay that.)
  *
- * Prices are set so a merchant purchase is a real choice against saving for the
- * town: a good run affords one rare or two or three commons, not everything.
+ * Merchant prices were cut when fights started paying less per fight (Tyler: the first merchant
+ * should always have something you can afford): common 10, uncommon 24, rare 50, mythic 70.
+ * A good run affords a few upgrades, still a real choice against saving for the town.
  * Sell prices are well under buy prices so buying and re-selling can't farm gold.
  */
 public final class DelveEconomy {
@@ -40,8 +41,8 @@ public final class DelveEconomy {
     }
 
     // ---- relics at the dungeon merchant ------------------------------------------------
-    public static final int RELIC_PRICE = 60;
-    public static final int RELIC_PRICE_RARE = 90;
+    public static final int RELIC_PRICE = 40;
+    public static final int RELIC_PRICE_RARE = 60;
 
     // ---- Card Shop prerelease (once a day): 6 packs you keep + prizes by record --------
     public static final int PRERELEASE_ENTRY = 150;
@@ -61,10 +62,10 @@ public final class DelveEconomy {
 
     public static int buyPrice(forge.card.CardRarity rarity) {
         switch (rarity) {
-            case MythicRare: return 110;
-            case Rare: return 80;
-            case Uncommon: return 40;
-            default: return 18;
+            case MythicRare: return 70;
+            case Rare: return 50;
+            case Uncommon: return 24;
+            default: return 10;
         }
     }
 
