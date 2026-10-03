@@ -44,7 +44,7 @@ Next up
 
 More ways to play
 - More event formats: Pauper, Standard-style (recent sets only), sealed or draft nights at the Castle.
-- Set-themed dungeons: [done] enemies and bosses fit each set (DelveDay.themeEnemies, map gen 4); [todo] set-flavoured events and backdrops.
+- Set-themed dungeons: [done] enemies and bosses fit each set (DelveDay.themeEnemies, map gen 4); [done] set-flavoured events (DelveEvents.themed, gen 5); [todo] set-flavoured backdrops (art, needs Tyler's approval).
 - Optional run modes: see "Optional modes" below.
 - Commander packs.
 

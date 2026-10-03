@@ -29,8 +29,9 @@ final class DelveMapGen {
      * Generator for new runs. 2 = longer floors (10-13 steps) with the gold per fight scaled down to match.
      * 3 = open paths (every room reaches 2-3 rooms ahead, no locked lanes) and better-spread room types.
      * 4 = set-themed enemies (DelveDay.themedWeak/Elite/Boss).
+     * 5 = set-themed events too (DelveEvents.themed).
      */
-    static final int CURRENT_GEN = 4;
+    static final int CURRENT_GEN = 5;
 
     /** Rolls added after release (special rooms, elite perks) use their own generator so a saved
      *  run's seed still rebuilds the same rooms and enemies it had before. */
@@ -236,6 +237,11 @@ final class DelveMapGen {
         usedOriginal.add(o);
         // ...then pick the actual event from the full list with the extra generator
         List<DelveEvents.Event> all = DelveEvents.all();
+        if (run.gen >= 5) { // gen 5+: the set's own events, listed twice so they turn up about a fifth of the time
+            List<DelveEvents.Event> themed = DelveEvents.themed(run.day);
+            all.addAll(themed);
+            all.addAll(themed);
+        }
         DelveEvents.Event e = all.get(extra.nextInt(all.size()));
         for (int i = 0; i < 40 && usedEvents.contains(e.title); i++) e = all.get(extra.nextInt(all.size()));
         usedEvents.add(e.title);

@@ -244,6 +244,24 @@ public class DelveRun {
         return "You gain " + pc.getName() + ".";
     }
 
+    /**
+     * Gain a card of a creature type from the run's set (a rare one, or a common/uncommon), e.g. from a
+     * set-themed event; falls back to any card of that rarity if the set has none of the type.
+     */
+    public String gainKindCard(String kind, boolean rare) {
+        List<PaperCard> pool = new ArrayList<>();
+        for (List<PaperCard> src : rare ? List.of(day.rares) : List.of(day.uncommons, day.commons))
+            for (PaperCard pc : src)
+                if (pc.getRules().getType().getCreatureTypes().contains(kind)) pool.add(pc);
+        if (pool.isEmpty())
+            return gainRandomCard(rare ? DelveEvents.RarityTier.RARE : DelveEvents.RarityTier.UNCOMMON);
+        PaperCard pc = pool.get(rng.nextInt(pool.size()));
+        deck.getMain().add(pc);
+        picked.add(pc);
+        gainedCards.add(pc);
+        return "You gain " + pc.getName() + ".";
+    }
+
     /** Removes a random non-basic card; if the deck is at the minimum it is replaced instead. */
     public String loseRandomCard() {
         PaperCard lost = randomDeckCard();

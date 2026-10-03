@@ -49,6 +49,42 @@ public final class DelveEvents {
         return new Choice(label, available, apply);
     }
 
+    /**
+     * Events built from the run's set (map generator 5+): its most common creature kinds turn up
+     * as the wounded stranger and the guarded hoard, and its card cycle shows in a standing stone.
+     */
+    static List<Event> themed(DelveDay day) {
+        List<String> kinds = day.denizens(2);
+        if (kinds.isEmpty()) return new ArrayList<>();
+        String kind = kinds.get(0), hoarders = kinds.size() > 1 ? kinds.get(1) : kinds.get(0);
+        String lower = kind.toLowerCase();
+        List<Event> e = new ArrayList<>();
+        e.add(new Event("Wounded " + kind,
+                an(lower) + " " + lower + " lies hurt among the rubble, too weak to fight. It watches you warily.",
+                List.of(
+                        choice("Tend its wounds (lose 3 life, gain " + an(kind).toLowerCase() + " " + kind + " card)",
+                                r -> r.damage(3) + " " + r.gainKindCard(kind, false)),
+                        choice("Search its belongings (+20 gold)", r -> r.gainGold(20) + " It hisses as you leave."),
+                        choice("Walk on", r -> "You leave it be. It doesn't follow."))));
+        e.add(new Event(DelveDay.plural(hoarders) + "' Hoard",
+                "Behind a broken door, " + DelveDay.plural(hoarders).toLowerCase() + " sleep around a pile of plunder. One of them stirs.",
+                List.of(
+                        choice("Sneak in (a rare " + hoarders + " card, or they catch you: lose 6 life)",
+                                r -> r.rng.nextBoolean() ? "You slip out with your prize! " + r.gainKindCard(hoarders, true)
+                                        : "They wake! " + r.damage(6)),
+                        choice("Back away quietly", r -> "Some treasure isn't worth the teeth."))));
+        e.add(new Event("Echoes of " + day.edition.getName(),
+                "A standing stone hums with visions of " + day.edition.getName() + ": its creatures, its spells, its wars.",
+                List.of(
+                        choice("Touch the stone (transform a random card)", r -> r.transformRandomCard()),
+                        choice("Meditate beside it (heal 4)", r -> r.heal(4)))));
+        return e;
+    }
+
+    private static String an(String word) {
+        return "AEIOUaeiou".indexOf(word.charAt(0)) >= 0 ? "An" : "A";
+    }
+
     public static Event random(Random rng) {
         List<Event> all = all();
         return all.get(rng.nextInt(all.size()));
