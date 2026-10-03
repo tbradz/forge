@@ -1,5 +1,6 @@
 package forge.delve;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -86,28 +87,58 @@ public class DelveOutfitterScene extends DelveScene {
         else buildSleeves();
     }
 
-    /** Playmats: shown under your side of the battlefield in duels. Some for sale, some come with a Castle title. */
+    private static final int MATS_PER_PAGE = 6;
+    private int matPage = 0;
+
+    /**
+     * Playmats: shown under your side of the battlefield in duels. The built-in mats (some for sale,
+     * some with a Castle title) then your own images from the playmats folder, six to a page.
+     */
     private void buildPlaymats() {
         DelveProfile prof = DelveProfile.get();
         image("ui/delve/panel.png", 10, 30, 460, 208);
-        label("[%85]Playmats  -  your mat lies under your side of the battlefield in every duel", 10, 33, 460, 12, Align.center);
-        DelvePlaymat[] all = DelvePlaymat.values();
-        DelvePlaymat current = DelvePlaymat.current();
-        float w = 138, h = w / 3f, colGap = (440 - 3 * w) / 2f;
-        for (int i = 0; i < all.length; i++) {
-            DelvePlaymat p = all[i];
-            float x = 20 + (i % 3) * (w + colGap), y = 50 + (i / 3) * 86;
-            boolean owned = p.owned();
-            Image img = image(p.image(), x, y, w, h);
-            if (!owned) img.getColor().a = 0.45f;
-            label("[%75]" + p.title, x, y + h + 2, w, 12, Align.center);
+        // every entry: id, title, built-in mat (null for your own)
+        List<String> ids = new ArrayList<>(), titles = new ArrayList<>();
+        List<DelvePlaymat> builtIn = new ArrayList<>();
+        for (DelvePlaymat p : DelvePlaymat.values()) {
+            ids.add(p.id);
+            titles.add(p.title);
+            builtIn.add(p);
+        }
+        for (java.io.File f : DelvePlaymat.customFiles()) {
+            ids.add(DelvePlaymat.CUSTOM + f.getName());
+            titles.add(DelvePlaymat.customTitle(f));
+            builtIn.add(null);
+        }
+        int pages = (ids.size() + MATS_PER_PAGE - 1) / MATS_PER_PAGE;
+        matPage = Math.min(matPage, pages - 1);
+        label("[%85]Playmats  -  under your side of the battlefield in every duel"
+                + (pages > 1 ? "  -  page " + (matPage + 1) + "/" + pages : ""), 10, 33, 460, 12, Align.center);
+        String current = DelvePlaymat.currentId();
+        float w = 138, h = w / 5f, colGap = (440 - 3 * w) / 2f; // mats are about 5:1, like the battlefield
+        for (int n = 0; n < MATS_PER_PAGE; n++) {
+            int i = matPage * MATS_PER_PAGE + n;
+            if (i >= ids.size()) break;
+            String id = ids.get(i);
+            DelvePlaymat p = builtIn.get(i);
+            float x = 20 + (n % 3) * (w + colGap), y = 48 + (n / 3) * 80;
+            boolean owned = p == null || p.owned();
+            com.badlogic.gdx.graphics.Texture t = DelvePlaymat.texture(id);
+            if (t != null) {
+                Image img = new Image(p == null ? DelvePlaymat.cropped(t, 5f) : new TextureRegion(t));
+                img.setBounds(x, H - y - h, w, h);
+                img.setTouchable(Touchable.disabled);
+                if (!owned) img.getColor().a = 0.45f;
+                track(img);
+            }
+            label("[%75]" + (p == null ? "[#c0e0ff]" : "") + shorten(titles.get(i)), x, y + h + 1, w, 12, Align.center);
             String text;
             Runnable action;
             boolean disabled = false;
             if (owned) {
-                text = p == current ? "[GOLD]In use" : "[%80]Use";
-                disabled = p == current;
-                action = () -> { prof.setCurrentPlaymat(p.id); build(); };
+                text = id.equals(current) ? "[GOLD]In use" : "[%80]Use";
+                disabled = id.equals(current);
+                action = () -> { prof.setCurrentPlaymat(id); build(); };
             } else if (p.requires != null) {
                 text = "[GRAY]" + p.requires.title + " title";
                 disabled = true;
@@ -117,13 +148,30 @@ public class DelveOutfitterScene extends DelveScene {
                 disabled = prof.gold() < p.price;
                 action = () -> buyPlaymat(p);
             }
-            button(text, x + w / 2f - 50, y + h + 16, 100, 16, action).setDisabled(disabled);
+            button(text, x + w / 2f - 50, y + h + 14, 100, 16, action).setDisabled(disabled);
         }
-        button(current == null ? "[GOLD]No playmat (in use)" : "[%80]No playmat", 20, 222, 140, 14, () -> {
+        if (pages > 1) {
+            button("<", 14, 120, 16, 20, () -> { matPage--; build(); }).setDisabled(matPage == 0);
+            button(">", 450, 120, 16, 20, () -> { matPage++; build(); }).setDisabled(matPage >= pages - 1);
+        }
+        button(current.isEmpty() ? "[GOLD]No playmat (in use)" : "[%80]No playmat", 20, 212, 130, 15, () -> {
             prof.setCurrentPlaymat("");
             build();
-        }).setDisabled(current == null);
+        }).setDisabled(current.isEmpty());
+        label("[%65]Your own: put .png or .jpg images in " + DelvePlaymat.customDir().getAbsolutePath(),
+                156, 208, 230, 24, Align.left);
+        button("[%75]Open folder", 390, 212, 70, 15, () -> {
+            try {
+                Gdx.net.openURI(DelvePlaymat.customDir().toURI().toString());
+            } catch (Exception e) {
+                info("Playmats folder", DelvePlaymat.customDir().getAbsolutePath(), null);
+            }
+        });
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+    }
+
+    private static String shorten(String s) {
+        return s.length() <= 24 ? s : s.substring(0, 23) + ".";
     }
 
     private void buyPlaymat(DelvePlaymat p) {

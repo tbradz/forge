@@ -360,8 +360,8 @@ public class DelveDuelScene extends DuelScene {
     }
 
     @Override
-    public forge.assets.FImage matchPlaymat() {
-        return DelvePlaymat.currentImage();
+    public forge.assets.FImage matchPlaymat(float w, float h) {
+        return DelvePlaymat.currentImage(w, h);
     }
 
     @Override

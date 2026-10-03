@@ -721,84 +721,251 @@ def flagstone(gold):
 
 # ---------------------------------------------------------------- playmats
 
-MAT_W, MAT_H = 240, 80   # 3:1, stretched over your side of the battlefield; 4x -> 960x320
+MAT_W, MAT_H = 300, 60   # 5:1, about the shape of your side of the battlefield (fitted whole); 4x -> 1200x240
+
+
+def noise(w, h, cell, seed):
+    """Smooth random field 0..255 (a bicubic-upsampled random grid)."""
+    r = random.Random(seed)
+    gw, gh = w // cell + 2, h // cell + 2
+    small = Image.new("L", (gw, gh))
+    small.putdata([r.randrange(256) for _ in range(gw * gh)])
+    return small.resize((gw * cell, gh * cell), Image.BICUBIC).crop((0, 0, w, h))
+
+
+def mat_canvas(top, bottom):
+    img = Image.new("RGBA", (MAT_W, MAT_H), (0, 0, 0, 255))
+    d = ImageDraw.Draw(img)
+    for y in range(MAT_H):
+        d.line((0, y, MAT_W, y), fill=lerp(top, bottom, y / (MAT_H - 1)))
+    return img
+
+
+def pine(d, x, base, h, c):
+    """A pine silhouette: stacked triangles, x = centre, base = ground y."""
+    for i in range(3):
+        w = h * (0.5 - i * 0.12)
+        y0 = base - h * (0.35 + i * 0.25)
+        d.polygon([(x - w, base - h * i * 0.25), (x + w, base - h * i * 0.25), (x, y0 - h * 0.3)], fill=c)
+    d.line((x, base, x, base - 2), fill=mul(c, 0.8))
+
+
+def mat_deepwood(r):
+    img = mat_canvas((46, 84, 82), (14, 30, 22))
+    d = ImageDraw.Draw(img)
+    # far hills, then three rows of pines, darker toward you
+    hy = [r.randint(22, 28) for _ in range(16)]
+    for i in range(15):
+        d.polygon([(i * 22 - 4, hy[i]), (i * 22 + 22, hy[i + 1]), (i * 22 + 22, MAT_H), (i * 22 - 4, MAT_H)], fill=(34, 64, 58))
+    for row, (base, hmin, hmax, c) in enumerate([(40, 10, 15, (26, 52, 40)), (49, 13, 19, (18, 40, 30)), (60, 16, 23, (10, 26, 18))]):
+        x = -6
+        while x < MAT_W + 6:
+            pine(d, x, base + r.randint(-2, 2), r.randint(hmin, hmax), c)
+            x += r.randint(7, 13)
+        if row == 0:  # mist between the rows
+            layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            ld = ImageDraw.Draw(layer)
+            for _ in range(6):
+                mx, my = r.randrange(MAT_W), r.randint(33, 45)
+                ld.ellipse((mx - 40, my - 3, mx + 40, my + 3), fill=(170, 200, 190, 26))
+            img.alpha_composite(layer)
+            d = ImageDraw.Draw(img)
+    # fireflies
+    spots = [(r.randrange(10, MAT_W - 10), r.randrange(22, MAT_H - 6)) for _ in range(28)]
+    glow(img, spots, 4, (220, 255, 140), 90)
+    d = ImageDraw.Draw(img)
+    for x, y in spots:
+        d.point((x, y), fill=(240, 255, 170))
+    return img
+
+
+def mat_starfall(r):
+    img = mat_canvas((14, 16, 44), (30, 22, 64))
+    # a nebula band across the sky
+    n1, n2 = noise(MAT_W, MAT_H, 18, r.randrange(999)), noise(MAT_W, MAT_H, 7, r.randrange(999))
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    lp, a1, a2 = layer.load(), n1.load(), n2.load()
+    for y in range(MAT_H):
+        for x in range(MAT_W):
+            band = max(0.0, 1 - abs((y - MAT_H / 2 + (x - MAT_W / 2) * 0.12)) / 20)
+            v = (a1[x, y] * 0.7 + a2[x, y] * 0.3) / 255 * band
+            if v > 0.25:
+                c = lerp((90, 50, 140), (60, 130, 170), a2[x, y] / 255)
+                lp[x, y] = c + (int(min(1, (v - 0.25) * 2.2) * 120),)
+    img.alpha_composite(layer)
+    d = ImageDraw.Draw(img)
+    for _ in range(400):
+        x, y = r.randrange(MAT_W), r.randrange(MAT_H)
+        b = r.choice([90, 120, 160, 210, 250])
+        d.point((x, y), fill=(b, b, min(255, b + 25)))
+    for _ in range(9):  # bright twinkles
+        x, y = r.randrange(8, MAT_W - 8), r.randrange(6, MAT_H - 6)
+        for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
+            d.point((x + dx, y + dy), fill=(255, 255, 230) if (dx, dy) == (0, 0) else (170, 180, 230))
+    # crescent moon, right
+    mx = MAT_W - 44
+    glow(img, [(mx, 18)], 22, (200, 210, 255), 60)
+    d = ImageDraw.Draw(img)
+    d.ellipse((mx - 10, 8, mx + 10, 28), fill=(236, 232, 210))
+    d.ellipse((mx - 5, 5, mx + 17, 27), fill=lerp((14, 16, 44), (30, 22, 64), 0.2))
+    # shooting stars
+    for x0, y0 in ((50, 10), (190, 6)):
+        for i in range(10):
+            c = int(255 * (1 - i / 10))
+            d.point((x0 - i * 2, y0 + i), fill=(c, c, min(255, c + 30)))
+    return img
+
+
+def mat_emberglow(r):
+    import math
+    img = mat_canvas((26, 10, 10), (64, 22, 14))
+    # rough dark rock: banded noise
+    rock = noise(MAT_W, MAT_H, 6, r.randrange(999)).load()
+    px = img.load()
+    for y in range(MAT_H):
+        for x in range(MAT_W):
+            f = 0.75 + round(rock[x, y] / 255 * 4) / 4 * 0.4
+            px[x, y] = mul(px[x, y], f) + (255,)
+    d = ImageDraw.Draw(img)
+    # lava cracks: straight-ish segments that turn sharply and branch
+    cracks = []
+
+    def crack(x, y, ang, steps, depth):
+        pts = [(x, y)]
+        for _ in range(steps):
+            if r.random() < 0.3:
+                ang += r.choice([-1, 1]) * r.uniform(0.4, 0.9)
+            x, y = x + 5 * math.cos(ang), y + 5 * math.sin(ang)
+            pts.append((x, y))
+            if depth < 2 and r.random() < 0.12:
+                crack(x, y, ang + r.choice([-1, 1]) * r.uniform(0.8, 1.3), steps // 2, depth + 1)
+        cracks.append(pts)
+
+    for _ in range(6):
+        crack(r.randrange(MAT_W), r.randrange(MAT_H), r.random() * 6.28, r.randint(8, 16), 0)
+    glow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow_layer)
+    for pts in cracks:
+        gd.line(pts, fill=(255, 90, 20, 55), width=4)
+    img.alpha_composite(glow_layer)
+    d = ImageDraw.Draw(img)
+    for pts in cracks:
+        d.line(pts, fill=(200, 70, 24), width=1)
+    for pts in cracks:  # hot cores only in the middle of each crack
+        mid = pts[len(pts) // 4: max(len(pts) // 4 + 2, 3 * len(pts) // 4)]
+        if len(mid) > 1:
+            d.line(mid, fill=(255, 190, 80), width=1)
+    # embers rising
+    for _ in range(60):
+        x, y = r.randrange(MAT_W), r.randrange(MAT_H)
+        d.point((x, y), fill=r.choice([(255, 170, 60), (255, 220, 120), (230, 100, 40)]))
+    glow(img, [(MAT_W // 2, MAT_H + 10)], 150, (255, 110, 40), 60, 0.45)  # heat from below
+    return img
+
+
+def mat_knight(r):
+    img = mat_canvas((40, 58, 98), (28, 40, 74))
+    d = ImageDraw.Draw(img)
+    # lozenge (diamond) pattern
+    for y in range(-8, MAT_H + 8, 10):
+        for x in range(-10, MAT_W + 10, 20):
+            ox = 10 if (y // 10) % 2 else 0
+            cx, cy = x + ox, y
+            d.polygon([(cx, cy - 5), (cx + 10, cy), (cx, cy + 5), (cx - 10, cy)], outline=(52, 74, 120))
+    # a sword along the left, a big shield on the right
+    d.line((24, 12, 24, 47), fill=(200, 206, 220), width=3)
+    d.line((18, 38, 30, 38), fill=(190, 160, 80), width=3)
+    d.rectangle((23, 39, 25, 47), fill=(110, 80, 50))
+    sx, sy = MAT_W - 44, MAT_H // 2
+    d.polygon([(sx - 16, sy - 19), (sx + 16, sy - 19), (sx + 16, sy + 2), (sx, sy + 20), (sx - 16, sy + 2)],
+              fill=(60, 84, 136), outline=(200, 206, 220))
+    d.rectangle((sx - 3, sy - 17, sx + 3, sy + 15), fill=(200, 206, 220))
+    d.rectangle((sx - 14, sy - 8, sx + 14, sy - 2), fill=(200, 206, 220))
+    return img
+
+
+def mat_baron(r):
+    img = mat_canvas((150, 70, 50), (60, 18, 26))
+    d = ImageDraw.Draw(img)
+    glow(img, [(85, 30)], 50, (255, 180, 90), 80, 0.6)  # low sun
+    d = ImageDraw.Draw(img)
+    d.ellipse((76, 22, 94, 40), fill=(255, 200, 110))
+    # rolling hills and the baron's tower, windows lit
+    for i, (base, c) in enumerate([(40, (90, 30, 34)), (47, (66, 20, 26)), (54, (44, 12, 18))]):
+        pts = [(0, MAT_H)]
+        for x in range(0, MAT_W + 20, 20):
+            pts.append((x, base + r.randint(-4, 3)))
+        pts.append((MAT_W, MAT_H))
+        d.polygon(pts, fill=c)
+    tx = MAT_W - 58
+    d.rectangle((tx, 14, tx + 16, MAT_H), fill=(36, 10, 16))
+    for i in range(4):
+        d.rectangle((tx - 2 + i * 6, 10, tx + 1 + i * 6, 14), fill=(36, 10, 16))
+    for wy in (20, 30, 40):
+        d.rectangle((tx + 6, wy, tx + 9, wy + 4), fill=(255, 210, 120))
+    d.line((tx + 8, 10, tx + 8, 3), fill=(36, 10, 16))
+    d.polygon([(tx + 8, 3), (tx + 15, 5), (tx + 8, 7)], fill=(212, 170, 70))
+    return img
+
+
+def mat_duke(r):
+    img = mat_canvas((62, 30, 92), (40, 18, 62))
+    d = ImageDraw.Draw(img)
+    # damask: a repeating fleur motif
+    for y in range(6, MAT_H, 14):
+        for x in range(6 + (7 if (y // 14) % 2 else 0), MAT_W, 14):
+            c = (82, 46, 116)
+            d.point((x, y - 3), fill=c)
+            d.line((x - 2, y - 1, x + 2, y - 1), fill=c)
+            d.line((x, y - 2, x, y + 2), fill=c)
+            d.point((x - 2, y + 1), fill=c)
+            d.point((x + 2, y + 1), fill=c)
+    # a large crown on the right, gold flourishes in the corners
+    cx, cy = MAT_W - 62, MAT_H // 2 + 2  # clear of the corner diamonds
+    glow(img, [(cx, cy)], 30, (255, 210, 120), 50)
+    d = ImageDraw.Draw(img)
+    d.polygon([(cx - 22, cy + 12), (cx - 22, cy - 10), (cx - 11, cy + 1), (cx, cy - 18), (cx + 11, cy + 1),
+               (cx + 22, cy - 10), (cx + 22, cy + 12)], fill=(220, 176, 70), outline=(255, 220, 130))
+    d.rectangle((cx - 22, cy + 12, cx + 22, cy + 17), fill=(190, 146, 50))
+    for x, y, c in ((cx - 22, cy - 12, (200, 60, 70)), (cx, cy - 20, (80, 160, 220)), (cx + 22, cy - 12, (200, 60, 70))):
+        d.ellipse((x - 2, y - 2, x + 2, y + 2), fill=c)
+    for x, y in ((cx - 12, cy + 14), (cx, cy + 14), (cx + 12, cy + 14)):
+        d.point((x, y), fill=(120, 40, 160))
+    for ox, oy in ((16, 16), (MAT_W - 17, 16), (16, MAT_H - 17), (MAT_W - 17, MAT_H - 17)):  # corner diamonds
+        d.polygon([(ox, oy - 4), (ox + 4, oy), (ox, oy + 4), (ox - 4, oy)], fill=(200, 156, 60))
+        d.point((ox, oy), fill=(255, 220, 130))
+    return img
+
 
 MATS = {
-    # id: (cloth, darker cloth, stitch/trim, emblem colour, emblem)
-    "forest": ((34, 70, 44), (26, 56, 36), (120, 150, 90), (48, 92, 58), "leaf"),
-    "midnight": ((24, 30, 62), (18, 22, 48), (150, 150, 190), (40, 48, 92), "moon"),
-    "ember": ((70, 30, 24), (54, 22, 18), (200, 120, 60), (96, 44, 30), "flame"),
-    "knight": ((40, 58, 96), (30, 44, 76), (190, 196, 210), (62, 84, 130), "shield"),
-    "baron": ((84, 26, 34), (66, 20, 26), (212, 170, 70), (112, 40, 48), "tower"),
-    "duke": ((58, 32, 88), (44, 24, 68), (230, 190, 80), (84, 50, 120), "crown"),
+    # id: (painter, stitch colour, title trim lines)
+    "forest": (mat_deepwood, (150, 180, 120), 0),
+    "midnight": (mat_starfall, (170, 170, 210), 0),
+    "ember": (mat_emberglow, (220, 140, 70), 0),
+    "knight": (mat_knight, (200, 206, 220), 1),
+    "baron": (mat_baron, (212, 170, 70), 1),
+    "duke": (mat_duke, (235, 196, 90), 2),
 }
 
 
 def playmat(mat_id):
-    """A cloth playmat: woven texture, darker rim, stitched edge, a quiet emblem (cards sit on top)."""
-    cloth, dark, trim, mark, emblem = MATS[mat_id]
-    r = random.Random(sum(map(ord, mat_id)))
-    img = Image.new("RGBA", (MAT_W, MAT_H), (0, 0, 0, 0))
+    """A pixel-art playmat scene with rounded corners, a stitched edge and soft shading at the rim."""
+    painter, stitch, trims = MATS[mat_id]
+    r = random.Random(sum(map(ord, mat_id)) * 13)
+    img = painter(r)
+    vignette(img, 0.35)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((0, 0, MAT_W - 1, MAT_H - 1), radius=6, fill=cloth)
-    px = img.load()
-    for y in range(MAT_H):
-        for x in range(MAT_W):
-            if px[x, y][3] == 0:
-                continue
-            # woven cloth: a faint diagonal twill plus a darker rim
-            edge = min(x, y, MAT_W - 1 - x, MAT_H - 1 - y)
-            c = lerp(dark, cloth, min(1, edge / 10))
-            if (x + y * 2) % 5 == 0 or r.random() < 0.04:
-                c = mul(c, 0.92)
-            px[x, y] = c + (255,)
-    # stitched border
     for x in range(8, MAT_W - 8, 3):
-        d.point((x, 4), fill=trim)
-        d.point((x, MAT_H - 5), fill=trim)
+        d.point((x, 3), fill=stitch)
+        d.point((x, MAT_H - 4), fill=stitch)
     for y in range(8, MAT_H - 8, 3):
-        d.point((4, y), fill=trim)
-        d.point((MAT_W - 5, y), fill=trim)
-    if mat_id in ("baron", "duke", "knight"):  # title mats: a solid inner trim line too
-        d.rounded_rectangle((8, 8, MAT_W - 9, MAT_H - 9), radius=4, outline=mul(trim, 0.7))
-    if mat_id == "duke":
-        d.rounded_rectangle((11, 11, MAT_W - 12, MAT_H - 12), radius=3, outline=mul(trim, 0.5))
-    # the emblem, centred and low-contrast so cards on top stay readable
-    cx, cy = MAT_W // 2, MAT_H // 2
-    if emblem == "leaf":
-        d.ellipse((cx - 14, cy - 8, cx + 14, cy + 8), outline=mark, width=2)
-        d.line((cx - 14, cy, cx + 14, cy), fill=mark)
-        for i in range(-10, 11, 5):
-            d.line((cx + i, cy, cx + i + 3, cy - 5), fill=mark)
-            d.line((cx + i, cy, cx + i + 3, cy + 5), fill=mark)
-    elif emblem == "moon":
-        d.ellipse((cx - 13, cy - 13, cx + 13, cy + 13), fill=mark)
-        d.ellipse((cx - 7, cy - 15, cx + 17, cy + 9), fill=cloth)
-        for _ in range(40):
-            x, y = r.randrange(12, MAT_W - 12), r.randrange(10, MAT_H - 10)
-            if abs(x - cx) > 20:
-                d.point((x, y), fill=mul(trim, r.choice([0.45, 0.6, 0.8])))
-    elif emblem == "flame":
-        d.polygon([(cx, cy - 16), (cx + 10, cy + 2), (cx + 6, cy + 12), (cx - 6, cy + 12), (cx - 10, cy + 2)], fill=mark)
-        d.polygon([(cx, cy - 6), (cx + 5, cy + 4), (cx, cy + 10), (cx - 5, cy + 4)], fill=mul(mark, 1.25))
-        for _ in range(30):
-            x, y = r.randrange(12, MAT_W - 12), r.randrange(10, MAT_H - 10)
-            if abs(x - cx) > 18:
-                d.point((x, y), fill=mul(trim, r.choice([0.4, 0.55])))
-    elif emblem == "shield":
-        d.polygon([(cx - 12, cy - 14), (cx + 12, cy - 14), (cx + 12, cy + 2), (cx, cy + 15), (cx - 12, cy + 2)], outline=mark, fill=mul(cloth, 1.1))
-        d.line((cx, cy - 12, cx, cy + 11), fill=mark, width=3)
-        d.line((cx - 10, cy - 4, cx + 10, cy - 4), fill=mark, width=3)
-    elif emblem == "tower":
-        d.rectangle((cx - 8, cy - 8, cx + 8, cy + 14), fill=mark)
-        for i in (-8, -2, 4):
-            d.rectangle((cx + i, cy - 13, cx + i + 3, cy - 9), fill=mark)
-        d.rectangle((cx - 2, cy + 6, cx + 2, cy + 14), fill=cloth)
-    elif emblem == "crown":
-        d.polygon([(cx - 16, cy + 8), (cx - 16, cy - 8), (cx - 8, cy), (cx, cy - 14), (cx + 8, cy), (cx + 16, cy - 8), (cx + 16, cy + 8)], fill=mark)
-        d.rectangle((cx - 16, cy + 8, cx + 16, cy + 12), fill=mul(mark, 1.2))
-        for x in (cx - 16, cx, cx + 16):
-            d.point((x, cy - 9 if x != cx else cy - 15), fill=trim)
+        d.point((3, y), fill=stitch)
+        d.point((MAT_W - 4, y), fill=stitch)
+    for t in range(trims):
+        d.rounded_rectangle((7 + t * 3, 7 + t * 3, MAT_W - 8 - t * 3, MAT_H - 8 - t * 3), radius=4, outline=mul(stitch, 0.75 - t * 0.2))
+    mask = Image.new("L", img.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, MAT_W - 1, MAT_H - 1), radius=6, fill=255)
+    img.putalpha(mask)
     return img.resize((MAT_W * 4, MAT_H * 4), Image.NEAREST)
 
 

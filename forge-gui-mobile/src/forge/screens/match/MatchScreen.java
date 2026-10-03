@@ -1006,10 +1006,10 @@ public class MatchScreen extends FScreen {
             }
             // Delve: the player's playmat under their half of the battlefield
             if (Forge.isMobileAdventureMode) {
-                FImage mat = forge.adventure.scene.DuelScene.instance().matchPlaymat();
+                float mx = bottomPlayerPanel.getField().getLeft(), mw = getWidth() - mx;
+                float mh = bottomPlayerPanel.getField().getHeight(), inset = Math.min(mw, mh) * 0.03f;
+                FImage mat = forge.adventure.scene.DuelScene.instance().matchPlaymat(mw - 2 * inset, mh - 2 * inset);
                 if (mat != null) {
-                    float mx = bottomPlayerPanel.getField().getLeft(), mw = getWidth() - mx;
-                    float mh = bottomPlayerPanel.getField().getHeight(), inset = Math.min(mw, mh) * 0.03f;
                     float oldAlpha = g.getfloatAlphaComposite();
                     g.setAlphaComposite(0.92f);
                     g.drawImage(mat, mx + inset, midField + inset, mw - 2 * inset, mh - 2 * inset);

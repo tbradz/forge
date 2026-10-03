@@ -22,7 +22,8 @@ public final class DelveSaves {
 
     private static String current;
 
-    private static File base() {
+    /** <Forge user dir>/delve: saves, and things shared by every save (e.g. your own playmats). */
+    static File base() {
         return new File(ForgeProfileProperties.getUserDir(), "delve");
     }
 

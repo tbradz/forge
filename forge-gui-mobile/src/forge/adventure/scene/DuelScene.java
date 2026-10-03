@@ -83,8 +83,8 @@ public class DuelScene extends ForgeScene {
     }
 
     /** Battle background for the match screen; null = use the player's world location. */
-    /** Delve: an image drawn under the human player's half of the battlefield (a playmat), or null. */
-    public forge.assets.FImage matchPlaymat() {
+    /** Delve: an image (fitted to w x h) drawn under the human player's half of the battlefield (a playmat), or null. */
+    public forge.assets.FImage matchPlaymat(float w, float h) {
         return null;
     }
 
