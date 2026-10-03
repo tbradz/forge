@@ -87,7 +87,8 @@ public class DelveCastleScene extends DelveScene {
         clearScreen();
         DelveProfile prof = DelveProfile.get();
         label("[%90][GOLD]The Castle", 8, 5, 220, 16, Align.left);
-        label("[%90][GOLD]Gold[] " + prof.gold() + "    Titles " + prof.castleTitles(), 240, 5, 232, 16, Align.right);
+        label("[%90][GOLD]Gold[] " + prof.gold() + "    [GOLD]" + DelveRenown.title().title + "[]  Renown " + prof.renown(),
+                240, 5, 232, 16, Align.right);
         if (pod != null) buildPod();
         else if (t == null) buildLobby();
         else buildBracket();
@@ -108,33 +109,57 @@ public class DelveCastleScene extends DelveScene {
         label("[%120]1v1 Tournament", 12, 38, 224, 20, Align.center);
         label(sized("[%80]", "Eight duelists, single elimination, best of three. "
                         + "Bring a deck from Your House or a Locked Deck (40+ cards).\n\n"
-                        + "Entry [GOLD]" + DelveEconomy.CASTLE_ENTRY + "g[]\n"
-                        + "Champion [GOLD]" + DelveEconomy.CASTLE_CHAMPION + "g[] + booster + token\n"
-                        + "Finalist [GOLD]" + DelveEconomy.CASTLE_FINALIST + "g[]   Semifinal [GOLD]"
-                        + DelveEconomy.CASTLE_SEMIFINAL + "g[]"),
+                        + "Entry [GOLD]" + DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY) + "g[]\n"
+                        + "Champion [GOLD]" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + "g[] + booster + token\n"
+                        + "Finalist [GOLD]" + DelveRenown.castlePrize(DelveEconomy.CASTLE_FINALIST) + "g[]   Semifinal [GOLD]"
+                        + DelveRenown.castlePrize(DelveEconomy.CASTLE_SEMIFINAL) + "g[]"),
                 24, 62, 200, 130, Align.center);
         if (!done)
             button("[GOLD]Enter the tournament", 34, 200, 180, 22, this::chooseDeck)
-                    .setDisabled(prof.gold() < DelveEconomy.CASTLE_ENTRY);
+                    .setDisabled(prof.gold() < DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY));
         // right: Commander pod
         image("ui/delve/panel.png", 244, 30, 224, 200);
         label("[%120]Commander Pod", 244, 38, 224, 20, Align.center);
         label(sized("[%80]", "Four players, one game, everyone for themselves. 40 life, commanders in the command zone. "
                         + "Bring a Commander deck from Your House, or borrow one of tonight's house decks.\n\n"
-                        + "Entry [GOLD]" + DelveEconomy.POD_ENTRY + "g[]\n"
-                        + "Last one standing [GOLD]" + DelveEconomy.POD_WIN + "g[] + booster + token"),
+                        + "Entry [GOLD]" + DelveRenown.castleEntry(DelveEconomy.POD_ENTRY) + "g[]\n"
+                        + "Last one standing [GOLD]" + DelveRenown.castlePrize(DelveEconomy.POD_WIN) + "g[] + booster + token"),
                 256, 62, 200, 130, Align.center);
         if (!done)
             button("[GOLD]Join a pod", 266, 200, 180, 22, this::choosePodDeck)
-                    .setDisabled(prof.gold() < DelveEconomy.POD_ENTRY);
+                    .setDisabled(prof.gold() < DelveRenown.castleEntry(DelveEconomy.POD_ENTRY));
         String note = done ? "You've competed tonight. Sleep at Your House for tomorrow's events."
-                : prof.gold() < Math.min(DelveEconomy.CASTLE_ENTRY, DelveEconomy.POD_ENTRY)
+                : prof.gold() < Math.min(DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY), DelveRenown.castleEntry(DelveEconomy.POD_ENTRY))
                 ? "Not enough gold for an entry tonight. The Tavern has free practice games." : null;
         if (note != null) {
             image("ui/delve/shade.png", 60, 233, 360, 15);
             label("[%80][GOLD]" + note, 60, 234, 360, 13, Align.center);
         }
+        button("[GOLD]Champions board", 60, 250, 120, 18, this::championsBoard);
         button("Leave", 190, 250, 100, 18, () -> Forge.switchScene(DelveHubScene.instance()));
+    }
+
+    /** The champions board: you and the rival duelists by Renown, and the title ladder with what each unlocks. */
+    private void championsBoard() {
+        StringBuilder sb = new StringBuilder("[%75]");
+        List<DelveRenown.Standing> board = DelveRenown.board();
+        for (int i = 0; i < board.size(); i++) {
+            DelveRenown.Standing s = board.get(i);
+            sb.append(s.you ? "[GOLD]" : "").append(i + 1).append(". ").append(s.you ? "You (" + DelveRenown.title().title + ")" : s.name)
+                    .append("  -  ").append(s.renown).append(s.you ? "[WHITE]" : "").append("\n[%75]");
+        }
+        DelveRenown.Title now = DelveRenown.title(), next = DelveRenown.next(now);
+        sb.append("\n[%75]Renown: semifinal +").append(DelveRenown.SEMIFINAL).append(", final +").append(DelveRenown.FINALIST)
+                .append(", champion +").append(DelveRenown.CHAMPION).append(", pod win +").append(DelveRenown.POD_WIN).append(".\n[%75]");
+        for (DelveRenown.Title t : DelveRenown.Title.values()) {
+            if (t == DelveRenown.Title.COMMONER) continue;
+            boolean have = now.atLeast(t);
+            sb.append(have ? "[GOLD]" : "[GRAY]").append(t.title).append(" (").append(t.renown).append("): [WHITE]")
+                    .append(have ? "" : "[GRAY]").append(t.unlocks).append("[WHITE]\n[%75]");
+        }
+        if (next != null)
+            sb.append("[%75]").append(next.renown - DelveProfile.get().renown()).append(" more Renown to ").append(next.title).append(".");
+        info("Champions of the Castle", sb.toString(), null);
     }
 
     // ---- Commander pod ------------------------------------------------------------
@@ -152,7 +177,7 @@ public class DelveCastleScene extends DelveScene {
         actions.add(() -> { });
         String note = DelveDeckEditScene.commanderDecks().iterator().hasNext() && DelveDeckEditScene.legalCommanderDecks().isEmpty()
                 ? "None of your Commander decks are legal yet (100 cards, singleton, a commander). " : "";
-        choose("Choose your deck", note + "Entry costs " + DelveEconomy.POD_ENTRY + " gold.", labels, null, actions);
+        choose("Choose your deck", note + "Entry costs " + DelveRenown.castleEntry(DelveEconomy.POD_ENTRY) + " gold.", labels, null, actions);
     }
 
     private static String commanderName(Deck d) {
@@ -178,7 +203,7 @@ public class DelveCastleScene extends DelveScene {
     }
 
     private void startPod(Deck deck, boolean loaner) {
-        if (!DelveProfile.get().spendGold(DelveEconomy.POD_ENTRY)) return;
+        if (!DelveProfile.get().spendGold(DelveRenown.castleEntry(DelveEconomy.POD_ENTRY))) return;
         DelveProfile.get().markCastle();
         pod = new Pod(deck, loaner);
         DelveDay day = DelveDay.today();
@@ -243,12 +268,13 @@ public class DelveCastleScene extends DelveScene {
         DelveProfile prof = DelveProfile.get();
         String msg;
         if (won) {
-            prof.addGold(DelveEconomy.POD_WIN);
+            prof.addGold(DelveRenown.castlePrize(DelveEconomy.POD_WIN));
             prof.addCastleTitle();
             List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, new Random());
             prof.addToCollection(pack);
-            msg = "Last one standing! +" + DelveEconomy.POD_WIN + " gold, " + article(DelveDay.today().themeName()) + " " + DelveDay.today().themeName()
-                    + " booster (added to your collection) and " + DelveTokens.grant(1, new Random()) + ".";
+            msg = "Last one standing! +" + DelveRenown.castlePrize(DelveEconomy.POD_WIN) + " gold, " + article(DelveDay.today().themeName()) + " " + DelveDay.today().themeName()
+                    + " booster (added to your collection) and " + DelveTokens.grant(1, new Random()) + "."
+                    + DelveRenown.award(DelveRenown.POD_WIN);
         } else {
             msg = "You were knocked out of the pod. Better luck next time.";
         }
@@ -286,11 +312,11 @@ public class DelveCastleScene extends DelveScene {
         }
         labels.add("Cancel");
         actions.add(() -> { });
-        choose("Choose your deck", "Entry costs " + DelveEconomy.CASTLE_ENTRY + " gold.", labels, null, actions);
+        choose("Choose your deck", "Entry costs " + DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY) + " gold.", labels, null, actions);
     }
 
     private void start(Deck deck) {
-        if (!DelveProfile.get().spendGold(DelveEconomy.CASTLE_ENTRY)) return;
+        if (!DelveProfile.get().spendGold(DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY))) return;
         DelveProfile.get().markCastle();
         t = new Tournament(deck);
         DelveDay day = DelveDay.today();
@@ -406,26 +432,28 @@ public class DelveCastleScene extends DelveScene {
         String msg;
         switch (reached) {
             case 3: {
-                prof.addGold(DelveEconomy.CASTLE_CHAMPION);
+                prof.addGold(DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION));
                 prof.addCastleTitle();
                 List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, t.rng);
                 prof.addToCollection(pack);
-                msg = "You are the Castle champion! +" + DelveEconomy.CASTLE_CHAMPION + " gold, a "
+                msg = "You are the Castle champion! +" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + " gold, a "
                         + DelveDay.today().themeName() + " booster (added to your collection) and "
                         + DelveTokens.grant(1, t.rng) + ".";
                 break;
             }
             case 2:
-                prof.addGold(DelveEconomy.CASTLE_FINALIST);
-                msg = "You fell in the final. +" + DelveEconomy.CASTLE_FINALIST + " gold.";
+                prof.addGold(DelveRenown.castlePrize(DelveEconomy.CASTLE_FINALIST));
+                msg = "You fell in the final. +" + DelveRenown.castlePrize(DelveEconomy.CASTLE_FINALIST) + " gold.";
                 break;
             case 1:
-                prof.addGold(DelveEconomy.CASTLE_SEMIFINAL);
-                msg = "You fell in the semifinal. +" + DelveEconomy.CASTLE_SEMIFINAL + " gold.";
+                prof.addGold(DelveRenown.castlePrize(DelveEconomy.CASTLE_SEMIFINAL));
+                msg = "You fell in the semifinal. +" + DelveRenown.castlePrize(DelveEconomy.CASTLE_SEMIFINAL) + " gold.";
                 break;
             default:
                 msg = "You were knocked out in the quarterfinal. Better luck next time.";
         }
+        msg += DelveRenown.award(reached == 3 ? DelveRenown.CHAMPION : reached == 2 ? DelveRenown.FINALIST
+                : reached == 1 ? DelveRenown.SEMIFINAL : 0);
         t.out = true;
         clearState();
         build();

@@ -1004,6 +1004,18 @@ public class MatchScreen extends FScreen {
                         g.drawRipple(matchBG, x + (w - bgFullWidth) / 2, y, bgFullWidth, bgHeight, 0f);
                 }
             }
+            // Delve: the player's playmat under their half of the battlefield
+            if (Forge.isMobileAdventureMode) {
+                FImage mat = forge.adventure.scene.DuelScene.instance().matchPlaymat();
+                if (mat != null) {
+                    float mx = bottomPlayerPanel.getField().getLeft(), mw = getWidth() - mx;
+                    float mh = bottomPlayerPanel.getField().getHeight(), inset = Math.min(mw, mh) * 0.03f;
+                    float oldAlpha = g.getfloatAlphaComposite();
+                    g.setAlphaComposite(0.92f);
+                    g.drawImage(mat, mx + inset, midField + inset, mw - 2 * inset, mh - 2 * inset);
+                    g.setAlphaComposite(oldAlpha);
+                }
+            }
         }
 
         //auto adjust zoom for local multiplayer landscape mode

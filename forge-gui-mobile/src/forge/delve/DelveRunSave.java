@@ -46,6 +46,7 @@ public final class DelveRunSave {
             p.setProperty("tier", Integer.toString(run.day.tier));
             p.setProperty("seed", Long.toString(run.seed));
             p.setProperty("gen", Integer.toString(run.gen));
+            p.setProperty("freeReroll", Boolean.toString(run.freeReroll));
             p.setProperty("life", Integer.toString(run.life));
             p.setProperty("gold", Integer.toString(run.gold));
             p.setProperty("step", Integer.toString(run.step));
@@ -94,6 +95,7 @@ public final class DelveRunSave {
             DelveRun run = DelveRun.restore(day, deck, Long.parseLong(p.getProperty("seed")),
                     Integer.parseInt(p.getProperty("gen", "1")));
             run.life = Integer.parseInt(p.getProperty("life", "20"));
+            run.freeReroll = Boolean.parseBoolean(p.getProperty("freeReroll", "false"));
             run.gold = Integer.parseInt(p.getProperty("gold", "0"));
             run.step = Integer.parseInt(p.getProperty("step", "0"));
             run.fightsWon = Integer.parseInt(p.getProperty("fightsWon", "0"));

@@ -360,6 +360,11 @@ public class DelveDuelScene extends DuelScene {
     }
 
     @Override
+    public forge.assets.FImage matchPlaymat() {
+        return DelvePlaymat.currentImage();
+    }
+
+    @Override
     public forge.assets.FSkinTexture matchBackground() {
         return boss
                 ? forge.assets.FSkinTexture.ADV_BG_CASTLE : forge.assets.FSkinTexture.ADV_BG_DUNGEON;

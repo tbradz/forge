@@ -116,6 +116,7 @@ public class DelveProfile {
 
     /** Sleep: advance to the next morning. */
     public void sleep() {
+        DelveRenown.nightPassed(this, day());
         stats.setProperty("day", String.valueOf(day() + 1));
         stats.setProperty("evening", "false");
         stats.setProperty("delvedToday", "false");
@@ -170,6 +171,53 @@ public class DelveProfile {
 
     public void addCastleTitle() {
         stats.setProperty("castleTitles", String.valueOf(castleTitles() + 1));
+        saveStats();
+    }
+
+    // ---- Castle Renown (see DelveRenown) ------------------------------------------------
+
+    /** Your Renown. Saves from before Renown start with 3 per Castle win they already had. */
+    public int renown() {
+        return Integer.parseInt(stats.getProperty("renown", String.valueOf(castleTitles() * 3)));
+    }
+
+    public void addRenown(int n) {
+        stats.setProperty("renown", String.valueOf(renown() + n));
+        saveStats();
+    }
+
+    public int rivalRenown(int rival) {
+        return Integer.parseInt(stats.getProperty("rival." + rival, String.valueOf(DelveRenown.startingRenown(rival))));
+    }
+
+    /** Saved by the caller's next save (called while a night passes, just before sleep() saves). */
+    void addRivalRenown(int rival, int n) {
+        stats.setProperty("rival." + rival, String.valueOf(rivalRenown(rival) + n));
+    }
+
+    // ---- playmats (Outfitter, titles; see DelvePlaymat) -----------------------------------
+
+    public java.util.Set<String> ownedPlaymats() {
+        java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        for (String s : stats.getProperty("playmats.owned", "").split(","))
+            if (!s.isEmpty()) out.add(s);
+        return out;
+    }
+
+    public void addPlaymat(String id) {
+        java.util.Set<String> owned = ownedPlaymats();
+        owned.add(id);
+        stats.setProperty("playmats.owned", String.join(",", owned));
+        saveStats();
+    }
+
+    /** The equipped playmat's id, or "" for none (the plain battlefield). */
+    public String currentPlaymat() {
+        return stats.getProperty("playmat.current", "");
+    }
+
+    public void setCurrentPlaymat(String id) {
+        stats.setProperty("playmat.current", id == null ? "" : id);
         saveStats();
     }
 

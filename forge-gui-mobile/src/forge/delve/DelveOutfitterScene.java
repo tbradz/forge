@@ -13,9 +13,10 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * The Outfitter: card sleeves. Six sleeves are for sale each day; owned sleeves
+ * The Outfitter: card sleeves and playmats. Six sleeves are for sale each day; owned sleeves
  * can be equipped any time. The equipped sleeve is the back of your cards in
- * duels and when opening packs.
+ * duels and when opening packs. Playmats ({@link DelvePlaymat}) lie under your side of the
+ * battlefield; some are sold here, title playmats come with a Castle title.
  */
 public class DelveOutfitterScene extends DelveScene {
     private static DelveOutfitterScene object;
@@ -69,12 +70,75 @@ public class DelveOutfitterScene extends DelveScene {
         return track(img);
     }
 
+    /** false = sleeves, true = playmats */
+    private boolean mats;
+
     private void build() {
         clearScreen();
         DelveProfile prof = DelveProfile.get();
-        Map<Integer, TextureRegion> sleeves = FSkin.getSleeves();
         label("[%90][GOLD]Outfitter", 8, 5, 200, 16, Align.left);
         label("[%90][GOLD]Gold[] " + prof.gold(), 280, 5, 192, 16, Align.right);
+        button(mats ? "Sleeves" : "[GOLD]Playmats", 330, 244, 100, 20, () -> {
+            mats = !mats;
+            build();
+        });
+        if (mats) buildPlaymats();
+        else buildSleeves();
+    }
+
+    /** Playmats: shown under your side of the battlefield in duels. Some for sale, some come with a Castle title. */
+    private void buildPlaymats() {
+        DelveProfile prof = DelveProfile.get();
+        image("ui/delve/panel.png", 10, 30, 460, 208);
+        label("[%85]Playmats  -  your mat lies under your side of the battlefield in every duel", 10, 33, 460, 12, Align.center);
+        DelvePlaymat[] all = DelvePlaymat.values();
+        DelvePlaymat current = DelvePlaymat.current();
+        float w = 138, h = w / 3f, colGap = (440 - 3 * w) / 2f;
+        for (int i = 0; i < all.length; i++) {
+            DelvePlaymat p = all[i];
+            float x = 20 + (i % 3) * (w + colGap), y = 50 + (i / 3) * 86;
+            boolean owned = p.owned();
+            Image img = image(p.image(), x, y, w, h);
+            if (!owned) img.getColor().a = 0.45f;
+            label("[%75]" + p.title, x, y + h + 2, w, 12, Align.center);
+            String text;
+            Runnable action;
+            boolean disabled = false;
+            if (owned) {
+                text = p == current ? "[GOLD]In use" : "[%80]Use";
+                disabled = p == current;
+                action = () -> { prof.setCurrentPlaymat(p.id); build(); };
+            } else if (p.requires != null) {
+                text = "[GRAY]" + p.requires.title + " title";
+                disabled = true;
+                action = () -> { };
+            } else {
+                text = "[%80]Buy " + p.price + "g";
+                disabled = prof.gold() < p.price;
+                action = () -> buyPlaymat(p);
+            }
+            button(text, x + w / 2f - 50, y + h + 16, 100, 16, action).setDisabled(disabled);
+        }
+        button(current == null ? "[GOLD]No playmat (in use)" : "[%80]No playmat", 20, 222, 140, 14, () -> {
+            prof.setCurrentPlaymat("");
+            build();
+        }).setDisabled(current == null);
+        button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+    }
+
+    private void buyPlaymat(DelvePlaymat p) {
+        DelveProfile prof = DelveProfile.get();
+        if (p.owned() || p.price <= 0 || !prof.spendGold(p.price)) return;
+        prof.addPlaymat(p.id);
+        prof.setCurrentPlaymat(p.id);
+        DelveAudio.coins();
+        build();
+        info("Outfitter", "A new playmat! It's under your side of the battlefield from your next duel (change it any time here).", null);
+    }
+
+    private void buildSleeves() {
+        DelveProfile prof = DelveProfile.get();
+        Map<Integer, TextureRegion> sleeves = FSkin.getSleeves();
 
         image("ui/delve/panel.png", 10, 30, 460, 98);
         label("[%85]Sleeves for sale today", 10, 33, 460, 12, Align.center);

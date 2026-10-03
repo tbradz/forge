@@ -64,10 +64,13 @@ public class DelveRun {
     /** the relic a merchant offers, per merchant room ("step.index" -> relic) */
     public final java.util.Map<String, DelveRelic> merchantRelics = new java.util.HashMap<>();
 
-    /** Maximum life, including relics. */
+    /** Maximum life, including relics and your Castle title (Baron and up: +2). */
     public int maxLife() {
-        return MAX_LIFE + (relics.contains(DelveRelic.VITALITY_CHARM) ? 5 : 0);
+        return MAX_LIFE + (relics.contains(DelveRelic.VITALITY_CHARM) ? 5 : 0) + DelveRenown.runLifeBonus();
     }
+
+    /** Count and up: one free Reroll this run (saved). */
+    public boolean freeReroll;
 
     public boolean has(DelveRelic r) {
         return relics.contains(r);
@@ -108,6 +111,8 @@ public class DelveRun {
 
     public static DelveRun start(DelveDay day, Deck starter) {
         current = new DelveRun(day, starter, day.seed ^ System.nanoTime(), DelveMapGen.CURRENT_GEN);
+        current.life = current.maxLife();
+        current.freeReroll = DelveRenown.freeRerollEachRun();
         DelveProfile.get().markDelved();
         DelveRunSave.save(current);
         return current;

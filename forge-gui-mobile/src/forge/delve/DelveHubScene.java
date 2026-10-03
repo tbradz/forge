@@ -229,7 +229,8 @@ public class DelveHubScene extends UIScene {
         sb.append("Day ").append(p.day()).append(p.isEvening() ? " (evening)" : " (morning)")
                 .append("  -  [GOLD]").append(p.gold()).append(" gold[]  -  ").append(DelveDay.tierName(p.topTier())).append("\n");
         sb.append(p.collection().countAll()).append(" cards collected  -  ").append(p.lockedDecks().size())
-                .append(" Locked Decks  -  ").append(p.castleTitles()).append(" Castle titles\n");
+                .append(" Locked Decks  -  [GOLD]").append(DelveRenown.title().title).append("[] (")
+                .append(p.renown()).append(" Renown, rank ").append(DelveRenown.yourRank()).append(")\n");
         sb.append("Tokens: ").append(p.tokenSummary());
         houseMenu(sb.toString());
     }

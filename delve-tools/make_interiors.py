@@ -15,6 +15,7 @@ Writes (into ui/delve/):
   outfitter_bg.png  Outfitter (day): fabric bolts, sleeves on a line, mirror, dress form
   opening_table.png pack opening: a lamplit wooden table seen from above
   plate.png / plate_glow.png / dot.png / dot_gold.png  dungeon map: stone slabs, flagstones
+  playmat_*.png     playmats under your side of the battlefield (Outfitter / Castle titles)
 
 Run from the repo root:  python delve-tools/make_interiors.py [--preview DIR]
 """
@@ -718,6 +719,89 @@ def flagstone(gold):
     return img.resize((12, 12), Image.NEAREST)
 
 
+# ---------------------------------------------------------------- playmats
+
+MAT_W, MAT_H = 240, 80   # 3:1, stretched over your side of the battlefield; 4x -> 960x320
+
+MATS = {
+    # id: (cloth, darker cloth, stitch/trim, emblem colour, emblem)
+    "forest": ((34, 70, 44), (26, 56, 36), (120, 150, 90), (48, 92, 58), "leaf"),
+    "midnight": ((24, 30, 62), (18, 22, 48), (150, 150, 190), (40, 48, 92), "moon"),
+    "ember": ((70, 30, 24), (54, 22, 18), (200, 120, 60), (96, 44, 30), "flame"),
+    "knight": ((40, 58, 96), (30, 44, 76), (190, 196, 210), (62, 84, 130), "shield"),
+    "baron": ((84, 26, 34), (66, 20, 26), (212, 170, 70), (112, 40, 48), "tower"),
+    "duke": ((58, 32, 88), (44, 24, 68), (230, 190, 80), (84, 50, 120), "crown"),
+}
+
+
+def playmat(mat_id):
+    """A cloth playmat: woven texture, darker rim, stitched edge, a quiet emblem (cards sit on top)."""
+    cloth, dark, trim, mark, emblem = MATS[mat_id]
+    r = random.Random(sum(map(ord, mat_id)))
+    img = Image.new("RGBA", (MAT_W, MAT_H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((0, 0, MAT_W - 1, MAT_H - 1), radius=6, fill=cloth)
+    px = img.load()
+    for y in range(MAT_H):
+        for x in range(MAT_W):
+            if px[x, y][3] == 0:
+                continue
+            # woven cloth: a faint diagonal twill plus a darker rim
+            edge = min(x, y, MAT_W - 1 - x, MAT_H - 1 - y)
+            c = lerp(dark, cloth, min(1, edge / 10))
+            if (x + y * 2) % 5 == 0 or r.random() < 0.04:
+                c = mul(c, 0.92)
+            px[x, y] = c + (255,)
+    # stitched border
+    for x in range(8, MAT_W - 8, 3):
+        d.point((x, 4), fill=trim)
+        d.point((x, MAT_H - 5), fill=trim)
+    for y in range(8, MAT_H - 8, 3):
+        d.point((4, y), fill=trim)
+        d.point((MAT_W - 5, y), fill=trim)
+    if mat_id in ("baron", "duke", "knight"):  # title mats: a solid inner trim line too
+        d.rounded_rectangle((8, 8, MAT_W - 9, MAT_H - 9), radius=4, outline=mul(trim, 0.7))
+    if mat_id == "duke":
+        d.rounded_rectangle((11, 11, MAT_W - 12, MAT_H - 12), radius=3, outline=mul(trim, 0.5))
+    # the emblem, centred and low-contrast so cards on top stay readable
+    cx, cy = MAT_W // 2, MAT_H // 2
+    if emblem == "leaf":
+        d.ellipse((cx - 14, cy - 8, cx + 14, cy + 8), outline=mark, width=2)
+        d.line((cx - 14, cy, cx + 14, cy), fill=mark)
+        for i in range(-10, 11, 5):
+            d.line((cx + i, cy, cx + i + 3, cy - 5), fill=mark)
+            d.line((cx + i, cy, cx + i + 3, cy + 5), fill=mark)
+    elif emblem == "moon":
+        d.ellipse((cx - 13, cy - 13, cx + 13, cy + 13), fill=mark)
+        d.ellipse((cx - 7, cy - 15, cx + 17, cy + 9), fill=cloth)
+        for _ in range(40):
+            x, y = r.randrange(12, MAT_W - 12), r.randrange(10, MAT_H - 10)
+            if abs(x - cx) > 20:
+                d.point((x, y), fill=mul(trim, r.choice([0.45, 0.6, 0.8])))
+    elif emblem == "flame":
+        d.polygon([(cx, cy - 16), (cx + 10, cy + 2), (cx + 6, cy + 12), (cx - 6, cy + 12), (cx - 10, cy + 2)], fill=mark)
+        d.polygon([(cx, cy - 6), (cx + 5, cy + 4), (cx, cy + 10), (cx - 5, cy + 4)], fill=mul(mark, 1.25))
+        for _ in range(30):
+            x, y = r.randrange(12, MAT_W - 12), r.randrange(10, MAT_H - 10)
+            if abs(x - cx) > 18:
+                d.point((x, y), fill=mul(trim, r.choice([0.4, 0.55])))
+    elif emblem == "shield":
+        d.polygon([(cx - 12, cy - 14), (cx + 12, cy - 14), (cx + 12, cy + 2), (cx, cy + 15), (cx - 12, cy + 2)], outline=mark, fill=mul(cloth, 1.1))
+        d.line((cx, cy - 12, cx, cy + 11), fill=mark, width=3)
+        d.line((cx - 10, cy - 4, cx + 10, cy - 4), fill=mark, width=3)
+    elif emblem == "tower":
+        d.rectangle((cx - 8, cy - 8, cx + 8, cy + 14), fill=mark)
+        for i in (-8, -2, 4):
+            d.rectangle((cx + i, cy - 13, cx + i + 3, cy - 9), fill=mark)
+        d.rectangle((cx - 2, cy + 6, cx + 2, cy + 14), fill=cloth)
+    elif emblem == "crown":
+        d.polygon([(cx - 16, cy + 8), (cx - 16, cy - 8), (cx - 8, cy), (cx, cy - 14), (cx + 8, cy), (cx + 16, cy - 8), (cx + 16, cy + 8)], fill=mark)
+        d.rectangle((cx - 16, cy + 8, cx + 16, cy + 12), fill=mul(mark, 1.2))
+        for x in (cx - 16, cx, cx + 16):
+            d.point((x, cy - 9 if x != cx else cy - 15), fill=trim)
+    return img.resize((MAT_W * 4, MAT_H * 4), Image.NEAREST)
+
+
 # ---------------------------------------------------------------- main
 
 def build():
@@ -731,6 +815,7 @@ def build():
         "plate_glow.png": slab(True),
         "dot.png": flagstone(False),
         "dot_gold.png": flagstone(True),
+        **{f"playmat_{m}.png": playmat(m) for m in MATS},
     }
 
 

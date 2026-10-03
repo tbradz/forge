@@ -454,7 +454,13 @@ public class DelveMapScene extends DelveScene {
         int depth = DelveMapGen.depth(run, Math.max(0, Math.min(run.layers.size() - 1, run.step - 1))) + (strong ? 1 : 0);
         List<PaperCard> offer = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth);
         int rerolls = DelveProfile.get().tokens(DelveTokens.REROLL);
-        if (rerolls > 0)
+        if (run.freeReroll) // a Count's (or better) free Reroll comes first
+            DelvePickScene.instance().withExtra("[GOLD]Reroll (free)", () -> {
+                run.freeReroll = false;
+                DelveRunSave.save(run);
+                offerCard(run, header, strong);
+            });
+        else if (rerolls > 0)
             DelvePickScene.instance().withExtra("Reroll (" + rerolls + ")", () -> {
                 DelveProfile.get().useToken(DelveTokens.REROLL);
                 offerCard(run, header, strong);

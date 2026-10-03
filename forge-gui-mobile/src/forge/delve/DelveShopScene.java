@@ -60,7 +60,7 @@ public class DelveShopScene extends DelveScene {
                 label("[%110][GRAY]SOLD", x, y + cardH / 2f - 8, cardW, 16, Align.center);
             }
             final int index = i;
-            int price = DelveEconomy.shopPrice(pc);
+            int price = DelveRenown.shopPrice(DelveEconomy.shopPrice(pc));
             TextraButton buy = button(sold ? "[GRAY]Sold" : "[%85]Buy " + price + "g", x, y + cardH + 1, cardW, 15,
                     () -> buySingle(index, pc, price));
             buy.setDisabled(sold || prof.gold() < price);
@@ -70,7 +70,7 @@ public class DelveShopScene extends DelveScene {
         float px = 272, pw = 198;
         image("ui/delve/panel.png", px - 6, 30, pw + 12, 170);
         label("[%100]Booster packs", px, 36, pw, 14, Align.center);
-        label("[%70]" + DelveEconomy.PACK_PRICE + " gold each, " + DelveEconomy.PACKS_PER_DAY + " of each per day",
+        label("[%70]" + DelveRenown.shopPrice(DelveEconomy.PACK_PRICE) + " gold each, " + DelveEconomy.PACKS_PER_DAY + " of each per day",
                 px, 50, pw, 12, Align.center);
         packButton(0, day.edition, px, 70, pw);
         packButton(1, day.recentPackSet(), px, 116, pw);
@@ -158,7 +158,7 @@ public class DelveShopScene extends DelveScene {
         int left = DelveEconomy.PACKS_PER_DAY - prof.packsBought(type);
         TextraButton b = button("[%85]" + set.getName() + "\n[%70]" + (left > 0 ? left + " left" : "sold out"),
                 x, y, w, 38, () -> buyPack(type, set));
-        b.setDisabled(left <= 0 || prof.gold() < DelveEconomy.PACK_PRICE);
+        b.setDisabled(left <= 0 || prof.gold() < DelveRenown.shopPrice(DelveEconomy.PACK_PRICE));
     }
 
     private void prerelease() {
@@ -245,7 +245,7 @@ public class DelveShopScene extends DelveScene {
 
     private void buyPack(int type, CardEdition set) {
         DelveProfile prof = DelveProfile.get();
-        if (prof.packsBought(type) >= DelveEconomy.PACKS_PER_DAY || !prof.spendGold(DelveEconomy.PACK_PRICE)) return;
+        if (prof.packsBought(type) >= DelveEconomy.PACKS_PER_DAY || !prof.spendGold(DelveRenown.shopPrice(DelveEconomy.PACK_PRICE))) return;
         prof.markPackBought(type);
         DelveAudio.shuffle();
         List<PaperCard> cards = DelveDay.today().openPack(set, rng);

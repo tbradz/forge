@@ -50,8 +50,8 @@ More ways to play
 
 Town and world
 - Tavern NPCs and rumors.
-- Castle rankings and titles that unlock things.
-- More Outfitter items: playmats, portraits, dice.
+- [done] Castle rankings and titles that unlock things (DelveRenown).
+- More Outfitter items: [done] playmats (DelvePlaymat); portraits, dice.
 - Pai Gow: an "older sets" page in the pack menu (it only lists the newest 5 sets now).
 
 Polish and release
