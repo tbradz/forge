@@ -28,8 +28,9 @@ final class DelveMapGen {
     /**
      * Generator for new runs. 2 = longer floors (10-13 steps) with the gold per fight scaled down to match.
      * 3 = open paths (every room reaches 2-3 rooms ahead, no locked lanes) and better-spread room types.
+     * 4 = set-themed enemies (DelveDay.themedWeak/Elite/Boss).
      */
-    static final int CURRENT_GEN = 3;
+    static final int CURRENT_GEN = 4;
 
     /** Rolls added after release (special rooms, elite perks) use their own generator so a saved
      *  run's seed still rebuilds the same rooms and enemies it had before. */
@@ -40,9 +41,14 @@ final class DelveMapGen {
         usedOriginal.clear();
         extra = new java.util.Random(run.seed * 31 + 7);
         DelveDay day = run.day;
-        Picker weak = new Picker(day.weakEnemies, run);
-        Picker elite = new Picker(day.eliteEnemies.isEmpty() ? day.weakEnemies : day.eliteEnemies, run);
-        Picker boss = new Picker(day.bossEnemies.isEmpty() ? day.eliteEnemies : day.bossEnemies, run);
+        // gen 4+: the dungeon's enemies fit its set (DelveDay.themeEnemies); older runs keep the full rosters
+        boolean themed = run.gen >= 4;
+        List<EnemyData> weakPool = themed ? day.themedWeak() : day.weakEnemies;
+        List<EnemyData> elitePool = themed ? day.themedElite() : day.eliteEnemies;
+        List<EnemyData> bossPool = themed ? day.themedBoss() : day.bossEnemies;
+        Picker weak = new Picker(weakPool, run);
+        Picker elite = new Picker(elitePool.isEmpty() ? weakPool : elitePool, run);
+        Picker boss = new Picker(bossPool.isEmpty() ? elitePool : bossPool, run);
 
         int steps, eliteAt, secondEliteAt;    // 0-based layer indexes
         if (run.gen >= 2) {

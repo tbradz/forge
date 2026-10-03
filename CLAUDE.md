@@ -44,7 +44,7 @@ Next up
 
 More ways to play
 - More event formats: Pauper, Standard-style (recent sets only), sealed or draft nights at the Castle.
-- Set-themed dungeons: enemies, bosses and events that fit each set (Phyrexians in Mirrodin, dragons in Onslaught).
+- Set-themed dungeons: [done] enemies and bosses fit each set (DelveDay.themeEnemies, map gen 4); [todo] set-flavoured events and backdrops.
 - Optional run modes: see "Optional modes" below.
 - Commander packs.
 

@@ -225,6 +225,127 @@ public class DelveDay {
         return edition.getName();
     }
 
+    // ---- set-themed dungeon enemies (map generator 4+) ------------------------------------
+
+    /** Dungeon rosters for this set: enemies that fit its creatures first (see {@link #themeEnemies}). */
+    private List<EnemyData> themedWeak, themedElite, themedBoss;
+    /** The set's most common creature types (Humans aside), most common first, e.g. "Phyrexian". */
+    private List<String> setTypes;
+
+    public List<EnemyData> themedWeak() { themeEnemies(); return themedWeak; }
+    public List<EnemyData> themedElite() { themeEnemies(); return themedElite; }
+    public List<EnemyData> themedBoss() { themeEnemies(); return themedBoss; }
+
+    /** Up to {@code n} of the set's most common creature types, for showing what lives in the dungeon. */
+    public List<String> denizens(int n) {
+        themeEnemies();
+        return setTypes.subList(0, Math.min(n, setTypes.size()));
+    }
+
+    /** "Elf" -> "Elves", "Zombie" -> "Zombies", "Fox" -> "Foxes" (for showing creature types). */
+    public static String plural(String t) {
+        if (t.endsWith("lf") || t.endsWith("rf")) return t.substring(0, t.length() - 1) + "ves";
+        if (t.endsWith("s") || t.endsWith("x") || t.endsWith("ch") || t.endsWith("sh")) return t + "es";
+        if (t.endsWith("y") && t.length() > 1 && "aeiou".indexOf(t.charAt(t.length() - 2)) < 0)
+            return t.substring(0, t.length() - 1) + "ies";
+        return t + "s";
+    }
+
+    /** How many of each roster to keep when enough enemies fit the set, and the least we'll run with. */
+    private static final int[] THEME_KEEP = {14, 8, 5}, THEME_MIN = {8, 4, 3};
+
+    /**
+     * Picks this set's dungeon enemies: each Adventure enemy is scored by how well its tags and
+     * name ("Vampire Lord", tags Undead/Zombie...) match the creature types in the set, weighted
+     * by how common each type is. The best matches fill each roster; generic enemies only top it up.
+     */
+    /** Job-like creature types: almost every humanoid enemy has one, so they only break ties. */
+    private static final java.util.Set<String> JOB_TYPES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "Warrior", "Wizard", "Cleric", "Soldier", "Rogue", "Shaman", "Warlock", "Druid", "Artificer", "Scout",
+            "Citizen", "Noble", "Mercenary", "Pilot", "Monk", "Assassin", "Detective", "Bard", "Sorcerer", "Ally", "Hero",
+            "Villain", "Survivor", "Berserker", "Advisor", "Peasant", "Archer", "Scientist", "Spy", "Performer", "Employee"));
+    /** Types that don't say what a creature is (or are on nearly everything). */
+    private static final java.util.Set<String> SKIP_TYPES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "Human", "Mount", "God", "Avatar", "Glimmer", "Toy"));
+    /** Set creature type -> words that enemies use for it (Forge's enemies have no "Werewolf", but have wolves). */
+    private static final java.util.Map<String, String[]> TYPE_ALIASES = java.util.Map.ofEntries(
+            java.util.Map.entry("Werewolf", new String[]{"Wolf", "Werewolf"}),
+            java.util.Map.entry("Nightmare", new String[]{"Nightmare", "Horror", "Demon"}),
+            java.util.Map.entry("Horror", new String[]{"Horror", "Aberration"}),
+            java.util.Map.entry("Robot", new String[]{"Robot", "Construct", "Golem"}),
+            java.util.Map.entry("Construct", new String[]{"Construct", "Golem"}),
+            java.util.Map.entry("Mutant", new String[]{"Mutant", "Aberration"}),
+            java.util.Map.entry("Faerie", new String[]{"Faerie", "Fairy"}),
+            java.util.Map.entry("Dinosaur", new String[]{"Dinosaur", "Raptor", "Triceratops", "Stegosaurus"}),
+            java.util.Map.entry("Spirit", new String[]{"Spirit", "Ghost"}),
+            java.util.Map.entry("Zombie", new String[]{"Zombie", "Undead"}),
+            java.util.Map.entry("Skeleton", new String[]{"Skeleton", "Undead"}),
+            java.util.Map.entry("Insect", new String[]{"Insect", "Scarab"}));
+
+    private void themeEnemies() {
+        if (themedWeak != null) return;
+        java.util.Map<String, Integer> count = new java.util.HashMap<>();
+        for (List<PaperCard> src : List.of(commons, uncommons, rares))
+            for (PaperCard pc : src)
+                if (pc.getRules().getType().isCreature())
+                    for (String t : pc.getRules().getType().getCreatureTypes())
+                        if (!SKIP_TYPES.contains(t)) count.merge(t, 1, Integer::sum);
+        // creature kinds (Vampire, Dragon, Phyrexian...) count ten times as much as jobs (Warrior, Wizard...)
+        java.util.Map<String, Integer> weight = new java.util.HashMap<>();
+        count.forEach((t, n) -> {
+            int w = n * (JOB_TYPES.contains(t) ? 1 : 10);
+            for (String word : TYPE_ALIASES.getOrDefault(t, new String[]{t})) weight.merge(word, w, Math::max);
+        });
+        setTypes = new ArrayList<>();
+        for (String t : count.keySet()) if (!JOB_TYPES.contains(t)) setTypes.add(t);
+        setTypes.sort((a, b) -> count.get(b) - count.get(a));
+        Random rng = new Random(seed ^ 0x7E3AL);
+        // Delve sets every foe's life itself, so a strongly fitting elite-sized enemy can also be a fight or the
+        // boss (Phyrexia's Phyrexians are all elite-sized; a dragon set should have a dragon boss)
+        List<EnemyData> strongElites = new ArrayList<>();
+        for (EnemyData e : eliteEnemies) if (fit(e, weight) >= STRONG_FIT) strongElites.add(e);
+        List<EnemyData> weakPool = new ArrayList<>(weakEnemies), bossPool = new ArrayList<>(bossEnemies);
+        weakPool.addAll(strongElites);
+        bossPool.addAll(strongElites);
+        themedWeak = roster(weakPool, weight, THEME_KEEP[0], THEME_MIN[0], rng);
+        themedBoss = roster(bossPool, weight, THEME_KEEP[2], THEME_MIN[2], rng);
+        themedElite = roster(eliteEnemies, weight, THEME_KEEP[1], THEME_MIN[1], rng);
+        List<EnemyData> eliteOnly = new ArrayList<>(themedElite);
+        eliteOnly.removeAll(themedBoss); // don't meet the boss as an elite first, when there are enough others
+        if (eliteOnly.size() >= 3) themedElite = eliteOnly;
+    }
+
+    /** A fit this good means the enemy really is one of the set's creature kinds (a kind with 3+ cards). */
+    private static final int STRONG_FIT = 30;
+
+    /** How well an enemy fits: the summed set weight of every creature type in its tags or name. */
+    static int fit(EnemyData e, java.util.Map<String, Integer> weight) {
+        java.util.Set<String> words = new java.util.HashSet<>(java.util.Arrays.asList(e.questTags));
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("[A-Z][a-z]+").matcher(e.getName());
+        while (m.find()) {
+            String w = m.group();
+            words.add(w);
+            if (w.endsWith("s")) words.add(w.substring(0, w.length() - 1)); // "Elves" stays, "Goblins" -> Goblin
+        }
+        int score = 0;
+        for (String w : words) score += weight.getOrDefault(w, 0);
+        return score;
+    }
+
+    private static List<EnemyData> roster(List<EnemyData> pool, java.util.Map<String, Integer> weight, int keep, int min, Random rng) {
+        List<EnemyData> shuffled = new ArrayList<>(pool);
+        Collections.shuffle(shuffled, rng); // ties fall in a different order each day
+        List<EnemyData> fits = new ArrayList<>(), rest = new ArrayList<>();
+        for (EnemyData e : shuffled) (fit(e, weight) > 0 ? fits : rest).add(e);
+        fits.sort((a, b) -> fit(b, weight) - fit(a, weight)); // stable: shuffled order among equals
+        List<EnemyData> out = new ArrayList<>(fits.subList(0, Math.min(keep, fits.size())));
+        for (EnemyData e : rest) {
+            if (out.size() >= min) break;
+            out.add(e);
+        }
+        return out.isEmpty() ? new ArrayList<>(pool) : out;
+    }
+
     /** Deck strength for generated opponents. */
     public enum Tier { EARLY, FIGHT, LATE, ELITE, BOSS, CASTLE }
 

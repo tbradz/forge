@@ -72,6 +72,14 @@ public class DelveGateScene extends DelveScene {
             t.setAlignment(Align.top);
         }
 
+        // who lives down there: the set's most common creatures (the dungeon's enemies fit them)
+        List<String> denizens = DelveDay.forTier(selectedTier).denizens(3);
+        if (!denizens.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (String t : denizens) sb.append(sb.length() > 0 ? ", " : "").append(DelveDay.plural(t));
+            label("[%80][#c0a060]Below lurk: " + sb, 40, 212, W - 80, 14, Align.center);
+        }
+
         boolean canDelve = !prof.delvedToday() && !prof.isEvening();
         button(canDelve ? "[GOLD]Choose your decks" : "[GRAY]The gate is sealed until morning", W / 2f - 100, 174, 200, 22,
                 this::startDraft).setDisabled(!canDelve);
