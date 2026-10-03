@@ -49,7 +49,7 @@ More ways to play
 - Commander packs.
 
 Town and world
-- Tavern NPCs and rumors.
+- [done] Tavern NPCs and rumors (DelveRegulars). More regulars/rumor kinds can be added there.
 - [done] Castle rankings and titles that unlock things (DelveRenown).
 - More Outfitter items: [done] playmats (DelvePlaymat); portraits, dice.
 - Pai Gow: an "older sets" page in the pack menu (it only lists the newest 5 sets now).

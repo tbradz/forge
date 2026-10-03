@@ -69,6 +69,7 @@ public class DelveTavernScene extends DelveScene {
         label("[%110]Practice games", 40, 40, 400, 18, Align.center);
         button("[%80]Talk to Bram", 352, 38, 80, 16, () -> DelveTourScene.instance().play(false,
                 () -> forge.Forge.switchScene(this)));
+        button("[%80][GOLD]The regulars", 48, 38, 80, 16, this::regulars);
         label("[%75]No fee. Test a deck against tonight's patrons as often as you like, or play for gold or an ante.\n[%75]"
                         + "They play " + DelveDay.today().edition.getName() + " decks. Sleep at Your House when you're ready for tomorrow.",
                 56, 60, 368, 30, Align.center);
@@ -81,6 +82,22 @@ public class DelveTavernScene extends DelveScene {
         button("[GOLD]Commander with the patrons", 140, 192, 200, 20, this::chooseCommanderDeck)
                 .setDisabled(patrons.size() < 3);
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+    }
+
+    /** Tonight's regulars: pick one to hear their rumor (see {@link DelveRegulars}). */
+    private void regulars() {
+        int day = DelveProfile.get().day();
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        for (DelveRegulars r : DelveRegulars.tonight(day)) {
+            labels.add(r.name + "[GRAY], " + r.role);
+            actions.add(() -> DelveTalkScene.speak(DelveTalkScene.TAVERN, r.atlas, r.name, "[%85]" + r.role,
+                    r.rumor(day), "[GOLD]Thanks", () -> forge.Forge.switchScene(this)));
+        }
+        labels.add("Back to the games");
+        actions.add(() -> { });
+        choose("The regulars", "[%80]A few familiar faces are nursing their drinks. Everyone in this town hears something.",
+                labels, null, actions);
     }
 
     private static String shorten(String s) {

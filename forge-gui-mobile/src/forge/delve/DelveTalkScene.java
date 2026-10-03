@@ -26,6 +26,8 @@ public class DelveTalkScene extends DelveScene {
     private static final Random rng = new Random();
 
     private EnemyData who;
+    /** a townsperson's sprite instead of an enemy (see {@link #speak}) */
+    private String atlas;
     private String speaker, line, buttonText, heading;
     private Runnable then;
 
@@ -54,8 +56,23 @@ public class DelveTalkScene extends DelveScene {
         }
         DelveTalkScene s = at(layout);
         s.who = who;
+        s.atlas = null;
         s.speaker = town ? DelvePersona.title(who) : who.getName();
         s.line = DelvePersona.line(who, moment, boss, rng);
+        s.heading = heading;
+        s.buttonText = buttonText;
+        s.then = then;
+        Forge.switchScene(s);
+    }
+
+    /** A townsperson (any character sprite) says {@code line}, e.g. a Tavern regular's rumor. */
+    public static void speak(String layout, String atlas, String speaker, String heading, String line,
+                             String buttonText, Runnable then) {
+        DelveTalkScene s = at(layout);
+        s.who = null;
+        s.atlas = atlas;
+        s.speaker = speaker;
+        s.line = line;
         s.heading = heading;
         s.buttonText = buttonText;
         s.then = then;
@@ -81,11 +98,11 @@ public class DelveTalkScene extends DelveScene {
 
     private void build() {
         clearScreen();
-        if (who == null) return;
+        if (who == null && atlas == null) return;
         if (DUNGEON.equals(layout)) atmosphere(new float[][]{{60, 160}, {420, 160}});
         TextureRegion face = null;
         try { // the opponent on the left, scaled to a common height (some sprites are huge)
-            EnemySprite foe = new EnemySprite(who);
+            CharacterSprite foe = who != null ? new EnemySprite(who) : new CharacterSprite(atlas);
             foe.setAnimation(CharacterSprite.AnimationTypes.Idle);
             foe.setDirection(CharacterSprite.AnimationDirections.Right);
             float h = Math.max(foe.getHeight(), foe.getWidth());
@@ -117,7 +134,7 @@ public class DelveTalkScene extends DelveScene {
         }
         label("[%95][GOLD]" + speaker, 86, 150, 260, 13, Align.left);
         if (heading != null) label("[%85]" + heading, 300, 150, 156, 13, Align.right);
-        boolean words = DelvePersona.talks(who) && !line.startsWith("*");
+        boolean words = (who == null || DelvePersona.talks(who)) && !line.startsWith("*");
         com.github.tommyettinger.textra.TextraLabel text = label("[%100]" + (words ? "\"" + line + "\"" : "[#c0b090]" + line),
                 86, 172, 372, 44, Align.topLeft);
         text.setAlignment(Align.topLeft);
