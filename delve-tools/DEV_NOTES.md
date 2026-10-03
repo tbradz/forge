@@ -64,6 +64,11 @@
 - To watch the game log, launch with the java line from `Delve.cmd` and redirect output to a file.
 - The cloud-built jars (up to 2026-10-02) carried ~76MB of stray `target/classes/target/...` build output; the local build (~56MB) doesn't.
 
+## Playtest package (for friends, Windows)
+- Folder `Delve/`: delve.jar, res/ (from the install), jre/ (Eclipse Temurin 17 JRE x64 from api.adoptium.net, checksum verified), Delve.cmd (runs `%~dp0jre\bin\java.exe` with the same flags as the install's Delve.cmd), LICENSE.txt (Forge GPL), README.txt.
+- Portable: `forge.profile.properties` with `userDir=./userdata/` and `cacheDir=./cache/`; seed `userdata/preferences/forge.preferences` with `UI_LANDSCAPE_MODE=true`, `UI_SELECTOR_MODE=Adventure` (opens straight to the Adventure title screen with the Delve button), `AUTO_UPDATE=none`, `CHECK_SNAPSHOT_AT_STARTUP=false`.
+- Zip with Python's zipfile (Windows PowerShell's ZipFile writes backslash paths). ~276 MB. First one: `Forge Fork/Delve-Playtest-2026-10-02.zip` (titles + playmats build, Dev save kept).
+
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
 - Jar >20MB: split into 18MB chunks, device_commit_files to `_delve_incoming/`, `cat` back together, verify sha256, delete `_delve_incoming`.
