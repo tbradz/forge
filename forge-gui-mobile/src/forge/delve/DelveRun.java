@@ -64,9 +64,15 @@ public class DelveRun {
     /** the relic a merchant offers, per merchant room ("step.index" -> relic) */
     public final java.util.Map<String, DelveRelic> merchantRelics = new java.util.HashMap<>();
 
-    /** Maximum life, including relics and your Castle title (Baron and up: +2). */
+    /** Maximum life, including relics, your Castle title (Baron and up: +2) and difficulty. */
     public int maxLife() {
-        return MAX_LIFE + (relics.contains(DelveRelic.VITALITY_CHARM) ? 5 : 0) + DelveRenown.runLifeBonus();
+        return MAX_LIFE + (relics.contains(DelveRelic.VITALITY_CHARM) ? 5 : 0) + DelveRenown.runLifeBonus()
+                + DelveDifficulty.current().playerLifeBonus();
+    }
+
+    /** A room's foe's starting life: the room's life scaled by difficulty, plus any blessing or curse. */
+    public int foeLife(Node node) {
+        return Math.max(1, DelveDifficulty.current().foeLife(node.enemyLife) + nextFoeLife);
     }
 
     /** Count and up: one free Reroll this run (saved). */

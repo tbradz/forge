@@ -384,7 +384,7 @@ public class DelveMapScene extends DelveScene {
         }
         String what = node.type == NodeType.BOSS ? "the boss" : node.type == NodeType.ELITE ? "an elite" : "a fight";
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
-                        + "They start at " + Math.max(1, node.enemyLife + run.nextFoeLife) + " life"
+                        + "They start at " + run.foeLife(node) + " life"
                         + (run.nextFoeLife < 0 ? " (blessed: " + run.nextFoeLife + ")" : run.nextFoeLife > 0 ? " (cursed: +" + run.nextFoeLife + ")" : "")
                         + ". You have " + run.life + (run.has(DelveRelic.IRON_BUCKLER) ? " (+4 from your Iron Buckler)" : "") + "."
                         + (node.perk != null ? "\n[GOLD]" + (node.perk.elite ? "Elite" : "Boss") + " perk - " + node.perk.title + ":[] " + node.perk.description : "")
@@ -431,7 +431,7 @@ public class DelveMapScene extends DelveScene {
         run.life = Math.max(1, life);
         run.fightsWon++;
         boolean elite = node.type == NodeType.ELITE;
-        int gold = DelveEconomy.fightGold(node.type, run.rng, run.gen);
+        int gold = DelveDifficulty.current().fightGold(DelveEconomy.fightGold(node.type, run.rng, run.gen));
         if (run.has(DelveRelic.GOLD_IDOL)) gold = gold * 3 / 2;
         run.gainGold(gold);
         DelveAudio.coins();

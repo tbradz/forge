@@ -115,7 +115,9 @@ public final class DelveSaves {
         List<forge.card.CardEdition> tiers = DelveDay.tiers(!"modern".equals(p.getProperty("era", "all")));
         String tierName = tier < tiers.size() ? tiers.get(tier).getName() : "?";
         boolean run = new File(new File(savesDir(), name), "run.properties").exists();
+        String diff = p.getProperty("difficulty", "NORMAL");
         return "Day " + p.getProperty("day", "1") + "  -  Tier " + (tier + 1) + ": " + tierName
+                + (diff.equals("NORMAL") ? "" : "  -  " + diff.charAt(0) + diff.substring(1).toLowerCase())
                 + "  -  " + p.getProperty("gold", "0") + " gold" + (run ? "  -  run in progress" : "");
     }
 

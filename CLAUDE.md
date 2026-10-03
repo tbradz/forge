@@ -66,7 +66,9 @@ options are stored in the save's profile.properties (like `era`) and chosen when
 (`DelveSavesScene.chooseSets` is the pattern); per-run options would go in run.properties.
 - [built] All sets: climb every set since Eighth Edition (96 tiers) instead of Modern (Zendikar Rising
   onward, 31 tiers, the default). Per save, chosen at New save (`DelveProfile.allSets()`).
-- [idea] Difficulty modifiers: enemy life, enemy deck strength, AI profile, gold multiplier, permadeath-style rules.
+- [built] Difficulty (DelveDifficulty: Easy/Normal/Hard/Brutal): foe life %, fight deck strength step, fight gold %,
+  your max life, careless-AI openers. Chosen at New save, changeable at Your House (`difficulty` in profile).
+- [idea] More modifiers: permadeath-style rules, no-merchant runs, relic-less runs, mixed-set dungeons.
 - [idea] Dungeon length: short / standard / long floors (map generator versions already exist).
 - [idea] Preconstructed decks instead of the Jumpstart half-decks.
 - [idea] Chaos decks: random decks each run.

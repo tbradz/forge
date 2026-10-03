@@ -252,8 +252,26 @@ public class DelveHubScene extends UIScene {
         add.accept("Build a deck", () -> chooseDeckToEdit(false));
         add.accept("Build a Commander deck", () -> chooseDeckToEdit(true));
         add.accept("Saves (" + DelveSaves.currentName() + ")", () -> Forge.switchScene(DelveSavesScene.instance()));
+        add.accept("Difficulty: " + DelveProfile.get().difficulty().title, this::chooseDifficulty);
         DelveDialogs.gridButtons(d, labels, actions, 2);
         DelveDialogs.wideButton(d, "Close", this::removeDialog, 2);
+        showDialog(d);
+    }
+
+    /** Change this save's difficulty (an optional mode; takes effect from the next fight). */
+    private void chooseDifficulty() {
+        DelveDifficulty now = DelveProfile.get().difficulty();
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make("Difficulty");
+        StringBuilder text = new StringBuilder("[%75]Dungeon fights only. Takes effect from your next fight.");
+        for (DelveDifficulty x : DelveDifficulty.values())
+            text.append("\n[%70]").append(x == now ? "[GOLD]" : "").append(x.title).append("[WHITE]: ").append(x.description);
+        DelveDialogs.body(d, text.toString());
+        for (DelveDifficulty x : DelveDifficulty.values())
+            DelveDialogs.listButton(d, x == now ? "[GOLD]" + x.title + " (current)" : x.title, () -> {
+                removeDialog();
+                DelveProfile.get().setDifficulty(x);
+            }, 17f);
+        DelveDialogs.listButton(d, "Cancel", this::removeDialog, 17f);
         showDialog(d);
     }
 

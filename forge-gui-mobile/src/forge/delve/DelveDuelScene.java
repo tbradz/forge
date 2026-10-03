@@ -81,11 +81,12 @@ public class DelveDuelScene extends DuelScene {
     /** Prepare a dungeon duel. Call before Forge.switchScene(DelveDuelScene.instance()). */
     public void setup(DelveRun run, DelveRun.Node node, BiConsumer<Boolean, Integer> onFinished) {
         int depth = DelveMapGen.depth(run, run.step);
+        DelveDifficulty diff = DelveDifficulty.current();
         DelveDay.Tier tier = node.type == DelveRun.NodeType.BOSS ? DelveDay.Tier.BOSS
                 : node.type == DelveRun.NodeType.ELITE ? DelveDay.Tier.ELITE
-                : depth == 0 ? DelveDay.Tier.EARLY : depth == 2 ? DelveDay.Tier.LATE : DelveDay.Tier.FIGHT;
+                : diff.fightDeck(depth == 0 ? DelveDay.Tier.EARLY : depth == 2 ? DelveDay.Tier.LATE : DelveDay.Tier.FIGHT);
         Deck enemyDeck = run.day.enemyDeck(node.enemy, tier); // era cards in the enemy's colors
-        int foeLife = Math.max(1, node.enemyLife + run.nextFoeLife);
+        int foeLife = run.foeLife(node);
         run.nextFoeLife = 0; // blessings and curses last for one fight
         int life = run.life + (run.has(DelveRelic.IRON_BUCKLER) ? 4 : 0);
         setup(run.deck, life, node.enemy, enemyDeck, foeLife, 1,
@@ -94,8 +95,8 @@ public class DelveDuelScene extends DuelScene {
         this.perk2 = node.perk2;
         this.run = run;
         this.lifeCap = run.maxLife();
-        // the opening fights get a careless opponent; everyone else plays Forge's best AI
-        this.aiProfile = node.type == DelveRun.NodeType.FIGHT && depth == 0 ? "Reckless" : "Default";
+        // the opening fights get a careless opponent; everyone else plays Forge's best AI (difficulty can change this)
+        this.aiProfile = diff.fightAi(depth == 0, node.type == DelveRun.NodeType.FIGHT);
     }
 
     /**

@@ -237,6 +237,20 @@ public class DelveProfile {
         saveStats();
     }
 
+    /** Difficulty (optional mode, per save; see DelveDifficulty). Normal for saves made before it existed. */
+    public DelveDifficulty difficulty() {
+        try {
+            return DelveDifficulty.valueOf(stats.getProperty("difficulty", "NORMAL"));
+        } catch (IllegalArgumentException e) {
+            return DelveDifficulty.NORMAL;
+        }
+    }
+
+    public void setDifficulty(DelveDifficulty d) {
+        stats.setProperty("difficulty", d.name());
+        saveStats();
+    }
+
     /** Highest unlocked tier (0 = the first set). */
     /** TEMPORARY dev shortcut: unlock every set tier. */
     public void devUnlockAllTiers() {

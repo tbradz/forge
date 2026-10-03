@@ -64,11 +64,27 @@ public class DelveSavesScene extends DelveScene {
 
     /** A new save: pick which sets to climb, create your character (for good), then Bram shows you the town. */
     private void newSave() {
-        chooseSets(allSets -> {
+        chooseSets(allSets -> chooseDifficulty(diff -> {
             DelveSaves.load(DelveSaves.create());
             DelveProfile.get().setAllSets(allSets);
+            DelveProfile.get().setDifficulty(diff);
             meetTheTown();
-        });
+        }));
+    }
+
+    /** Optional mode, per save (can be changed later at Your House). */
+    private void chooseDifficulty(java.util.function.Consumer<DelveDifficulty> then) {
+        List<String> labels = new java.util.ArrayList<>();
+        List<Runnable> actions = new java.util.ArrayList<>();
+        StringBuilder text = new StringBuilder("[%75]Dungeon fights only; change it any time at Your House.");
+        for (DelveDifficulty d : DelveDifficulty.values()) {
+            text.append("\n[%70][GOLD]").append(d.title).append("[WHITE]: ").append(d.description);
+            labels.add(d == DelveDifficulty.NORMAL ? "[GOLD]" + d.title : d.title);
+            actions.add(() -> then.accept(d));
+        }
+        labels.add("Cancel");
+        actions.add(() -> { });
+        choose("Difficulty", text.toString(), labels, null, actions);
     }
 
     /** Optional mode, chosen per save: the Modern climb (default) or every set since Eighth Edition. */
@@ -90,17 +106,19 @@ public class DelveSavesScene extends DelveScene {
     /** TEMPORARY dev start: a new save with lots of gold, optionally every tier unlocked. */
     private void devSave() {
         List<String> labels = List.of("Gold only", "Gold + every tier unlocked", "Cancel");
-        List<Runnable> actions = List.of(() -> chooseSets(all -> startDev(false, all)), () -> chooseSets(all -> startDev(true, all)), () -> { });
+        List<Runnable> actions = List.of(() -> chooseSets(all -> chooseDifficulty(d -> startDev(false, all, d))),
+                () -> chooseSets(all -> chooseDifficulty(d -> startDev(true, all, d))), () -> { });
         choose("Dev save", "[%80]Testing shortcut: a new save that starts with " + DEV_GOLD
                 + " gold. Optionally unlock every set tier too.", labels, null, actions);
     }
 
     static final int DEV_GOLD = 50000;
 
-    private void startDev(boolean allTiers, boolean allSets) {
+    private void startDev(boolean allTiers, boolean allSets, DelveDifficulty diff) {
         DelveSaves.load(DelveSaves.create());
         DelveProfile prof = DelveProfile.get();
         prof.setAllSets(allSets);
+        prof.setDifficulty(diff);
         prof.addGold(DEV_GOLD);
         if (allTiers) prof.devUnlockAllTiers();
         meetTheTown();
