@@ -267,11 +267,13 @@ public class DelveCastleScene extends DelveScene {
     private void finishPod(boolean won) {
         DelveProfile prof = DelveProfile.get();
         String msg;
+        List<PaperCard> prize = null;
         if (won) {
             prof.addGold(DelveRenown.castlePrize(DelveEconomy.POD_WIN));
             prof.addCastleTitle();
             List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, new Random());
             prof.addToCollection(pack);
+            prize = pack;
             msg = "Last one standing! +" + DelveRenown.castlePrize(DelveEconomy.POD_WIN) + " gold, " + article(DelveDay.today().themeName()) + " " + DelveDay.today().themeName()
                     + " booster (added to your collection) and " + DelveTokens.grant(1, new Random()) + "."
                     + DelveRenown.award(DelveRenown.POD_WIN);
@@ -281,9 +283,11 @@ public class DelveCastleScene extends DelveScene {
         pod.over = true;
         clearState();
         build();
+        List<PaperCard> prizePack = prize;
         info("Pod over", msg, () -> {
             pod = null;
             build();
+            openPrize(prizePack);
         });
     }
 
@@ -430,12 +434,14 @@ public class DelveCastleScene extends DelveScene {
     private void finish(int reached) {
         DelveProfile prof = DelveProfile.get();
         String msg;
+        List<PaperCard> prize = null;
         switch (reached) {
             case 3: {
                 prof.addGold(DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION));
                 prof.addCastleTitle();
                 List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, t.rng);
                 prof.addToCollection(pack);
+                prize = pack;
                 msg = "You are the Castle champion! +" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + " gold, a "
                         + DelveDay.today().themeName() + " booster (added to your collection) and "
                         + DelveTokens.grant(1, t.rng) + ".";
@@ -457,10 +463,20 @@ public class DelveCastleScene extends DelveScene {
         t.out = true;
         clearState();
         build();
+        List<PaperCard> prizePack = prize;
         info("Tournament over", msg, () -> {
             t = null;
             build();
+            openPrize(prizePack);
         });
+    }
+
+    /** A prize booster (already in your collection) gets the pack-opening show, then back to the Castle. */
+    private void openPrize(List<PaperCard> pack) {
+        if (pack == null || pack.isEmpty()) return;
+        String set = DelveDay.today().edition.getName();
+        DelvePackOpenScene.instance().openPack("Castle prize: " + set + " booster", set, pack,
+                x -> Forge.switchScene(this));
     }
 
     // ---- saving an event in progress -----------------------------------------------

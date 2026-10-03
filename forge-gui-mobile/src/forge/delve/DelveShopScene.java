@@ -247,10 +247,9 @@ public class DelveShopScene extends DelveScene {
         DelveProfile prof = DelveProfile.get();
         if (prof.packsBought(type) >= DelveEconomy.PACKS_PER_DAY || !prof.spendGold(DelveRenown.shopPrice(DelveEconomy.PACK_PRICE))) return;
         prof.markPackBought(type);
-        DelveAudio.shuffle();
         List<PaperCard> cards = DelveDay.today().openPack(set, rng);
         prof.addToCollection(cards);
-        DelvePickScene.instance().show("You open a " + set.getName() + " booster", cards, 0, 0, "Back",
+        DelvePackOpenScene.instance().openPack("Card Shop: " + set.getName() + " booster", set.getName(), cards,
                 x -> Forge.switchScene(this));
     }
 

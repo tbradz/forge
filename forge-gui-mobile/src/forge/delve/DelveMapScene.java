@@ -808,15 +808,20 @@ public class DelveMapScene extends DelveScene {
         actions.add(() -> {
             taken.add("packs");
             List<PaperCard> all = new ArrayList<>();
-            for (int i = 0; i < DelveEconomy.CLEAR_PACKS; i++)
+            List<List<PaperCard>> packs = new ArrayList<>();
+            for (int i = 0; i < DelveEconomy.CLEAR_PACKS; i++) {
+                List<PaperCard> pack = new ArrayList<>();
                 for (PaperCard pc : run.day.openPack(run.day.edition, run.rng))
-                    if (!pc.getRules().getType().isBasicLand()) all.add(pc); // basics are free anyway
+                    if (!pc.getRules().getType().isBasicLand()) pack.add(pc); // basics are free anyway
+                packs.add(pack);
+                all.addAll(pack);
+            }
             DelveProfile.get().addToCollection(all);
-            DelvePickScene.instance().show("Your " + DelveEconomy.CLEAR_PACKS + " " + set + " boosters ("
-                            + all.size() + " cards, added to your collection)", all, 0, 0, "Continue", x -> {
-                Forge.switchScene(this);
-                rewardMenu(run, left - 1, taken, log + DelveEconomy.CLEAR_PACKS + " boosters opened. ");
-            });
+            DelvePackOpenScene.instance().openPacks("Your reward: " + DelveEconomy.CLEAR_PACKS + " " + set + " boosters",
+                    set, packs, x -> {
+                        Forge.switchScene(this);
+                        rewardMenu(run, left - 1, taken, log + DelveEconomy.CLEAR_PACKS + " boosters opened. ");
+                    });
         });
         labels.add(DelveEconomy.CLEAR_GOLD + " gold");
         enabled.add(!taken.contains("gold"));

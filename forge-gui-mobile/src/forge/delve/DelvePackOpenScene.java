@@ -49,15 +49,52 @@ public class DelvePackOpenScene extends DelveScene {
         return object;
     }
 
-    /** Open {@code packs} boosters of the day's tier set; {@code onDone} gets every card opened. */
+    /** header text, the set name printed on the pack, and packs opened ahead of time (null = open the day's set) */
+    private String title, setName;
+    private List<List<PaperCard>> preset;
+    private int drawn;
+
+    /** Open {@code packs} boosters of the day's tier set (the prerelease); {@code onDone} gets every card opened. */
     public void open(DelveDay day, int packs, Random rng, Consumer<List<PaperCard>> onDone) {
         this.day = day;
-        this.packs = packs;
         this.rng = rng;
+        start(day.edition.getName() + " prerelease", day.edition.getName(), null, packs, onDone);
+    }
+
+    /**
+     * Show packs that were already opened (bought, won, rewarded), with the same animation.
+     * The caller has already added the cards wherever they belong; {@code onDone} gets the non-basic cards.
+     */
+    public void openPacks(String title, String setName, List<List<PaperCard>> packs, Consumer<List<PaperCard>> onDone) {
+        if (packs.isEmpty()) {
+            if (onDone != null) onDone.accept(new ArrayList<>());
+            return;
+        }
+        start(title, setName, new ArrayList<>(packs), packs.size(), onDone);
+    }
+
+    private void start(String title, String setName, List<List<PaperCard>> preset, int packs, Consumer<List<PaperCard>> onDone) {
+        this.title = title;
+        this.setName = setName;
+        this.preset = preset;
+        this.packs = packs;
         this.onDone = onDone;
         this.opened = 0;
+        this.drawn = 0;
         pool.clear();
         forge.Forge.switchScene(this);
+    }
+
+    /** The next pack to open: a pre-opened one, or a fresh pack of the day's set. */
+    private List<PaperCard> nextPack() {
+        if (preset != null) return drawn < preset.size() ? preset.get(drawn++) : new ArrayList<>();
+        drawn++;
+        return day.openPack(day.edition, rng);
+    }
+
+    /** Show one already-opened pack. */
+    public void openPack(String title, String setName, List<PaperCard> pack, Consumer<List<PaperCard>> onDone) {
+        openPacks(title, setName, List.of(pack), onDone);
     }
 
     @Override
@@ -68,7 +105,7 @@ public class DelvePackOpenScene extends DelveScene {
     }
 
     private void header() {
-        label("[%90][GOLD]" + day.edition.getName() + " prerelease", 8, 5, 240, 16, Align.left);
+        label("[%90][GOLD]" + title, 8, 5, 240, 16, Align.left);
         headerRight = label("[%90]Pack " + Math.min(opened + 1, packs) + " of " + packs + "    Pool: " + pool.size() + " cards",
                 240, 5, 232, 16, Align.right);
     }
@@ -87,7 +124,7 @@ public class DelvePackOpenScene extends DelveScene {
                 Actions.moveBy(0, 3, 0.9f, Interpolation.sine),
                 Actions.moveBy(0, -3, 0.9f, Interpolation.sine))));
         com.github.tommyettinger.textra.TextraLabel name =
-                label("[%55]" + day.edition.getName(), px + 4, py + ph * 0.72f, pw - 8, ph * 0.13f, Align.center);
+                label("[%55]" + setName, px + 4, py + ph * 0.72f, pw - 8, ph * 0.13f, Align.center);
         name.setTouchable(Touchable.disabled);
         name.addAction(Actions.forever(Actions.sequence(
                 Actions.moveBy(0, 3, 0.9f, Interpolation.sine),
@@ -122,7 +159,7 @@ public class DelvePackOpenScene extends DelveScene {
         float total = left * pw + (left - 1) * gap, x0 = (W - total) / 2f, py = 90;
         List<PaperCard> all = new ArrayList<>();
         for (int i = 0; i < left; i++)
-            for (PaperCard pc : day.openPack(day.edition, rng))
+            for (PaperCard pc : nextPack())
                 if (!pc.getRules().getType().isBasicLand()) all.add(pc);
         pool.addAll(all);
         final int count = left;
@@ -191,7 +228,7 @@ public class DelvePackOpenScene extends DelveScene {
     /** Lay the pack's cards out face down, then flip them in order, rares last. */
     private void spill(float cx, float cy) {
         List<PaperCard> cards = new ArrayList<>();
-        for (PaperCard pc : day.openPack(day.edition, rng))
+        for (PaperCard pc : nextPack())
             if (!pc.getRules().getType().isBasicLand()) cards.add(pc);
         // reveal commons first, then uncommons, then the rare/mythic
         cards.sort(java.util.Comparator.comparingInt(DelvePackOpenScene::rarityOrder));
@@ -278,10 +315,11 @@ public class DelvePackOpenScene extends DelveScene {
                 240, 5, 232, 16, Align.right);
         boolean last = opened >= packs;
         // rebuild the header with the new pool size, keep the cards on the table
-        label("[%80]" + (last ? "That's every pack. Time to build your deck!"
+        boolean prerelease = preset == null;
+        label("[%80]" + (last ? (prerelease ? "That's every pack. Time to build your deck!" : "That's every pack. They're in your collection.")
                 : "Hover a card to read it."), 0, 230, W, 12, Align.center);
         if (last) {
-            button("[GOLD]Build your deck", W / 2f - 70, 244, 140, 20, () -> {
+            button(prerelease ? "[GOLD]Build your deck" : "[GOLD]Done", W / 2f - 70, 244, 140, 20, () -> {
                 Consumer<List<PaperCard>> cb = onDone;
                 onDone = null;
                 if (cb != null) cb.accept(new ArrayList<>(pool));

@@ -90,7 +90,7 @@ public class DelvePaiGowScene extends DelveScene {
         java.util.Arrays.fill(placedIn, -1);
         selected = -1;
         building = true;
-        DelvePickScene.instance().show("Your " + set.getName() + " booster", myPack, 0, 0, "Make your piles",
+        DelvePackOpenScene.instance().openPack("Pai Gow: your " + set.getName() + " booster", set.getName(), myPack,
                 x -> Forge.switchScene(this));
     }
 

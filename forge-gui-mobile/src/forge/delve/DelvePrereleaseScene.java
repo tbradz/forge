@@ -144,14 +144,18 @@ public class DelvePrereleaseScene extends DelveScene {
         over = true;
         int prize = PRIZE_PACKS[Math.min(3, wins[0])];
         List<PaperCard> cards = new ArrayList<>();
+        List<List<PaperCard>> packs = new ArrayList<>();
         Random rng = new Random();
-        for (int i = 0; i < prize; i++) cards.addAll(day.openPack(day.edition, rng));
-        cards.removeIf(pc -> pc.getRules().getType().isBasicLand());
+        for (int i = 0; i < prize; i++) {
+            List<PaperCard> pack = new ArrayList<>(day.openPack(day.edition, rng));
+            pack.removeIf(pc -> pc.getRules().getType().isBasicLand());
+            packs.add(pack);
+            cards.addAll(pack);
+        }
         if (!cards.isEmpty()) {
             DelveProfile.get().addToCollection(cards);
-            final List<PaperCard> show = cards;
-            DelvePickScene.instance().show("Prize: " + prize + " " + day.edition.getName() + " booster"
-                    + (prize > 1 ? "s" : "") + " (added to your collection)", show, 0, 0, "Continue", x -> Forge.switchScene(this));
+            DelvePackOpenScene.instance().openPacks("Prerelease prize: " + prize + " " + day.edition.getName() + " booster"
+                    + (prize > 1 ? "s" : ""), day.edition.getName(), packs, x -> Forge.switchScene(this));
         }
     }
 
