@@ -75,6 +75,16 @@ public final class DelveEconomy {
     public static final int PAI_GOW_PER_DAY = 3, PAI_GOW_TAKE = 2;
     public static final int PACKS_PER_DAY = 3; // of each pack type
 
+    /** Bulk (commons/uncommons) sells to the Card Shop by the box (Tyler): a box of 100 for a few coins. */
+    public static final int BULK_LOT = 100, BULK_LOT_PRICE = 25;
+    /** Copies of each bulk card always kept for deckbuilding. */
+    public static final int BULK_KEEP = 4;
+
+    public static boolean isBulk(PaperCard pc) {
+        return (pc.getRarity() == forge.card.CardRarity.Common || pc.getRarity() == forge.card.CardRarity.Uncommon)
+                && !pc.getRules().getType().isBasicLand();
+    }
+
     /** The Card Shop's cut on every card it buys from you. */
     public static final int SHOP_SELL_FEE = 5;
 

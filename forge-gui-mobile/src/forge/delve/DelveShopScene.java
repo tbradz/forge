@@ -86,6 +86,7 @@ public class DelveShopScene extends DelveScene {
 
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
         button("[GOLD]Sell rares", 300, 245, 110, 18, () -> sellRares(0));
+        button("[GOLD]Sell bulk", 70, 245, 110, 18, this::sellBulk);
     }
 
     // ---- selling rares to the shop -------------------------------------------------------
@@ -97,7 +98,8 @@ public class DelveShopScene extends DelveScene {
      * Rares and mythics you can sell: every copy beyond what your most demanding built deck
      * (House or Commander) uses, so selling never breaks a deck. Best payout first.
      */
-    private static List<PaperCard> sellableRares() {
+    /** How many copies of each card your most demanding built deck (House or Commander) uses. */
+    private static java.util.Map<PaperCard, Integer> deckNeeds() {
         java.util.Map<PaperCard, Integer> needed = new java.util.HashMap<>();
         List<forge.deck.Deck> decks = new java.util.ArrayList<>();
         for (forge.deck.Deck d : DelveDeckEditScene.decks()) decks.add(d);
@@ -109,6 +111,11 @@ public class DelveShopScene extends DelveScene {
                     inDeck.merge(e.getKey(), e.getValue(), Integer::sum);
             inDeck.forEach((pc, n) -> needed.merge(pc, n, Math::max));
         }
+        return needed;
+    }
+
+    private static List<PaperCard> sellableRares() {
+        java.util.Map<PaperCard, Integer> needed = deckNeeds();
         List<PaperCard> out = new java.util.ArrayList<>();
         for (java.util.Map.Entry<PaperCard, Integer> e : DelveProfile.get().collection()) {
             PaperCard pc = e.getKey();
@@ -118,6 +125,59 @@ public class DelveShopScene extends DelveScene {
         out.sort(java.util.Comparator.comparingInt((PaperCard pc) -> -DelveEconomy.shopSellPayout(pc))
                 .thenComparing(PaperCard::getName));
         return out;
+    }
+
+    // ---- selling bulk (commons and uncommons) in lots ------------------------------------------
+
+    /**
+     * Commons and uncommons you can spare: copies beyond {@link DelveEconomy#BULK_KEEP} of each card and
+     * beyond what your built decks use; basic lands aren't bulk. The set's weakest cards come first.
+     */
+    private static List<PaperCard> spareBulk() {
+        java.util.Map<PaperCard, Integer> needed = deckNeeds();
+        List<PaperCard> out = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<PaperCard, Integer> e : DelveProfile.get().collection()) {
+            PaperCard pc = e.getKey();
+            if (!DelveEconomy.isBulk(pc)) continue;
+            int keep = Math.max(DelveEconomy.BULK_KEEP, needed.getOrDefault(pc, 0));
+            for (int i = keep; i < e.getValue(); i++) out.add(pc);
+        }
+        out.sort(java.util.Comparator.comparingDouble(DelveRank::score).thenComparing(PaperCard::getName));
+        return out;
+    }
+
+    /** The owner buys bulk 100 cards at a time for a few coins. */
+    private void sellBulk() {
+        List<PaperCard> spare = spareBulk();
+        int lots = spare.size() / DelveEconomy.BULK_LOT;
+        String text = "[%80]\"Commons and uncommons? I'll take them by the box: " + DelveEconomy.BULK_LOT + " cards for "
+                + DelveEconomy.BULK_LOT_PRICE + " gold.\"\n\n[%80]You have " + spare.size() + " spare (copies beyond "
+                + DelveEconomy.BULK_KEEP + " of each card and beyond what your decks use). The weakest go first.";
+        List<String> labels = new java.util.ArrayList<>();
+        List<Boolean> enabled = new java.util.ArrayList<>();
+        List<Runnable> actions = new java.util.ArrayList<>();
+        labels.add("Sell one box (" + DelveEconomy.BULK_LOT + " cards, " + DelveEconomy.BULK_LOT_PRICE + "g)");
+        enabled.add(lots >= 1);
+        actions.add(() -> sellBulkLots(spare, 1));
+        labels.add("Sell every full box (" + lots + " box" + (lots == 1 ? "" : "es") + ", " + lots * DelveEconomy.BULK_LOT_PRICE + "g)");
+        enabled.add(lots >= 2);
+        actions.add(() -> sellBulkLots(spare, lots));
+        labels.add("Not now");
+        enabled.add(true);
+        actions.add(() -> { });
+        choose("Sell bulk", text, labels, enabled, actions);
+    }
+
+    private void sellBulkLots(List<PaperCard> spare, int lots) {
+        DelveProfile prof = DelveProfile.get();
+        int sold = 0;
+        for (int i = 0; i < lots * DelveEconomy.BULK_LOT && i < spare.size(); i++)
+            if (prof.removeFromCollection(spare.get(i))) sold++;
+        int gold = sold / DelveEconomy.BULK_LOT * DelveEconomy.BULK_LOT_PRICE;
+        prof.addGold(gold);
+        DelveAudio.coins();
+        build();
+        info("Card Shop", "You sell " + sold + " bulk cards for " + gold + " gold.", null);
     }
 
     /** Sell rares and mythics to the owner, a page at a time; each page's sale happens on Confirm. */
