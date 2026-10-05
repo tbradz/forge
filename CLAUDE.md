@@ -33,7 +33,7 @@ Game install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (launch with `Delve.cm
 - Builds run locally on Tyler's PC (see DEV_NOTES "Building locally"); playtest zips per DEV_NOTES "Playtest package".
 - Lots built since 2026-10-02 but not yet seen running: Forge Fork/PLAYTEST-CHECKLIST.md lists what to check.
 - Commits from 2026-10-02 on may not be pushed: Tyler pushes from his own terminal (GitHub sign-in).
-- Waiting on Tyler: approval of the foil sleeve art.
+- Nothing waiting on Tyler except the GitHub push and the playtest checklist.
 
 ## Backlog (Tyler's list, 2026-10-02)
 Next up
@@ -53,7 +53,7 @@ More ways to play
 Town and world
 - [done] Tavern NPCs and rumors (DelveRegulars). More regulars/rumor kinds can be added there.
 - [done] Castle rankings and titles that unlock things (DelveRenown).
-- Outfitter: sleeves and playmats only (Tyler). [done] playmats; [pending approval] foil sleeves (delve-tools/make_sleeves.py, art in Forge Fork/art-review/foil-sleeves; wire by adding images to FSkin.getSleeves() at high indexes). Portraits/dice dropped.
+- Outfitter: sleeves and playmats only (Tyler). [done] playmats; [done] foil sleeves (DelveSleeves, make_sleeves.py; registered into FSkin.getSleeves() at 1000+; Outfitter Foil sleeves tab). Portraits/dice dropped.
 - [done] Pai Gow: the pack menu pages through older sets.
 
 Polish and release
