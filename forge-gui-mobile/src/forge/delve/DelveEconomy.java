@@ -109,6 +109,8 @@ public final class DelveEconomy {
 
     // ---- Castle tournaments ------------------------------------------------------
     public static final int CASTLE_ENTRY = 25;
+    /** Sealed night / Draft night (you keep the six packs or your draft picks) */
+    public static final int CASTLE_NIGHT_ENTRY = 120;
     public static final int CASTLE_SEMIFINAL = 30;   // lost in the semifinal
     public static final int CASTLE_FINALIST = 75;    // lost in the final
     public static final int CASTLE_CHAMPION = 150;   // plus a booster of today's set

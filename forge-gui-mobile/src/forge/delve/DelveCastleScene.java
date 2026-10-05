@@ -101,9 +101,47 @@ public class DelveCastleScene extends DelveScene {
         return pct + text.replace("[]", "[WHITE]").replace("\n", "\n" + pct);
     }
 
+    /** Tonight's featured event on the left: the 1v1 tournament, Sealed night or Draft night, by day. */
+    private static DelvePrereleaseScene.Kind featured() {
+        switch (Math.floorMod(DelveProfile.get().day(), 3)) {
+            case 1: return DelvePrereleaseScene.Kind.SEALED_NIGHT;
+            case 2: return DelvePrereleaseScene.Kind.DRAFT_NIGHT;
+            default: return null; // the 1v1 tournament
+        }
+    }
+
+    /** Sealed / Draft night in the left panel. */
+    private void buildNightPanel(DelvePrereleaseScene.Kind night, boolean done) {
+        DelveProfile prof = DelveProfile.get();
+        boolean draft = night == DelvePrereleaseScene.Kind.DRAFT_NIGHT;
+        int entry = DelveRenown.castleEntry(DelveEconomy.CASTLE_NIGHT_ENTRY);
+        image("ui/delve/panel.png", 12, 30, 224, 200);
+        label("[%120]" + (draft ? "Draft night" : "Sealed night"), 12, 38, 224, 20, Align.center);
+        label(sized("[%80]", (draft
+                        ? "Draft three packs of " + DelveDay.today().edition.getName() + " with seven other duelists, pick by pick. "
+                        : "Open six packs of " + DelveDay.today().edition.getName() + ". ")
+                        + "Build a 40-card deck and play three rounds. You keep every card.\n\n"
+                        + "Entry [GOLD]" + entry + "g[]\n"
+                        + "3-0 [GOLD]" + DelveRenown.castlePrize(100) + "g[] + booster, +" + DelveRenown.CHAMPION + " Renown\n"
+                        + "2-1 [GOLD]" + DelveRenown.castlePrize(50) + "g[], +" + DelveRenown.FINALIST + "   1-2 [GOLD]"
+                        + DelveRenown.castlePrize(20) + "g[], +" + DelveRenown.SEMIFINAL),
+                24, 62, 200, 130, Align.center);
+        if (!done)
+            button("[GOLD]" + (draft ? "Join the draft" : "Sit down for sealed"), 34, 200, 180, 22,
+                    () -> DelvePrereleaseScene.castle().beginNight(night)).setDisabled(prof.gold() < entry);
+    }
+
     private void buildLobby() {
         DelveProfile prof = DelveProfile.get();
         boolean done = prof.castleToday();
+        DelvePrereleaseScene.Kind night = featured();
+        if (night != null) buildNightPanel(night, done);
+        else build1v1Panel(done);
+        buildPodPanel(done);
+    }
+
+    private void build1v1Panel(boolean done) {
+        DelveProfile prof = DelveProfile.get();
         // left: 1v1 bracket
         image("ui/delve/panel.png", 12, 30, 224, 200);
         label("[%120]1v1 Tournament", 12, 38, 224, 20, Align.center);
@@ -117,6 +155,10 @@ public class DelveCastleScene extends DelveScene {
         if (!done)
             button("[GOLD]Enter the tournament", 34, 200, 180, 22, this::chooseDeck)
                     .setDisabled(prof.gold() < DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY));
+    }
+
+    private void buildPodPanel(boolean done) {
+        DelveProfile prof = DelveProfile.get();
         // right: Commander pod
         image("ui/delve/panel.png", 244, 30, 224, 200);
         label("[%120]Commander Pod", 244, 38, 224, 20, Align.center);

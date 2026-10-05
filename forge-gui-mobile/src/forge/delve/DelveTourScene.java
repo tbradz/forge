@@ -53,7 +53,7 @@ public class DelveTourScene extends DelveScene {
                     "Beat the boss and you bring home every coin, plus a reward: packs, gold, cards from your deck, or the whole deck locked as it is. "
                             + "Clearing it also opens the next set's dungeon. Fall, and you keep only part of your gold."),
             new Stop("b_castle", "The Castle", 250, 140,
-                    "Up on the hill, the Castle. Every evening there's a tournament: eight duelists, best of three. Or a four-player Commander pod, if that's your game.",
+                    "Up on the hill, the Castle. Every evening there's a featured event: a tournament, a sealed night or a draft night, turn and turn about. Or a four-player Commander pod, if that's your game.",
                     "One event a night, and the entry isn't free. Win, and the prizes are worth it. The nobles keep a list of champions, too."),
             new Stop("b_house", "Your House", 70, 230,
                     "This one's yours. Build your decks here from the cards you collect, and sleep when you're ready for the next day."),
