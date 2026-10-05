@@ -55,6 +55,8 @@ public class DelveRun {
     public final long seed;
     /** map generator version that built this run (see {@link DelveMapGen#CURRENT_GEN}); saved runs keep theirs */
     public final int gen;
+    /** floor length chosen in Options when the run started (generator 6+; saved) */
+    public final DelveModes.Length length;
     public final Random rng;
     public final DelveDay day;
     public final Deck deck;
@@ -106,17 +108,18 @@ public class DelveRun {
     /** Cards you may pick from the run deck as a clear reward. */
     public static final int CLEAR_KEEPS = 5;
 
-    private DelveRun(DelveDay day, Deck deck, long seed, int gen) {
+    private DelveRun(DelveDay day, Deck deck, long seed, int gen, DelveModes.Length length) {
         this.day = day;
         this.deck = deck;
         this.seed = seed;
         this.gen = gen;
+        this.length = length;
         this.rng = new Random(seed);
         DelveMapGen.build(this);
     }
 
     public static DelveRun start(DelveDay day, Deck starter) {
-        current = new DelveRun(day, starter, day.seed ^ System.nanoTime(), DelveMapGen.CURRENT_GEN);
+        current = new DelveRun(day, starter, day.seed ^ System.nanoTime(), DelveMapGen.CURRENT_GEN, DelveModes.length());
         current.life = current.maxLife();
         current.freeReroll = DelveRenown.freeRerollEachRun();
         DelveProfile.get().markDelved();
@@ -124,9 +127,9 @@ public class DelveRun {
         return current;
     }
 
-    /** Rebuild a run from its seed and generator version (same map) — used by DelveRunSave. */
-    static DelveRun restore(DelveDay day, Deck deck, long seed, int gen) {
-        current = new DelveRun(day, deck, seed, gen);
+    /** Rebuild a run from its seed, generator version and floor length (same map) — used by DelveRunSave. */
+    static DelveRun restore(DelveDay day, Deck deck, long seed, int gen, DelveModes.Length length) {
+        current = new DelveRun(day, deck, seed, gen, length);
         return current;
     }
 

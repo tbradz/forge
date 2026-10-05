@@ -251,6 +251,16 @@ public class DelveProfile {
         saveStats();
     }
 
+    /** A per-save optional mode setting (see DelveModes). */
+    public String option(String key, String fallback) {
+        return stats.getProperty("option." + key, fallback);
+    }
+
+    public void setOption(String key, String value) {
+        stats.setProperty("option." + key, value);
+        saveStats();
+    }
+
     /** Highest unlocked tier (0 = the first set). */
     /** TEMPORARY dev shortcut: unlock every set tier. */
     public void devUnlockAllTiers() {

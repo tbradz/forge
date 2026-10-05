@@ -97,6 +97,12 @@ public class DelveGateScene extends DelveScene {
             info("Dungeon Gate", "This set doesn't have enough single-colour cards for half-decks.", null);
             return;
         }
+        if (DelveModes.chaosDecks()) { // optional mode: the game picks two half-decks, sight unseen
+            List<DelveDay.HalfDeck> shuffled = new ArrayList<>(halves);
+            java.util.Collections.shuffle(shuffled, rng);
+            showDeck(day, DelveDay.combine(shuffled.get(0), shuffled.get(1)), "Chaos deck: ");
+            return;
+        }
         List<PaperCard> faces = new ArrayList<>();
         StringBuilder names = new StringBuilder();
         for (DelveDay.HalfDeck h : halves) {
@@ -106,14 +112,18 @@ public class DelveGateScene extends DelveScene {
         DelvePickScene.instance().show("Pick two half-decks:  " + names, faces, 2, 2, null,
                 pc -> halfFor(halves, pc).name, picked -> {
                     DelveDay.HalfDeck a = halfFor(halves, picked.get(0)), b = halfFor(halves, picked.get(1));
-                    Deck deck = DelveDay.combine(a, b);
-                    List<PaperCard> view = new ArrayList<>();
-                    for (PaperCard pc : deck.getMain().toFlatList())
-                        if (!pc.getRules().getType().isBasicLand() && !view.contains(pc)) view.add(pc);
-                    view.sort(java.util.Comparator.comparingInt(pc -> pc.getRules().getManaCost().getCMC()));
-                    DelvePickScene.instance().show(deck.getName() + "  (24 spells + 16 basic lands)", view, 0, 0,
-                            "Into the dungeon", x -> begin(day, deck));
+                    showDeck(day, DelveDay.combine(a, b), "");
                 });
+    }
+
+    /** Show the run's starting deck (spells by mana value), then into the dungeon. */
+    private void showDeck(DelveDay day, Deck deck, String prefix) {
+        List<PaperCard> view = new ArrayList<>();
+        for (PaperCard pc : deck.getMain().toFlatList())
+            if (!pc.getRules().getType().isBasicLand() && !view.contains(pc)) view.add(pc);
+        view.sort(java.util.Comparator.comparingInt(pc -> pc.getRules().getManaCost().getCMC()));
+        DelvePickScene.instance().show(prefix + deck.getName() + "  (24 spells + 16 basic lands)", view, 0, 0,
+                "Into the dungeon", x -> begin(day, deck));
     }
 
     private static DelveDay.HalfDeck halfFor(List<DelveDay.HalfDeck> halves, PaperCard face) {

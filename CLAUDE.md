@@ -69,8 +69,10 @@ options are stored in the save's profile.properties (like `era`) and chosen when
 - [built] Difficulty (DelveDifficulty: Easy/Normal/Hard/Brutal): foe life %, fight deck strength step, fight gold %,
   your max life, careless-AI openers. Chosen at New save, changeable at Your House (`difficulty` in profile).
 - [idea] More modifiers: permadeath-style rules, no-merchant runs, relic-less runs, mixed-set dungeons.
-- [idea] Dungeon length: short / standard / long floors (map generator versions already exist).
-- [idea] Preconstructed decks instead of the Jumpstart half-decks.
-- [idea] Chaos decks: random decks each run.
+- [built] Dungeon length (DelveModes.Length: Short 7-9 / Standard 10-13 / Long 14-17 rooms; map gen 6, saved per run).
+- [built] Chaos decks (DelveModes.chaosDecks): the game picks your two half-decks, sight unseen.
+  Both live in Your House > Options (with Difficulty); stored as `option.*` in the profile.
+- [idea] Preconstructed decks instead of the Jumpstart half-decks. (Forge only has precons for ZNR-NEO,
+  M21 and STX in the Modern range, so this would need a fallback for newer sets.)
 - [idea] Per-set special rules (rejected as default rules, kept as an option).
 - [idea] Choose any starting set.

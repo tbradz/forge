@@ -30,8 +30,9 @@ final class DelveMapGen {
      * 3 = open paths (every room reaches 2-3 rooms ahead, no locked lanes) and better-spread room types.
      * 4 = set-themed enemies (DelveDay.themedWeak/Elite/Boss).
      * 5 = set-themed events too (DelveEvents.themed).
+     * 6 = floor length from Options (DelveModes.Length: 7-9 / 10-13 / 14-17), saved with the run.
      */
-    static final int CURRENT_GEN = 5;
+    static final int CURRENT_GEN = 6;
 
     /** Rolls added after release (special rooms, elite perks) use their own generator so a saved
      *  run's seed still rebuilds the same rooms and enemies it had before. */
@@ -52,7 +53,11 @@ final class DelveMapGen {
         Picker boss = new Picker(bossPool.isEmpty() ? elitePool : bossPool, run);
 
         int steps, eliteAt, secondEliteAt;    // 0-based layer indexes
-        if (run.gen >= 2) {
+        if (run.gen >= 6) {                   // the run's chosen floor length (Options)
+            steps = run.length.min + run.rng.nextInt(run.length.spread);
+            eliteAt = steps / 3;
+            secondEliteAt = 2 * steps / 3;
+        } else if (run.gen >= 2) {
             steps = 10 + run.rng.nextInt(4);  // 10..13
             eliteAt = steps / 3;
             secondEliteAt = 2 * steps / 3;

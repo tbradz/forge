@@ -46,6 +46,7 @@ public final class DelveRunSave {
             p.setProperty("tier", Integer.toString(run.day.tier));
             p.setProperty("seed", Long.toString(run.seed));
             p.setProperty("gen", Integer.toString(run.gen));
+            p.setProperty("length", run.length.name());
             p.setProperty("freeReroll", Boolean.toString(run.freeReroll));
             p.setProperty("life", Integer.toString(run.life));
             p.setProperty("gold", Integer.toString(run.gold));
@@ -93,7 +94,7 @@ public final class DelveRunSave {
                     Integer.parseInt(p.getProperty("tier", "0")));
             // runs saved before map versions existed were built by generator 1
             DelveRun run = DelveRun.restore(day, deck, Long.parseLong(p.getProperty("seed")),
-                    Integer.parseInt(p.getProperty("gen", "1")));
+                    Integer.parseInt(p.getProperty("gen", "1")), DelveModes.Length.parse(p.getProperty("length", "STANDARD")));
             run.life = Integer.parseInt(p.getProperty("life", "20"));
             run.freeReroll = Boolean.parseBoolean(p.getProperty("freeReroll", "false"));
             run.gold = Integer.parseInt(p.getProperty("gold", "0"));

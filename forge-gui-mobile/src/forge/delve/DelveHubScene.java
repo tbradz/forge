@@ -252,9 +252,36 @@ public class DelveHubScene extends UIScene {
         add.accept("Build a deck", () -> chooseDeckToEdit(false));
         add.accept("Build a Commander deck", () -> chooseDeckToEdit(true));
         add.accept("Saves (" + DelveSaves.currentName() + ")", () -> Forge.switchScene(DelveSavesScene.instance()));
-        add.accept("Difficulty: " + DelveProfile.get().difficulty().title, this::chooseDifficulty);
+        add.accept("Options", this::options);
         DelveDialogs.gridButtons(d, labels, actions, 2);
         DelveDialogs.wideButton(d, "Close", this::removeDialog, 2);
+        showDialog(d);
+    }
+
+    /** This save's optional modes: difficulty, dungeon length, how the starting deck is picked. */
+    private void options() {
+        com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make("Options");
+        DelveModes.Length len = DelveModes.length();
+        boolean chaos = DelveModes.chaosDecks();
+        DelveDialogs.body(d, "[%75]Optional modes for this save. Difficulty applies from your next fight; "
+                + "the others from your next run.");
+        DelveDialogs.listButton(d, "Difficulty: [GOLD]" + DelveProfile.get().difficulty().title, () -> {
+            removeDialog();
+            chooseDifficulty();
+        }, 18f);
+        DelveDialogs.listButton(d, "Dungeon length: [GOLD]" + len.title + "[] (" + len.rooms + ")", () -> {
+            removeDialog();
+            DelveModes.Length[] all = DelveModes.Length.values();
+            DelveModes.setLength(all[(len.ordinal() + 1) % all.length]); // cycle Short -> Standard -> Long
+            options();
+        }, 18f);
+        DelveDialogs.listButton(d, "Starting decks: [GOLD]" + (chaos ? "Chaos" : "Pick 2 of 3")
+                + "[]" + (chaos ? " (picked for you)" : ""), () -> {
+            removeDialog();
+            DelveModes.setChaosDecks(!chaos);
+            options();
+        }, 18f);
+        DelveDialogs.listButton(d, "Close", this::removeDialog, 18f);
         showDialog(d);
     }
 
