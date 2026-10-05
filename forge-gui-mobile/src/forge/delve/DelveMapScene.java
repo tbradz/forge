@@ -880,17 +880,9 @@ public class DelveMapScene extends DelveScene {
                 rewardMenu(run, left - 1, taken, log + kept.size() + " cards added to your collection. ");
             });
         });
-        labels.add("Lock the deck (it can never be changed)");
-        enabled.add(!taken.contains("lock"));
-        actions.add(() -> {
-            taken.add("lock");
-            String name = run.day.themeName() + " " + run.deck.getName().replace(" Draft", "");
-            DelveProfile.get().addLockedDeck(run.deck, name + " (Locked)");
-            rewardMenu(run, left - 1, taken, log + "Run deck saved as a Locked Deck. ");
-        });
+        // (the "Lock the deck" reward was removed 2026-10-05, Tyler: Compact run decks aren't town decks)
         choose(left > 1 ? "Choose a reward (" + left + " left)" : "Choose your reward",
-                "Rewards come from " + set + ". Cards and packs go to your collection; a Locked Deck can be played "
-                        + "anywhere but never edited.", labels, enabled, actions);
+                "Rewards come from " + set + ". Cards and packs go to your collection.", labels, enabled, actions);
     }
 
     private void finishRun(String message) {

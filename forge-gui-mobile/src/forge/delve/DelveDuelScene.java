@@ -333,25 +333,7 @@ public class DelveDuelScene extends DuelScene {
         }
         if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);
         if (run.has(DelveRelic.LUCKY_COIN)) human.setStartingHand(human.getStartingHand() + 1);
-        // smoothing: every dungeon fight starts with one basic of your main colour already in play
-        forge.item.PaperCard land = mainBasic(run.deck);
-        if (land != null) {
-            List<forge.item.IPaperCard> bf = new ArrayList<>();
-            bf.add(land);
-            human.addExtraCardsOnBattlefield(bf);
-        }
-    }
-
-    /** The basic land your deck has most of. */
-    private static forge.item.PaperCard mainBasic(Deck deck) {
-        forge.item.PaperCard best = null;
-        int most = 0;
-        for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : deck.getMain())
-            if (e.getKey().getRules().getType().isBasicLand() && e.getValue() > most) {
-                best = e.getKey();
-                most = e.getValue();
-            }
-        return best;
+        // (a free basic in play at the start was tried 2026-10-04 and dropped: too strong, Tyler)
     }
 
     /** The perk cards start in the boss's command zone; Rampant also starts with a land in play. */

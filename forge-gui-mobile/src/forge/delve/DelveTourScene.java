@@ -50,7 +50,7 @@ public class DelveTourScene extends DelveScene {
                             + "Shuffled together, that's your deck. {FIRST_SET}, to start.",
                     "Down below you choose your path room by room. Fights pay gold, and merchants down there sell cards that make your deck stronger. "
                             + "Elites guard relics, and the boss at the bottom has tricks of its own.",
-                    "Beat the boss and you bring home every coin, plus a reward: packs, gold, cards from your deck, or the whole deck locked as it is. "
+                    "Beat the boss and you bring home every coin, plus a reward: packs, gold, or cards from your deck to keep. "
                             + "Clearing it also opens the next set's dungeon. Fall, and you keep only part of your gold."),
             new Stop("b_castle", "The Castle", 250, 140,
                     "Up on the hill, the Castle. Every evening there's a featured event: a tournament, a sealed night or a draft night, turn and turn about. Or a four-player Commander pod, if that's your game.",

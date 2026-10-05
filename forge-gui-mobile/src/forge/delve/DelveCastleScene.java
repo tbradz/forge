@@ -146,7 +146,7 @@ public class DelveCastleScene extends DelveScene {
         image("ui/delve/panel.png", 12, 30, 224, 200);
         label("[%120]1v1 Tournament", 12, 38, 224, 20, Align.center);
         label(sized("[%80]", "Eight duelists, single elimination, best of three. "
-                        + "Bring a deck from Your House or a Locked Deck (40+ cards).\n\n"
+                        + "Bring a deck built in Your House (40+ cards).\n\n"
                         + "Entry [GOLD]" + DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY) + "g[]\n"
                         + "Champion [GOLD]" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + "g[] + booster + token\n"
                         + "Finalist [GOLD]" + DelveRenown.castlePrize(DelveEconomy.CASTLE_FINALIST) + "g[]   Semifinal [GOLD]"
