@@ -29,9 +29,12 @@ Game install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (launch with `Delve.cm
 - Commit as Claude with the Co-Authored-By trailer; keep DEV_NOTES.md updated with decisions and status.
 - Tyler prefers the side-view town diorama (not the top-down Adventure-map look).
 
-## Where we left off (2026-10-02)
-- Side-view town (make_town_diorama.py) and Bram's walking tour (DelveTourScene) are built, installed and
-  playtested by Tyler: all good. Builds now run locally on Tyler's PC (see DEV_NOTES "Building locally").
+## Where we left off (2026-10-04)
+- Builds run locally on Tyler's PC (see DEV_NOTES "Building locally"); playtest zips per DEV_NOTES "Playtest package".
+- Lots built since 2026-10-02 but not yet seen running: Forge Fork/PLAYTEST-CHECKLIST.md lists what to check.
+- Commits from 2026-10-02 on may not be pushed: Tyler pushes from his own terminal (GitHub sign-in).
+- Waiting on Tyler: what bulk cards are for (options offered: bulk bin for boosters, crafting up a rarity,
+  Tavern pot for Renown, or leave it).
 
 ## Backlog (Tyler's list, 2026-10-02)
 Next up
@@ -52,7 +55,7 @@ Town and world
 - [done] Tavern NPCs and rumors (DelveRegulars). More regulars/rumor kinds can be added there.
 - [done] Castle rankings and titles that unlock things (DelveRenown).
 - More Outfitter items: [done] playmats (DelvePlaymat); portraits, dice.
-- Pai Gow: an "older sets" page in the pack menu (it only lists the newest 5 sets now).
+- [done] Pai Gow: the pack menu pages through older sets.
 
 Polish and release
 - Balance pass from playtests: gold, prices, enemy decks, AI difficulty.
