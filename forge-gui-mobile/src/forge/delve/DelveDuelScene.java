@@ -259,6 +259,7 @@ public class DelveDuelScene extends DuelScene {
         rules.setManaBurn(false);
         rules.setWarnAboutAICards(false);
         if (paiGow) rules.setMulligans(false);
+        if (run != null) rules.setSmoothOpeningHands(true); // dungeon fights: no 0-1 or 6-7 land opening hands
 
         match = MatchController.hostMatch();
         match.startMatch(rules, variants, players, guiMap,
@@ -325,8 +326,32 @@ public class DelveDuelScene extends DuelScene {
             if (c != null) cmd.add(c);
             else if (r.cardName != null) System.err.println("Delve: relic card missing: " + r.cardName);
         }
+        if (run.compact) { // a 20-card deck can run dry in a long game: skip draws from an empty library
+            forge.item.IPaperCard rules = FModel.getMagicDb().getCommonCards().getCard("Delve Compact Rules");
+            if (rules != null) cmd.add(rules);
+            else System.err.println("Delve: Compact rules card missing");
+        }
         if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);
         if (run.has(DelveRelic.LUCKY_COIN)) human.setStartingHand(human.getStartingHand() + 1);
+        // smoothing: every dungeon fight starts with one basic of your main colour already in play
+        forge.item.PaperCard land = mainBasic(run.deck);
+        if (land != null) {
+            List<forge.item.IPaperCard> bf = new ArrayList<>();
+            bf.add(land);
+            human.addExtraCardsOnBattlefield(bf);
+        }
+    }
+
+    /** The basic land your deck has most of. */
+    private static forge.item.PaperCard mainBasic(Deck deck) {
+        forge.item.PaperCard best = null;
+        int most = 0;
+        for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : deck.getMain())
+            if (e.getKey().getRules().getType().isBasicLand() && e.getValue() > most) {
+                best = e.getKey();
+                most = e.getValue();
+            }
+        return best;
     }
 
     /** The perk cards start in the boss's command zone; Rampant also starts with a land in play. */

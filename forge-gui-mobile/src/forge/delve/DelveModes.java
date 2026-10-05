@@ -41,6 +41,18 @@ public final class DelveModes {
         DelveProfile.get().setOption("dungeonLength", l.name());
     }
 
+    /**
+     * Compact runs (the default, Tyler 2026-10-04): a 20-card starting deck (6 best spells of each
+     * half-deck + 8 basics) that may grow; Classic runs start at 40.
+     */
+    public static boolean compactRuns() {
+        return Boolean.parseBoolean(DelveProfile.get().option("compactRuns", "true"));
+    }
+
+    public static void setCompactRuns(boolean on) {
+        DelveProfile.get().setOption("compactRuns", String.valueOf(on));
+    }
+
     /** Chaos: the game picks your two starting half-decks for you, sight unseen. */
     public static boolean chaosDecks() {
         return Boolean.parseBoolean(DelveProfile.get().option("chaosDecks", "false"));

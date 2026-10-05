@@ -47,6 +47,7 @@ public final class DelveRunSave {
             p.setProperty("seed", Long.toString(run.seed));
             p.setProperty("gen", Integer.toString(run.gen));
             p.setProperty("length", run.length.name());
+            p.setProperty("compact", Boolean.toString(run.compact));
             p.setProperty("freeReroll", Boolean.toString(run.freeReroll));
             p.setProperty("life", Integer.toString(run.life));
             p.setProperty("gold", Integer.toString(run.gold));
@@ -97,6 +98,7 @@ public final class DelveRunSave {
                     Integer.parseInt(p.getProperty("gen", "1")), DelveModes.Length.parse(p.getProperty("length", "STANDARD")));
             run.life = Integer.parseInt(p.getProperty("life", "20"));
             run.freeReroll = Boolean.parseBoolean(p.getProperty("freeReroll", "false"));
+            run.compact = Boolean.parseBoolean(p.getProperty("compact", "false")); // runs from before Compact were 40-card
             run.gold = Integer.parseInt(p.getProperty("gold", "0"));
             run.step = Integer.parseInt(p.getProperty("step", "0"));
             run.fightsWon = Integer.parseInt(p.getProperty("fightsWon", "0"));

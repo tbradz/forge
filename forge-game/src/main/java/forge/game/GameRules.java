@@ -63,6 +63,16 @@ public class GameRules {
     }
 
     private boolean mulligans = true;
+    /** Delve: quietly redraw opening hands with too few or too many lands, before mulligans (MulliganService). */
+    private boolean smoothOpeningHands = false;
+
+    public boolean smoothsOpeningHands() {
+        return smoothOpeningHands;
+    }
+
+    public void setSmoothOpeningHands(final boolean smooth) {
+        this.smoothOpeningHands = smooth;
+    }
     /** False for formats where the opening hand is fixed (e.g. Pai Gow piles). */
     public boolean allowsMulligans() {
         return mulligans;

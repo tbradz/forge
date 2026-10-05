@@ -43,6 +43,16 @@ public class DelveRun {
     public static final int REST_HEAL = 7;
     /** A run deck can never go below this many cards. */
     public static final int MIN_DECK = 40;
+    /** Compact runs (the default): a 20-card starting deck that can grow (see {@link #minDeck()}). */
+    public static final int COMPACT_MIN_DECK = 20;
+
+    /** Compact run (20-card start; saved with the run). Classic runs start at 40. */
+    public boolean compact;
+
+    /** The smallest this run's deck may get: 20 for Compact runs, 40 for Classic. */
+    public int minDeck() {
+        return compact ? COMPACT_MIN_DECK : MIN_DECK;
+    }
     /** Returned by an event choice to ask the map to show a pick-1-of-3. */
     public static final String PICK_CARD = "\u0000pick";
     /** event result: let the player choose a card in the deck to copy */
@@ -122,6 +132,7 @@ public class DelveRun {
         current = new DelveRun(day, starter, day.seed ^ System.nanoTime(), DelveMapGen.CURRENT_GEN, DelveModes.length());
         current.life = current.maxLife();
         current.freeReroll = DelveRenown.freeRerollEachRun();
+        current.compact = starter.getMain().countAll() < MIN_DECK; // the gate built a Compact (20) or Classic (40) deck
         DelveProfile.get().markDelved();
         DelveRunSave.save(current);
         return current;
@@ -185,7 +196,7 @@ public class DelveRun {
 
     /** How many cards can be removed before hitting the minimum. */
     public int removableCount() {
-        return Math.max(0, deckSize() - MIN_DECK);
+        return Math.max(0, deckSize() - minDeck());
     }
 
     /** Colors of the non-land cards in the deck (what reward picks lean toward). */
@@ -271,11 +282,11 @@ public class DelveRun {
         if (lost == null) return "";
         deck.getMain().remove(lost);
         lostCards.add(lost);
-        if (deckSize() < MIN_DECK) {
+        if (deckSize() < minDeck()) {
             PaperCard replacement = sameColorCard(DelveEvents.RarityTier.COMMON, lost);
             deck.getMain().add(replacement);
             gainedCards.add(replacement);
-            return "You lose " + lost.getName() + ". Your deck can't drop below " + MIN_DECK
+            return "You lose " + lost.getName() + ". Your deck can't drop below " + minDeck()
                     + ", so " + replacement.getName() + " takes its place.";
         }
         return "You lose " + lost.getName() + ".";

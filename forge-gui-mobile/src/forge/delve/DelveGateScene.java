@@ -61,7 +61,7 @@ public class DelveGateScene extends DelveScene {
         String set = DelveDay.tiers().get(selectedTier).getName();
         String[][] steps = {
                 {"1. Your deck", "Pick two of three " + set + " half-decks. Shuffled together they make your "
-                        + DECK_SIZE + "-card starting deck."},
+                        + (DelveModes.compactRuns() ? DelveRun.COMPACT_MIN_DECK : DECK_SIZE) + "-card starting deck."},
                 {"2. The dungeon", "Fights pay gold: spend it with merchants on upgrades. Elites guard relics. The boss has a plan."},
                 {"3. Clear it", "Keep all your gold and pick a reward: packs, gold, cards from your deck, or lock it."}};
         float colW = (W - 112) / 3f;
@@ -100,7 +100,7 @@ public class DelveGateScene extends DelveScene {
         if (DelveModes.chaosDecks()) { // optional mode: the game picks two half-decks, sight unseen
             List<DelveDay.HalfDeck> shuffled = new ArrayList<>(halves);
             java.util.Collections.shuffle(shuffled, rng);
-            showDeck(day, DelveDay.combine(shuffled.get(0), shuffled.get(1)), "Chaos deck: ");
+            showDeck(day, combine(shuffled.get(0), shuffled.get(1)), "Chaos deck: ");
             return;
         }
         List<PaperCard> faces = new ArrayList<>();
@@ -112,7 +112,7 @@ public class DelveGateScene extends DelveScene {
         DelvePickScene.instance().show("Pick two half-decks:  " + names, faces, 2, 2, null,
                 pc -> halfFor(halves, pc).name, picked -> {
                     DelveDay.HalfDeck a = halfFor(halves, picked.get(0)), b = halfFor(halves, picked.get(1));
-                    showDeck(day, DelveDay.combine(a, b), "");
+                    showDeck(day, combine(a, b), "");
                 });
     }
 
@@ -122,8 +122,15 @@ public class DelveGateScene extends DelveScene {
         for (PaperCard pc : deck.getMain().toFlatList())
             if (!pc.getRules().getType().isBasicLand() && !view.contains(pc)) view.add(pc);
         view.sort(java.util.Comparator.comparingInt(pc -> pc.getRules().getManaCost().getCMC()));
-        DelvePickScene.instance().show(prefix + deck.getName() + "  (24 spells + 16 basic lands)", view, 0, 0,
+        int lands = 0;
+        for (PaperCard pc : deck.getMain().toFlatList()) if (pc.getRules().getType().isBasicLand()) lands++;
+        DelvePickScene.instance().show(prefix + deck.getName() + "  (" + (deck.getMain().countAll() - lands) + " spells + " + lands + " basic lands)", view, 0, 0,
                 "Into the dungeon", x -> begin(day, deck));
+    }
+
+    /** The starting deck for this save's run format: Compact (20) by default, or Classic (40). */
+    private static Deck combine(DelveDay.HalfDeck a, DelveDay.HalfDeck b) {
+        return DelveModes.compactRuns() ? DelveDay.combineCompact(a, b) : DelveDay.combine(a, b);
     }
 
     private static DelveDay.HalfDeck halfFor(List<DelveDay.HalfDeck> halves, PaperCard face) {

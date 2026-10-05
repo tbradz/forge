@@ -1,0 +1,5 @@
+Name:Delve Compact Rules
+ManaCost:no cost
+Types:Artifact
+R:Event$ Draw | IsPresent$ Card.YouOwn | PresentZone$ Library | PresentCompare$ EQ0 | ActiveZones$ Command | ValidPlayer$ You | Prevent$ True | Description$ Compact deck: if you would draw a card while your library has no cards in it, skip that draw instead.
+Oracle:Compact deck: if you would draw a card while your library has no cards in it, skip that draw instead.

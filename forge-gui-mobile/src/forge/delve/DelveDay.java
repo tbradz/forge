@@ -560,6 +560,42 @@ public class DelveDay {
         return d;
     }
 
+    /**
+     * A Compact (20-card) starting deck: each half's 6 best spells by the set's rankings, keeping the
+     * curve low (at most one card costing 5+ and two costing 4+ per half), plus 4 basics of each colour.
+     */
+    public static Deck combineCompact(HalfDeck a, HalfDeck b) {
+        Deck d = new Deck(a.name + " + " + b.name);
+        for (HalfDeck h : List.of(a, b)) {
+            List<PaperCard> byRank = new ArrayList<>(h.spells);
+            byRank.sort((x, y) -> Double.compare(DelveRank.score(y), DelveRank.score(x)));
+            List<PaperCard> picks = new ArrayList<>();
+            int four = 0, five = 0;
+            for (PaperCard pc : byRank) {
+                if (picks.size() >= 6) break;
+                int cmc = pc.getRules().getManaCost().getCMC();
+                if (cmc >= 5 && five >= 1) continue;
+                if (cmc >= 4 && four >= 2) continue;
+                if (cmc >= 4) four++;
+                if (cmc >= 5) five++;
+                picks.add(pc);
+            }
+            for (PaperCard pc : byRank) { // a very top-heavy half: fill up anyway
+                if (picks.size() >= 6) break;
+                if (!picks.contains(pc)) picks.add(pc);
+            }
+            d.getMain().add(picks);
+            for (int i = 0; i < 4; i++)
+                d.getMain().add(FModel.getMagicDb().getCommonCards().getCard(BASICS[WUBRG.indexOf(h.color)]));
+        }
+        return d;
+    }
+
+    /** A basic land by colour letter (W U B R G). */
+    static PaperCard basic(char color) {
+        return FModel.getMagicDb().getCommonCards().getCard(BASICS[WUBRG.indexOf(color)]);
+    }
+
     private static ColorSet enemyColors(EnemyData enemy, Random rng) {
         String c = enemy.colors == null ? "" : enemy.colors.replaceAll("[^WUBRG]", "");
         if (c.length() > 2) c = c.substring(0, 2);

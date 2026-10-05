@@ -21,12 +21,35 @@ public class MulliganService {
     }
 
     public void perform() {
+        if (game.getRules().smoothsOpeningHands()) {
+            smoothOpeningHands();
+        }
         if (!game.getRules().allowsMulligans()) {
             return;
         }
         initializeMulligans();
         runPlayerMulligans();
         runPostMulligans();
+    }
+
+    /**
+     * Delve: before anyone decides on a mulligan, a hand of seven or more with fewer than 2 or more than 5
+     * lands is shuffled back and redrawn (up to 3 times, free), so land screw and flood are rare.
+     */
+    private void smoothOpeningHands() {
+        for (Player p : game.getPlayers()) {
+            for (int tries = 0; tries < 3; tries++) {
+                forge.game.card.CardCollection hand = new forge.game.card.CardCollection(p.getCardsIn(forge.game.zone.ZoneType.Hand));
+                int size = hand.size();
+                if (size < 7) break;
+                int lands = 0;
+                for (forge.game.card.Card c : hand) if (c.isLand()) lands++;
+                if (lands >= 2 && lands <= 5) break;
+                for (forge.game.card.Card c : hand) game.getAction().moveToLibrary(c, null);
+                p.shuffle(null);
+                p.drawCards(size);
+            }
+        }
     }
 
     private void initializeMulligans() {

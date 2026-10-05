@@ -269,6 +269,13 @@ public class DelveHubScene extends UIScene {
             removeDialog();
             chooseDifficulty();
         }, 18f);
+        boolean compact = DelveModes.compactRuns();
+        DelveDialogs.listButton(d, "Run format: [GOLD]" + (compact ? "Compact" : "Classic") + "[] ("
+                + (compact ? "20-card deck, can grow" : "40-card deck") + ")", () -> {
+            removeDialog();
+            DelveModes.setCompactRuns(!compact);
+            options();
+        }, 18f);
         DelveDialogs.listButton(d, "Dungeon length: [GOLD]" + len.title + "[] (" + len.rooms + ")", () -> {
             removeDialog();
             DelveModes.Length[] all = DelveModes.Length.values();

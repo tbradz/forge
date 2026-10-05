@@ -70,6 +70,44 @@ public class DelveMapScene extends DelveScene {
         choose(title, body.toString(), labels, null, actions);
     }
 
+    /** Add or remove basic lands any time (free): tune your mana, or grow the deck past its minimum. */
+    private void basicLands(DelveRun run) {
+        String colors = "";
+        forge.card.ColorSet cs = run.deckColors();
+        for (char c : "WUBRG".toCharArray()) {
+            byte mask = forge.card.MagicColor.fromName(String.valueOf(c));
+            boolean inDeck = cs.hasAnyColor(mask) || run.deck.getMain().count(DelveDay.basic(c)) > 0;
+            if (inDeck) colors += c;
+        }
+        if (colors.isEmpty()) colors = "WUBRG";
+        List<String> labels = new ArrayList<>();
+        List<Boolean> enabled = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        for (char c : colors.toCharArray()) {
+            PaperCard basic = DelveDay.basic(c);
+            int have = run.deck.getMain().count(basic);
+            labels.add("+ " + basic.getName() + "  (" + have + ")");
+            enabled.add(true);
+            actions.add(() -> { run.deck.getMain().add(basic); afterLands(run); });
+            labels.add("- " + basic.getName());
+            enabled.add(have > 0 && run.deckSize() > run.minDeck());
+            actions.add(() -> { run.deck.getMain().remove(basic); afterLands(run); });
+        }
+        labels.add("Done");
+        enabled.add(true);
+        actions.add(this::build);
+        int lands = 0;
+        for (java.util.Map.Entry<PaperCard, Integer> e : run.deck.getMain())
+            if (e.getKey().getRules().getType().isBasicLand()) lands += e.getValue();
+        choose("Basic lands", "[%80]Free, any time between rooms. Your deck: " + run.deckSize() + " cards, " + lands
+                + " basic lands (minimum " + run.minDeck() + " cards).", labels, enabled, actions);
+    }
+
+    private void afterLands(DelveRun run) {
+        DelveRunSave.save(run);
+        basicLands(run);
+    }
+
     private void showRelics(DelveRun run) {
         StringBuilder sb = new StringBuilder();
         for (DelveRelic r : run.relics)
@@ -151,7 +189,7 @@ public class DelveMapScene extends DelveScene {
         // header bar
         label("[%90][GOLD]" + run.day.themeName() + "[]  [%70]Tier " + (run.day.tier + 1), 8, 5, 180, 16, Align.left);
         label("[%90][RED]Life[] " + run.life + "/" + run.maxLife() + "    [GOLD]Gold[] " + run.gold
-                        + "    Deck " + run.deckSize() + "/" + DelveRun.MIN_DECK + "    Wins " + run.fightsWon,
+                        + "    Deck " + run.deckSize() + "/" + run.minDeck() + "    Wins " + run.fightsWon,
                 150, 5, 322, 16, Align.right);
 
         // drag anywhere on the map to look ahead (rooms sit above this and still take clicks)
@@ -221,13 +259,13 @@ public class DelveMapScene extends DelveScene {
         panRight = button("[%90]>", W - 18, 136, 16, 26, () -> panTo(scroll + W * 0.6f, 0.35f));
         follow(spot[0], 0);
 
+        button("[%80]Lands", 140, 246, 64, 18, () -> basicLands(run));
         button("[%80]Relics (" + run.relics.size() + ")", 210, 246, 80, 18, () -> showRelics(run));
         button("[%80]View deck", 300, 246, 80, 18, this::viewDeck);
         button("[%80]Abandon run", 390, 246, 84, 18, () ->
                 confirm("Abandon run", "End this run now? You'll bring home a share of the gold you found, by how far you got.",
                         () -> endRun(false, true)));
-        label("[%70]Step " + Math.min(run.step + 1, steps) + " of " + steps
-                + (run.step < steps ? "  -  choose a lit room" : ""), 8, 250, 280, 12, Align.left);
+        label("[%70]Step " + Math.min(run.step + 1, steps) + " of " + steps, 8, 250, 128, 12, Align.left); // Lands button follows
     }
 
     /** A dotted trail between two points. */
@@ -673,7 +711,7 @@ public class DelveMapScene extends DelveScene {
     private void merchantSell(DelveRun run, Node node, int index) {
         int removable = run.removableCount();
         DelvePickScene.instance().show("Merchant: sell up to " + removable + (removable == 1 ? " card" : " cards")
-                        + " (your deck can't go below " + DelveRun.MIN_DECK + ")",
+                        + " (your deck can't go below " + run.minDeck() + ")",
                 uniqueCards(run, true), 0, removable, "Back", pc -> "Sell " + DelveRun.sellPrice(pc) + "g", sold -> {
                     Forge.switchScene(this);
                     int total = 0;
@@ -698,7 +736,7 @@ public class DelveMapScene extends DelveScene {
     private void rest(DelveRun run, int index) {
         boolean canTrim = run.removableCount() > 0;
         choose("Rest", "A quiet corner to catch your breath."
-                        + (canTrim ? "" : "\n\n(Your deck is at the " + DelveRun.MIN_DECK + "-card minimum, so you can't remove a card.)"),
+                        + (canTrim ? "" : "\n\n(Your deck is at the " + run.minDeck() + "-card minimum, so you can't remove a card.)"),
                 List.of("Heal " + DelveRun.REST_HEAL + " life", "Remove a card from your deck"),
                 List.of(true, canTrim),
                 List.of(() -> {
