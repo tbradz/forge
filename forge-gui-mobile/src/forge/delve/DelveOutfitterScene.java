@@ -37,6 +37,7 @@ public class DelveOutfitterScene extends DelveScene {
     @Override
     public void enter() {
         DelveAudio.town();
+        DelveSleeves.register();
         build();
         super.enter();
     }
@@ -51,7 +52,7 @@ public class DelveOutfitterScene extends DelveScene {
     private List<Integer> stock() {
         DelveProfile prof = DelveProfile.get();
         List<Integer> all = new ArrayList<>(FSkin.getSleeves().keySet());
-        all.removeIf(i -> i == 0);
+        all.removeIf(i -> i == 0 || DelveSleeves.isFoil(i)); // foil sleeves have their own tab
         java.util.Collections.sort(all);
         java.util.Collections.shuffle(all, new Random(prof.day() * 7919L + 17));
         List<Integer> out = new ArrayList<>();
@@ -71,20 +72,64 @@ public class DelveOutfitterScene extends DelveScene {
         return track(img);
     }
 
-    /** false = sleeves, true = playmats */
-    private boolean mats;
+    /** 0 = sleeves, 1 = foil sleeves, 2 = playmats */
+    private int tab;
+    private static final String[] TABS = {"Sleeves", "Foil sleeves", "Playmats"};
 
     private void build() {
         clearScreen();
         DelveProfile prof = DelveProfile.get();
         label("[%90][GOLD]Outfitter", 8, 5, 200, 16, Align.left);
         label("[%90][GOLD]Gold[] " + prof.gold(), 280, 5, 192, 16, Align.right);
-        button(mats ? "Sleeves" : "[GOLD]Playmats", 330, 244, 100, 20, () -> {
-            mats = !mats;
-            build();
-        });
-        if (mats) buildPlaymats();
+        // the two other tabs, either side of Leave
+        float[] xs = {20, 360};
+        int slot = 0;
+        for (int t = 0; t < TABS.length; t++) {
+            if (t == tab) continue;
+            final int to = t;
+            button("[GOLD]" + TABS[t], xs[slot++], 244, 100, 20, () -> {
+                tab = to;
+                build();
+            });
+        }
+        if (tab == 2) buildPlaymats();
+        else if (tab == 1) buildFoils();
         else buildSleeves();
+    }
+
+    /** Foil sleeves: premium card backs with a painted holographic or metallic sheen. */
+    private void buildFoils() {
+        DelveProfile prof = DelveProfile.get();
+        image("ui/delve/panel.png", 10, 30, 460, 208);
+        label("[%85]Foil sleeves  -  premium card backs for duels and pack openings", 10, 33, 460, 12, Align.center);
+        DelveSleeves[] all = DelveSleeves.values();
+        float w = 62, h = w * 500f / 360f, gap = (440 - all.length * w) / (all.length - 1);
+        for (int i = 0; i < all.length; i++) {
+            DelveSleeves s = all[i];
+            int idx = s.index();
+            if (!FSkin.getSleeves().containsKey(idx)) continue;
+            float x = 20 + i * (w + gap);
+            boolean owned = prof.ownedSleeves().contains(idx), current = prof.currentSleeve() == idx;
+            sleeve(idx, x, 54, w, h, false);
+            label("[%70]" + s.title, x - 10, 54 + h + 4, w + 20, 12, Align.center);
+            String text = current ? "[GOLD]In use" : owned ? "[%80]Use" : "[%80]Buy " + s.price + "g";
+            button(text, x - 8, 54 + h + 18, w + 16, 16, () -> {
+                if (owned) prof.setCurrentSleeve(idx);
+                else buyFoil(s);
+                build();
+            }).setDisabled(current || (!owned && prof.gold() < s.price));
+        }
+        label("[%70]Your owned sleeves (foil or not) can be switched any time on the Sleeves tab.", 10, 214, 460, 12, Align.center);
+        button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+    }
+
+    private void buyFoil(DelveSleeves s) {
+        DelveProfile prof = DelveProfile.get();
+        if (prof.ownedSleeves().contains(s.index()) || !prof.spendGold(s.price)) return;
+        prof.addSleeve(s.index());
+        prof.setCurrentSleeve(s.index());
+        DelveAudio.coins();
+        info("Outfitter", "Foil sleeves! " + s.title + " is on your cards now.", null);
     }
 
     private static final int MATS_PER_PAGE = 6;

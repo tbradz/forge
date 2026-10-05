@@ -99,6 +99,7 @@ public class DelvePackOpenScene extends DelveScene {
 
     @Override
     public void enter() {
+        DelveSleeves.register(); // so a foil sleeve shows on the card backs
         DelveAudio.dungeon();
         showPack();
         super.enter();

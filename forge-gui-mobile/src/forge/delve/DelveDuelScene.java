@@ -213,6 +213,7 @@ public class DelveDuelScene extends DuelScene {
             e.printStackTrace();
         }
         if (forge.assets.FSkin.getSleeves().containsKey(DelveProfile.get().currentSleeve()))
+            DelveSleeves.register(); // foil sleeves live in Forge's sleeve table
             me.setSleeveIndex(DelveProfile.get().currentSleeve()); // bought at the Outfitter
         human.setPlayer(me);
         human.setTeamNumber(0);
