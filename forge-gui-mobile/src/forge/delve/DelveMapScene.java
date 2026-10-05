@@ -578,7 +578,7 @@ public class DelveMapScene extends DelveScene {
     private void shrine(DelveRun run, int index) {
         choose("Cursed Shrine", "A black altar pulses with stolen power. Whatever you take, the dungeon will want back.",
                 List.of("Take its power (choose 1 of 3 rares, next foe +6 life)",
-                        "Feed it blood (lose 5 life, +60 gold)",
+                        "Feed it blood (lose 5 life, +35 gold)",
                         "Walk away"),
                 List.of(true, true, true),
                 List.of(() -> {
@@ -596,7 +596,7 @@ public class DelveMapScene extends DelveScene {
                                     });
                         },
                         () -> {
-                            String r = run.damage(5) + " " + run.gainGold(60);
+                            String r = run.damage(5) + " " + run.gainGold(35);
                             completeStep(run, index);
                             info("Cursed Shrine", r, null);
                         },

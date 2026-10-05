@@ -97,7 +97,7 @@ public final class DelveEvents {
                 "A cracked altar hums faintly. Coins glint in its offering bowl.",
                 List.of(
                         choice("Pray (heal 6)", r -> r.heal(6)),
-                        choice("Take the coins (+35 gold, lose 3 life)", r -> r.gainGold(35) + " " + r.damage(3)))));
+                        choice("Take the coins (+25 gold, lose 3 life)", r -> r.gainGold(25) + " " + r.damage(3)))));
 
         e.add(new Event("Wounded Traveler",
                 "A traveler slumps against the wall, clutching a satchel of cards.",
@@ -110,8 +110,8 @@ public final class DelveEvents {
                 "The ceiling groans. Rocks begin to fall.",
                 List.of(
                         choice("Sprint through (lose 5 life)", r -> r.damage(5)),
-                        choice("Pay the tunnel dwarves (25 gold)", r -> r.gold >= 25,
-                                r -> r.spendGold(25) + " They guide you around the collapse."))));
+                        choice("Pay the tunnel dwarves (15 gold)", r -> r.gold >= 15,
+                                r -> r.spendGold(15) + " They guide you around the collapse."))));
 
         e.add(new Event("Mysterious Chest",
                 "An iron-bound chest sits in an alcove. Something scratches inside.",
@@ -137,8 +137,8 @@ public final class DelveEvents {
         e.add(new Event("The Gambler",
                 "A grinning man shuffles a deck of marked cards. \"Double or nothing?\"",
                 List.of(
-                        choice("Wager 20 gold", r -> r.gold >= 20,
-                                r -> r.rng.nextBoolean() ? r.gainGold(40) + " Lady Luck smiles." : r.spendGold(20) + " You lose."),
+                        choice("Wager 15 gold", r -> r.gold >= 15,
+                                r -> r.rng.nextBoolean() ? r.gainGold(30) + " Lady Luck smiles." : r.spendGold(15) + " You lose."),
                         choice("Decline", r -> "He shrugs and vanishes into the dark."))));
 
         e.add(new Event("Forgotten Library",
@@ -150,7 +150,7 @@ public final class DelveEvents {
         e.add(new Event("Cursed Idol",
                 "A golden idol of a many-armed god. It is worth a fortune, and it is watching you.",
                 List.of(
-                        choice("Take it (+60 gold, lose 6 life)", r -> r.gainGold(60) + " " + r.damage(6)),
+                        choice("Take it (+35 gold, lose 6 life)", r -> r.gainGold(35) + " " + r.damage(6)),
                         choice("Leave it", r -> "The idol's eyes follow you out."))));
 
         e.add(new Event("Transmuter's Circle",
@@ -162,15 +162,15 @@ public final class DelveEvents {
         e.add(new Event("Hedge Wizard",
                 "A wizard with ink-stained fingers offers to copy one of your cards, for a price.",
                 List.of(
-                        choice("Pay 30 gold (copy a card in your deck)", r -> r.gold >= 30,
-                                r -> { r.spendGold(30); return DelveRun.PICK_COPY; }),
+                        choice("Pay 20 gold (copy a card in your deck)", r -> r.gold >= 20,
+                                r -> { r.spendGold(20); return DelveRun.PICK_COPY; }),
                         choice("No thanks", r -> "He goes back to his scribbling."))));
 
         e.add(new Event("Ancient Forge",
                 "A forge still glows with dwarven fire. Cards fed to it melt into gold.",
                 List.of(
-                        choice("Melt a card (remove one from your deck, +15 gold)", r -> r.removableCount() > 0,
-                                r -> { r.gainGold(15); return DelveRun.PICK_REMOVE; }),
+                        choice("Melt a card (remove one from your deck, +10 gold)", r -> r.removableCount() > 0,
+                                r -> { r.gainGold(10); return DelveRun.PICK_REMOVE; }),
                         choice("Warm your hands (heal 3)", r -> r.heal(3)))));
 
         e.add(new Event("Scrying Pool",
@@ -182,15 +182,15 @@ public final class DelveEvents {
         e.add(new Event("Goblin Ambush",
                 "Goblins pour out of the cracks, waving rusty knives and demanding your coin.",
                 List.of(
-                        choice("Fight them off (lose 4 life, loot +30 gold)", r -> r.damage(4) + " " + r.gainGold(30)),
-                        choice("Toss them 20 gold", r -> r.gold >= 20, r -> r.spendGold(20) + " They scatter, squabbling."),
+                        choice("Fight them off (lose 4 life, loot +20 gold)", r -> r.damage(4) + " " + r.gainGold(20)),
+                        choice("Toss them 15 gold", r -> r.gold >= 15, r -> r.spendGold(15) + " They scatter, squabbling."),
                         choice("Run (lose 2 life)", r -> r.damage(2)))));
 
         e.add(new Event("Healer's Tent",
                 "A cleric tends the wounded by lantern light. Her services aren't free.",
                 List.of(
-                        choice("Pay 25 gold (heal to full)", r -> r.gold >= 25 && r.life < r.maxLife(),
-                                r -> r.spendGold(25) + " " + r.heal(r.maxLife())),
+                        choice("Pay 20 gold (heal to full)", r -> r.gold >= 20 && r.life < r.maxLife(),
+                                r -> r.spendGold(20) + " " + r.heal(r.maxLife())),
                         choice("Ask for a bandage (heal 3)", r -> r.heal(3)))));
 
         e.add(new Event("Blood Pact",
@@ -210,7 +210,7 @@ public final class DelveEvents {
         e.add(new Event("War Drums",
                 "Drums echo ahead. Someone is paying well to see you fail.",
                 List.of(
-                        choice("Take their bribe (+40 gold, next foe +4 life)", r -> r.gainGold(40) + " " + r.nextFoe(4)),
+                        choice("Take their bribe (+25 gold, next foe +4 life)", r -> r.gainGold(25) + " " + r.nextFoe(4)),
                         choice("Smash the drums (next foe -2 life)", r -> r.nextFoe(-2)))));
 
         e.add(new Event("Echoing Hall",
@@ -222,16 +222,16 @@ public final class DelveEvents {
         e.add(new Event("Sleeping Dragon",
                 "A dragon sleeps on a bed of gold. One wing twitches.",
                 List.of(
-                        choice("Sneak a handful (+80 gold, or wake it)", r -> r.rng.nextBoolean()
-                                ? r.gainGold(80) + " It snores on."
+                        choice("Sneak a handful (+45 gold, or wake it)", r -> r.rng.nextBoolean()
+                                ? r.gainGold(45) + " It snores on."
                                 : "It wakes! " + r.damage(8)),
                         choice("Back away slowly", r -> "Discretion is the better part of valor."))));
 
         e.add(new Event("Card Collector",
                 "A collector in a velvet coat eyes your deck. \"I'll make it worth your while.\"",
                 List.of(
-                        choice("Sell him a card (remove one, +30 gold)", r -> r.removableCount() > 0,
-                                r -> { r.gainGold(30); return DelveRun.PICK_REMOVE; }),
+                        choice("Sell him a card (remove one, +20 gold)", r -> r.removableCount() > 0,
+                                r -> { r.gainGold(20); return DelveRun.PICK_REMOVE; }),
                         choice("Trade (lose a random card, gain a rare)", r -> r.loseRandomCard() + " " + r.gainRandomCard(RarityTier.RARE)),
                         choice("Not interested", r -> "He sniffs and moves on."))));
 
