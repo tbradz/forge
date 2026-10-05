@@ -33,20 +33,19 @@ Game install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (launch with `Delve.cm
 - Builds run locally on Tyler's PC (see DEV_NOTES "Building locally"); playtest zips per DEV_NOTES "Playtest package".
 - Lots built since 2026-10-02 but not yet seen running: Forge Fork/PLAYTEST-CHECKLIST.md lists what to check.
 - Commits from 2026-10-02 on may not be pushed: Tyler pushes from his own terminal (GitHub sign-in).
-- Waiting on Tyler: what bulk cards are for (options offered: bulk bin for boosters, crafting up a rarity,
-  Tavern pot for Renown, or leave it).
+- Waiting on Tyler: approval of the foil sleeve art.
 
 ## Backlog (Tyler's list, 2026-10-02)
 Next up
 - [done] Visual pass 2 (make_interiors.py). [done] Card Shop buys spare rares/mythics (value less a 5g fee).
 - [done] Town dungeon sprite is a crypt gate (buildings.png 192,304), replacing the colosseum look.
-- Bulk: commons/uncommons can't be sold; decide what bulk is for later (Tyler).
+- [done] Bulk: the Card Shop buys spare commons/uncommons by the box (100 for 25g; keeps 4 of each + deck needs).
 - Story by tier (later, after the rest of the game is ironed out): each set is a chapter with new town
   characters, events and quests, building to a final arc at the newest set.
 - (Dropped: player storefront; the Card Shop covers selling.)
 
 More ways to play
-- More event formats: Pauper, Standard-style (recent sets only), sealed or draft nights at the Castle.
+- [done] Castle Sealed night and Draft night (featured event rotates by day with the 1v1 tournament). Pauper / Standard-style nights: not chosen for now.
 - Set-themed dungeons: [done] enemies and bosses fit each set (DelveDay.themeEnemies, map gen 4); [done] set-flavoured events (DelveEvents.themed, gen 5); [todo] set-flavoured backdrops (art, needs Tyler's approval).
 - Optional run modes: see "Optional modes" below.
 - Commander packs.
@@ -54,7 +53,7 @@ More ways to play
 Town and world
 - [done] Tavern NPCs and rumors (DelveRegulars). More regulars/rumor kinds can be added there.
 - [done] Castle rankings and titles that unlock things (DelveRenown).
-- More Outfitter items: [done] playmats (DelvePlaymat); portraits, dice.
+- Outfitter: sleeves and playmats only (Tyler). [done] playmats; [pending approval] foil sleeves (delve-tools/make_sleeves.py, art in Forge Fork/art-review/foil-sleeves; wire by adding images to FSkin.getSleeves() at high indexes). Portraits/dice dropped.
 - [done] Pai Gow: the pack menu pages through older sets.
 
 Polish and release
@@ -78,4 +77,4 @@ options are stored in the save's profile.properties (like `era`) and chosen when
 - [idea] Preconstructed decks instead of the Jumpstart half-decks. (Forge only has precons for ZNR-NEO,
   M21 and STX in the Modern range, so this would need a fallback for newer sets.)
 - [idea] Per-set special rules (rejected as default rules, kept as an option).
-- [idea] Choose any starting set.
+- (Dropped: choose any starting set.)
