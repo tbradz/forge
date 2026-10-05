@@ -106,7 +106,7 @@ public class DelvePackOpenScene extends DelveScene {
     }
 
     private void header() {
-        label("[%90][GOLD]" + title, 8, 5, 240, 16, Align.left);
+        label("[%90][GOLD]" + fit(title, 32), 8, 5, 230, 16, Align.left);
         headerRight = label("[%90]Pack " + Math.min(opened + 1, packs) + " of " + packs + "    Pool: " + pool.size() + " cards",
                 240, 5, 232, 16, Align.right);
     }

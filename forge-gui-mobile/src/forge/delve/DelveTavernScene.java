@@ -5,7 +5,6 @@ import forge.Forge;
 import forge.adventure.data.EnemyData;
 import forge.deck.Deck;
 import forge.item.PaperCard;
-import forge.item.PaperCard;
 
 import java.util.ArrayList;
 import java.util.Collections;

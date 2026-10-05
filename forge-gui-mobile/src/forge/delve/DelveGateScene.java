@@ -51,7 +51,7 @@ public class DelveGateScene extends DelveScene {
         button("<", 56, 70, 30, 24, () -> { selectedTier--; build(); }).setDisabled(selectedTier <= 0);
         button(">", W - 86, 70, 30, 24, () -> { selectedTier++; build(); }).setDisabled(selectedTier >= top);
         boolean frontier = selectedTier == top;
-        label("[%120]" + (frontier ? "[GOLD]" : "") + DelveDay.tierName(selectedTier), 90, 72, W - 180, 20, Align.center);
+        label("[%120]" + (frontier ? "[GOLD]" : "") + fit(DelveDay.tierName(selectedTier), 38), 90, 72, W - 180, 20, Align.center);
         label("[%80]" + (frontier
                         ? (top + 1 < DelveDay.tiers().size() ? "Your highest tier. Clear it to unlock " + DelveDay.tierName(top + 1) + "."
                         : "The newest set. There is no higher tier (yet).")

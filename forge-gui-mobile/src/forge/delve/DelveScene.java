@@ -81,6 +81,11 @@ abstract class DelveScene extends UIScene {
         return track(l);
     }
 
+    /** Shorten text to {@code max} characters (with a trailing "."), so long set names fit one-line headers. */
+    protected static String fit(String text, int max) {
+        return text == null || text.length() <= max ? text : text.substring(0, Math.max(1, max - 1)).trim() + ".";
+    }
+
     protected TextraLabel title(String text) {
         return label("[%130]" + text, 0, 8, W, 22, Align.center);
     }

@@ -22,11 +22,16 @@ public class DelveTourScene extends DelveScene {
     private static final float SPEED = 75f; // layout units per second
     private static final float SCALE = 2f;
 
-    /** One stop: the building to light up (null = none), where you stand, and what Bram says there. */
+    /**
+     * One stop: the building to light up (null = none), where you stand, and what Bram says there,
+     * plus the waypoints the two of you walk through to get here from the previous stop, so nobody
+     * walks through a building (checked against the building boxes in delve_hub.json).
+     */
     private static final class Stop {
         final String building, heading;
         final float x, y; // feet of the hero (Bram stands to the left)
         final String[] pages;
+        float[][] via = new float[0][];
 
         Stop(String building, String heading, float x, float y, String... pages) {
             this.building = building;
@@ -35,7 +40,15 @@ public class DelveTourScene extends DelveScene {
             this.y = y;
             this.pages = pages;
         }
+
+        Stop via(float[]... points) {
+            this.via = points;
+            return this;
+        }
     }
+
+    /** The gap between the Card Shop and the crypt gate, and the plaza under the crypt (feet positions). */
+    private static final float[] GAP_TOP = {196, 162}, GAP_BOTTOM = {196, 248}, PLAZA_RIGHT = {290, 254};
 
     /** "{FIRST_SET}" in a page is replaced with this save's first tier's set. */
     private static final Stop[] STOPS = {
@@ -54,14 +67,18 @@ public class DelveTourScene extends DelveScene {
                             + "Clearing it also opens the next set's dungeon. Fall, and you keep only part of your gold."),
             new Stop("b_castle", "The Castle", 250, 140,
                     "Up on the hill, the Castle. Every evening there's a featured event: a tournament, a sealed night or a draft night, turn and turn about. Or a four-player Commander pod, if that's your game.",
-                    "One event a night, and the entry isn't free. Win, and the prizes are worth it. The nobles keep a list of champions, too."),
-            new Stop("b_house", "Your House", 70, 230,
-                    "This one's yours. Build your decks here from the cards you collect, and sleep when you're ready for the next day."),
+                    "One event a night, and the entry isn't free. Win, and the prizes are worth it. The nobles keep a list of champions, too.")
+                    .via(GAP_BOTTOM, GAP_TOP), // round the crypt gate, up the gap beside the Card Shop
+            new Stop("b_house", "Your House", 70, 236,
+                    "This one's yours. Build your decks here from the cards you collect, and sleep when you're ready for the next day.")
+                    .via(GAP_TOP, GAP_BOTTOM), // back down the gap, then along under the Card Shop
             new Stop("b_shop", "The Card Shop", 150, 216,
                     "The Card Shop. Singles and booster packs, new stock every day. The last single is always a legend that can lead a Commander deck.",
-                    "The owner runs a prerelease once a day: open six packs, build a deck, play three rounds. And there's Pai Gow at the counter, if you fancy a gamble."),
+                    "The owner runs a prerelease once a day: open six packs, build a deck, play three rounds. And there's Pai Gow at the counter, if you fancy a gamble.")
+                    .via(new float[]{100, 236}), // clear of the House's front corner
             new Stop("b_outfitter", "The Outfitter", 414, 228,
-                    "The Outfitter. Sleeves and the like. Doesn't win you games, but you'll look good losing them."),
+                    "The Outfitter. Sleeves and the like. Doesn't win you games, but you'll look good losing them.")
+                    .via(GAP_BOTTOM, PLAZA_RIGHT), // across the plaza, under the crypt gate
             new Stop("b_tavern", "The Tavern", 330, 216,
                     "And last, my place: the Tavern. Evenings, the regulars will play you for free as long as you like. Good way to test a deck.",
                     "If you're feeling bold, you can play them for a little gold, or ante a card. Just don't come crying to me when you lose your best rare.",
@@ -135,18 +152,51 @@ public class DelveTourScene extends DelveScene {
 
     /** Walk both of you to a stop (Bram a step to your left), then run {@code then}. */
     private void walkTo(Stop s, Runnable then) {
+        walkTo(s, s.via, then);
+    }
+
+    /** Walk through {@code via} (shared waypoints) to stop {@code s}; you two only part for the last step. */
+    private void walkTo(Stop s, float[][] via, Runnable then) {
         walking = true;
         clearPanel();
         highlight(null);
         float time = 0.4f;
-        if (hero != null) time = Math.max(time, move(hero, heroSprite, s.x, s.y));
-        if (bram != null) time = Math.max(time, move(bram, bramSprite, s.x - 26, s.y + 2));
+        if (hero != null) time = Math.max(time, movePath(hero, heroSprite, via, s.x, s.y));
+        if (bram != null) time = Math.max(time, movePath(bram, bramSprite, via, s.x - 26, s.y + 2));
         ui.addAction(Actions.sequence(Actions.delay(time + 0.05f), Actions.run(() -> {
             walking = false;
             face(heroSprite, s.x - 26 < s.x ? CharacterSprite.AnimationDirections.Left : CharacterSprite.AnimationDirections.Right);
             face(bramSprite, CharacterSprite.AnimationDirections.Right);
             then.run();
         })));
+    }
+
+    /** Walk a sprite through each waypoint, then to (x, yFeet); returns the time it takes. */
+    private float movePath(Group g, CharacterSprite sprite, float[][] via, float x, float yFeet) {
+        if (via.length == 0) return move(g, sprite, x, yFeet);
+        com.badlogic.gdx.scenes.scene2d.actions.SequenceAction seq = Actions.sequence();
+        float px = g.getX(), py = g.getY(), total = 0;
+        float[][] points = new float[via.length + 1][];
+        System.arraycopy(via, 0, points, 0, via.length);
+        points[via.length] = new float[]{x, yFeet};
+        for (float[] p : points) {
+            float tx = p[0], ty = H - p[1];
+            float dx = tx - px, dy = ty - py, t = (float) Math.sqrt(dx * dx + dy * dy) / SPEED;
+            if (t < 0.02f) continue;
+            final CharacterSprite.AnimationDirections dir = dx < 0 ? CharacterSprite.AnimationDirections.Left
+                    : CharacterSprite.AnimationDirections.Right;
+            seq.addAction(Actions.run(() -> {
+                sprite.setAnimation(CharacterSprite.AnimationTypes.Walk);
+                sprite.setDirection(dir);
+            }));
+            seq.addAction(Actions.moveTo(tx, ty, t));
+            total += t;
+            px = tx;
+            py = ty;
+        }
+        seq.addAction(Actions.run(() -> sprite.setAnimation(CharacterSprite.AnimationTypes.Idle)));
+        g.addAction(seq);
+        return total;
     }
 
     private float move(Group g, CharacterSprite sprite, float x, float yFeet) {
@@ -253,9 +303,12 @@ public class DelveTourScene extends DelveScene {
             page--;
             build();
         } else if (stop > 0) {
+            float[][] route = STOPS[stop].via; // retrace the way you came, backwards
+            float[][] back = new float[route.length][];
+            for (int i = 0; i < route.length; i++) back[i] = route[route.length - 1 - i];
             stop--;
             page = STOPS[stop].pages.length - 1;
-            walkTo(STOPS[stop], this::build);
+            walkTo(STOPS[stop], back, this::build);
         }
     }
 

@@ -87,7 +87,7 @@ public class DelveCastleScene extends DelveScene {
         clearScreen();
         DelveProfile prof = DelveProfile.get();
         label("[%90][GOLD]The Castle", 8, 5, 220, 16, Align.left);
-        label("[%90][GOLD]Gold[] " + prof.gold() + "    [GOLD]" + DelveRenown.title().title + "[]  Renown " + prof.renown(),
+        label("[%80][GOLD]Gold[] " + prof.gold() + "   [GOLD]" + DelveRenown.title().title + "[] " + prof.renown() + " Renown",
                 240, 5, 232, 16, Align.right);
         if (pod != null) buildPod();
         else if (t == null) buildLobby();

@@ -268,8 +268,8 @@ public class DelveOutfitterScene extends DelveScene {
             }).setDisabled(current);
         }
         if (pages > 1) {
-            button("<", 14, 216, 20, 16, () -> { page--; build(); }).setDisabled(page == 0);
-            button(">", 446, 216, 20, 16, () -> { page++; build(); }).setDisabled(page >= pages - 1);
+            button("<", 11, 150, 9, 30, () -> { page--; build(); }).setDisabled(page == 0); // clear of the sleeves and Use buttons
+            button(">", 460, 150, 9, 30, () -> { page++; build(); }).setDisabled(page >= pages - 1);
         }
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }

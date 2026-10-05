@@ -238,10 +238,8 @@ def sprites():
 if __name__ == "__main__":
     import os
     os.makedirs(OUT, exist_ok=True)
-    backdrop().save(f"{OUT}/town_bg.png")
-    backdrop(daytime=True).save(f"{OUT}/town_bg_day.png")
-    dungeon_backdrop().save(f"{OUT}/dungeon_bg.png")
-    path_backdrop().save(f"{OUT}/path_bg.png")
+    # Superseded and disabled so a re-run can't overwrite current art: the town comes from
+    # make_town_diorama.py, dungeon_bg/path_bg from make_world_art.py --dungeon.
     # map plates and trail dots now come from make_interiors.py (stone slabs, flagstones)
     hud_bar().save(f"{OUT}/hud_bar.png")
     stairs().save(f"{OUT}/stairs.png")

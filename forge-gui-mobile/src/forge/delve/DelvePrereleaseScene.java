@@ -133,7 +133,7 @@ public class DelvePrereleaseScene extends DelveScene {
             button("Leave", 190, 244, 100, 20, this::goBack);
             return;
         }
-        label("[%90][GOLD]" + eventName(), 8, 5, 300, 16, Align.left);
+        label("[%90][GOLD]" + fit(eventName(), 30), 8, 5, 230, 16, Align.left);
         label("[%90]" + (over ? "Final standings" : "Round " + (round + 1) + " of " + ROUNDS), 240, 5, 232, 16, Align.right);
         image("ui/delve/panel.png", 60, 34, 360, 194);
         label("[%100]Standings", 60, 42, 360, 16, Align.center);

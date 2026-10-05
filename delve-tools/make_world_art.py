@@ -164,7 +164,12 @@ def main():
 
 
 if __name__ == "__main__" and "--dungeon" not in sys.argv:
-    main()
+    # The top-down town this made was replaced by make_town_diorama.py (Tyler prefers the side view);
+    # running it would overwrite town_bg*.png, so it needs an explicit flag now.
+    if "--old-top-down-town" in sys.argv:
+        main()
+    else:
+        print("Nothing to do: the town comes from make_town_diorama.py. Use --dungeon for the dungeon art.")
 
 
 # ---- dungeon: a crypt floor built from the Adventure crypt map's own tiles ----------

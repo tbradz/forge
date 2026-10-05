@@ -187,7 +187,7 @@ public class DelveMapScene extends DelveScene {
         chosen = run.chosen;
         if (!run.over) DelveRunSave.save(run);
         // header bar
-        label("[%90][GOLD]" + run.day.themeName() + "[]  [%70]Tier " + (run.day.tier + 1), 8, 5, 180, 16, Align.left);
+        label("[%90][GOLD]" + fit(run.day.themeName(), 18) + "[]  [%70]Tier " + (run.day.tier + 1), 8, 5, 180, 16, Align.left);
         label("[%90][RED]Life[] " + run.life + "/" + run.maxLife() + "    [GOLD]Gold[] " + run.gold
                         + "    Deck " + run.deckSize() + "/" + run.minDeck() + "    Wins " + run.fightsWon,
                 150, 5, 322, 16, Align.right);
