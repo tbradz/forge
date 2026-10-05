@@ -177,8 +177,26 @@ public class DelveGateScene extends DelveScene {
         deck.getMain().add(FModel.getMagicDb().getCommonCards().getCard(name));
     }
 
+    /** Pick a starting boon (1 of 3), then into the dungeon. */
     private void begin(DelveDay day, Deck deck) {
-        DelveRun.start(day, deck);
+        Forge.switchScene(this);
+        List<DelveBoon> boons = DelveBoon.offer(new Random());
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        StringBuilder text = new StringBuilder("[%80]Choose one boon for this run.");
+        for (DelveBoon b : boons) {
+            text.append("\n[%75][GOLD]").append(b.title).append("[WHITE]: ").append(b.description);
+            labels.add("[GOLD]" + b.title);
+            actions.add(() -> enter(day, deck, b));
+        }
+        choose("Starting boon", text.toString(), labels, null, actions);
+    }
+
+    private void enter(DelveDay day, Deck deck, DelveBoon boon) {
+        DelveRun run = DelveRun.start(day, deck);
+        run.boon = boon;
+        boon.applyAtStart(run);
+        DelveRunSave.save(run);
         Forge.switchScene(DelveMapScene.instance());
     }
 

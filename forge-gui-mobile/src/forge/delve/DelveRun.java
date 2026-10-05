@@ -18,7 +18,7 @@ import java.util.Random;
 public class DelveRun {
     public enum NodeType {
         FIGHT("Fight"), ELITE("Elite"), REST("Rest"), EVENT("Event"), MERCHANT("Merchant"), BOSS("Boss"),
-        TREASURE("Treasure"), SHRINE("Shrine");
+        TREASURE("Treasure"), SHRINE("Shrine"), FORGE("Forge");
         public final String label;
         NodeType(String label) { this.label = label; }
     }
@@ -79,7 +79,7 @@ public class DelveRun {
     /** Maximum life, including relics, your Castle title (Baron and up: +2) and difficulty. */
     public int maxLife() {
         return MAX_LIFE + (relics.contains(DelveRelic.VITALITY_CHARM) ? 5 : 0) + DelveRenown.runLifeBonus()
-                + DelveDifficulty.current().playerLifeBonus();
+                + DelveDifficulty.current().playerLifeBonus() + (boon == DelveBoon.VIGOR ? 3 : 0);
     }
 
     /** A room's foe's starting life: the room's life scaled by difficulty, plus any blessing or curse. */
@@ -89,6 +89,9 @@ public class DelveRun {
 
     /** Count and up: one free Reroll this run (saved). */
     public boolean freeReroll;
+
+    /** The starting boon picked at the gate (saved; null for runs from before boons). */
+    public DelveBoon boon;
 
     public boolean has(DelveRelic r) {
         return relics.contains(r);
@@ -305,6 +308,28 @@ public class DelveRun {
         lostCards.add(old);
         gainedCards.add(neu);
         return old.getName() + " becomes " + neu.getName() + ".";
+    }
+
+    /**
+     * Forge room: up to {@code n} cards of the same colours as {@code like}, ranked better than it, from the
+     * run's set (no lands, not the same card), preferring ones within a mana or so of its cost.
+     */
+    public List<PaperCard> reforgeOptions(PaperCard like, int n) {
+        byte want = like.getRules().getColorIdentity().getColor();
+        double sc = DelveRank.score(like);
+        int cmc = like.getRules().getManaCost().getCMC();
+        List<PaperCard> close = new ArrayList<>(), far = new ArrayList<>();
+        for (List<PaperCard> src : List.of(day.commons, day.uncommons, day.rares))
+            for (PaperCard pc : src)
+                if (pc.getRules().getColorIdentity().getColor() == want && DelveRank.score(pc) > sc
+                        && !pc.getName().equals(like.getName()) && !pc.getRules().getType().isLand())
+                    (Math.abs(pc.getRules().getManaCost().getCMC() - cmc) <= 1 ? close : far).add(pc);
+        java.util.Collections.shuffle(close, rng);
+        java.util.Collections.shuffle(far, rng);
+        List<PaperCard> out = new ArrayList<>();
+        for (List<PaperCard> src : List.of(close, far))
+            for (PaperCard pc : src) if (out.size() < n && !out.contains(pc)) out.add(pc);
+        return out;
     }
 
     /** A random card of the same colours ranked better than {@code like}, or null. */

@@ -31,8 +31,9 @@ final class DelveMapGen {
      * 4 = set-themed enemies (DelveDay.themedWeak/Elite/Boss).
      * 5 = set-themed events too (DelveEvents.themed).
      * 6 = floor length from Options (DelveModes.Length: 7-9 / 10-13 / 14-17), saved with the run.
+     * 7 = Forge rooms (reforge a card into a stronger one of its colour) among the side rooms.
      */
-    static final int CURRENT_GEN = 6;
+    static final int CURRENT_GEN = 7;
 
     /** Rolls added after release (special rooms, elite perks) use their own generator so a saved
      *  run's seed still rebuilds the same rooms and enemies it had before. */
@@ -92,7 +93,10 @@ final class DelveMapGen {
             } else {
                 rooms.add(fight(weak, NodeType.FIGHT));
                 int count = run.rng.nextInt(10) < 6 ? 2 : 1; // 3-room steps a bit more often than 2
-                rooms.addAll(sideRooms(run, prev, count, 1, true, NodeType.EVENT, NodeType.MERCHANT, NodeType.REST));
+                NodeType[] kinds = run.gen >= 7 // gen 7+: Forge rooms (reforge a card) join the mix
+                        ? new NodeType[]{NodeType.EVENT, NodeType.MERCHANT, NodeType.REST, NodeType.FORGE}
+                        : new NodeType[]{NodeType.EVENT, NodeType.MERCHANT, NodeType.REST};
+                rooms.addAll(sideRooms(run, prev, count, 1, true, kinds));
             }
             prev = kinds(rooms);
             add(run, rooms.toArray(new Node[0]));
@@ -114,7 +118,7 @@ final class DelveMapGen {
         for (NodeType t : options) {
             if (prev.contains(t)) continue;
             pool.add(t);
-            weights.add(t == NodeType.EVENT ? 4 : 3);
+            weights.add(t == NodeType.EVENT ? 4 : t == NodeType.FORGE ? 2 : 3);
         }
         List<Node> out = new ArrayList<>();
         while (out.size() < count && !pool.isEmpty()) {
@@ -124,12 +128,13 @@ final class DelveMapGen {
             while (roll >= weights.get(at)) roll -= weights.get(at++);
             NodeType t = pool.remove(at);
             weights.remove(at);
-            out.add(t == NodeType.EVENT ? (specials ? eventOrSpecial(run) : event(run)) : t == NodeType.MERCHANT ? merchant() : rest());
+            out.add(t == NodeType.EVENT ? (specials ? eventOrSpecial(run) : event(run))
+                    : t == NodeType.MERCHANT ? merchant() : t == NodeType.FORGE ? new Node(NodeType.FORGE, null, 0, null) : rest());
         }
         while (out.size() < least) { // not enough new kinds: repeat a merchant or rest that isn't here yet
             List<NodeType> fill = new ArrayList<>();
             for (NodeType t : options)
-                if (t != NodeType.EVENT && !kinds(out).contains(t)) fill.add(t);
+                if ((t == NodeType.MERCHANT || t == NodeType.REST) && !kinds(out).contains(t)) fill.add(t);
             if (fill.isEmpty()) break;
             out.add(fill.get(run.rng.nextInt(fill.size())) == NodeType.MERCHANT ? merchant() : rest());
         }

@@ -655,8 +655,9 @@ public class DelveMapScene extends DelveScene {
                         DelveEconomy.buyPrice(CardRarity.Common));
             List<PaperCard> b = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth + 1);
             node.stock.addAll(a.subList(0, Math.min(2, a.size())));
+            int stockSize = run.boon == DelveBoon.SCOUT ? 5 : 4; // Scout's Eye: one more card
             for (PaperCard pc : b) {
-                if (node.stock.size() >= 4) break;
+                if (node.stock.size() >= stockSize) break;
                 if (!node.stock.contains(pc)) node.stock.add(pc);
             }
             node.stock.sort(java.util.Comparator.comparingInt(DelveRun::buyPrice));
@@ -728,6 +729,39 @@ public class DelveMapScene extends DelveScene {
                     } else {
                         merchant(run, node, index);
                     }
+                });
+    }
+
+    // ---- forge ------------------------------------------------------------------
+
+    /** Forge room: pick a card in your run deck, then reforge it into one of three stronger cards of its colour. */
+    private void forgeRoom(DelveRun run, int index) {
+        completeStep(run, index);
+        List<PaperCard> candidates = new ArrayList<>();
+        for (PaperCard pc : uniqueCards(run, false))
+            if (!pc.getRules().getType().isLand() && !run.reforgeOptions(pc, 1).isEmpty()) candidates.add(pc);
+        if (candidates.isEmpty()) {
+            info("Forge", "\"Nothing here I can improve on, friend. Fine deck.\" The smith waves you on.", null);
+            return;
+        }
+        DelvePickScene.instance().show("Forge: choose a card to reforge", candidates, 0, 1, "Leave",
+                pc -> "Reforge", picks -> {
+                    if (picks.isEmpty()) {
+                        Forge.switchScene(this);
+                        return;
+                    }
+                    PaperCard old = picks.get(0);
+                    List<PaperCard> options = run.reforgeOptions(old, 3);
+                    DelvePickScene.instance().show("Reforge " + old.getName() + " into:", options, 1, 1, null,
+                            pc -> "Take", chosen -> {
+                                PaperCard neu = chosen.get(0);
+                                run.deck.getMain().remove(old);
+                                run.deck.getMain().add(neu);
+                                run.picked.add(neu);
+                                DelveRunSave.save(run);
+                                DelveSwapScene.instance().report("Forge", "The smith hammers " + old.getName()
+                                        + " into " + neu.getName() + ".", List.of(old), List.of(neu), () -> Forge.switchScene(this));
+                            });
                 });
     }
 
@@ -878,6 +912,21 @@ public class DelveMapScene extends DelveScene {
                 DelveProfile.get().addToCollection(kept);
                 Forge.switchScene(this);
                 rewardMenu(run, left - 1, taken, log + kept.size() + " cards added to your collection. ");
+            });
+        });
+        labels.add("Pick a rare (1 of 3 from " + set + ")");
+        enabled.add(!taken.contains("rare"));
+        actions.add(() -> {
+            taken.add("rare");
+            List<PaperCard> rares = new ArrayList<>();
+            for (int i = 0; i < 60 && rares.size() < 3; i++) {
+                PaperCard pc = run.randomCard(DelveEvents.RarityTier.RARE, false);
+                if (pc != null && !rares.contains(pc)) rares.add(pc);
+            }
+            DelvePickScene.instance().show("Pick a rare for your collection", rares, 1, 1, null, pc -> "Take", picked -> {
+                DelveProfile.get().addToCollection(picked);
+                Forge.switchScene(this);
+                rewardMenu(run, left - 1, taken, log + picked.get(0).getName() + " added to your collection. ");
             });
         });
         // (the "Lock the deck" reward was removed 2026-10-05, Tyler: Compact run decks aren't town decks)
