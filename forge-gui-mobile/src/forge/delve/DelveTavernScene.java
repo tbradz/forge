@@ -59,48 +59,124 @@ public class DelveTavernScene extends DelveScene {
         }
     }
 
+    // ---- the room: everyone in tonight, where they are ---------------------------------------
+
+    /**
+     * Where people can be (feet, layout units). The first six are behind the three tables (tavern_fg.png
+     * is drawn over them, so they look seated); the rest are standing spots on the floor.
+     */
+    private static final float[][] SPOTS = { // x, feet y, how high the name tag sits (pairs at a table alternate)
+            {52, 248, 58}, {92, 248, 48}, {220, 248, 58}, {260, 248, 48}, {388, 248, 58}, {428, 248, 48},
+            {146, 202, 52}, {334, 206, 52}, {184, 174, 52}, {404, 186, 52}};
+    /** Bram, by the hearth */
+    private static final float[] BRAM_SPOT = {296, 170, 52};
+    private static final String BRAM_ATLAS = "sprites/enemy/humanoid/human/peasant/farmer.atlas";
+
     private void build() {
         clearScreen();
         rollPatrons();
-        label("[%90][GOLD]The Tavern", 8, 5, 200, 16, Align.left);
-        label("[%90]Tonight: " + wins + " won, " + losses + " lost", 240, 5, 232, 16, Align.right);
-        image("ui/delve/panel.png", 40, 32, 400, 204);
-        label("[%110]Practice games", 40, 40, 400, 18, Align.center);
-        button("[%80]Talk to Bram", 352, 38, 80, 16, () -> DelveTourScene.instance().play(false,
-                () -> forge.Forge.switchScene(this)));
-        button("[%80][GOLD]The regulars", 48, 38, 80, 16, this::regulars);
-        label("[%75]No fee. Test a deck against tonight's patrons as often as you like, or play for gold or an ante.\n[%75]"
-                        + "They play " + DelveDay.today().edition.getName() + " decks. Sleep at Your House when you're ready for tomorrow.",
-                56, 60, 368, 30, Align.center);
-        for (int i = 0; i < patrons.size(); i++) {
-            EnemyData e = patrons.get(i);
-            float x = i % 2 == 0 ? 66 : 250, y = 100 + (i / 2) * 44;
-            button("Play " + DelvePersona.name(e), x, y, 164, 22, () -> chooseDeck(e));
-            label("[%70]" + shorten(e.getName()) + "[WHITE]   " + colorsOf(e), x, y + 24, 164, 12, Align.center);
-        }
-        button("[GOLD]Commander with the patrons", 140, 192, 200, 20, this::chooseCommanderDeck)
-                .setDisabled(patrons.size() < 3);
-        button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
-    }
-
-    /** Tonight's regulars: pick one to hear their rumor (see {@link DelveRegulars}). */
-    private void regulars() {
         int day = DelveProfile.get().day();
-        List<String> labels = new ArrayList<>();
-        List<Runnable> actions = new ArrayList<>();
-        for (DelveRegulars r : DelveRegulars.tonight(day)) {
-            labels.add(r.name + "[GRAY], " + r.role);
-            actions.add(() -> DelveTalkScene.speak(DelveTalkScene.TAVERN, r.atlas, r.name, "[%85]" + r.role,
-                    r.rumor(day), "[GOLD]Thanks", () -> forge.Forge.switchScene(this)));
+        label("[%90][GOLD]The Tavern", 8, 5, 120, 16, Align.left);
+        label("[%80]Tonight: " + wins + " won, " + losses + " lost", 352, 5, 120, 16, Align.right);
+        button("[GOLD]Commander with the patrons", 128, 4, 154, 17, this::chooseCommanderDeck)
+                .setDisabled(patrons.size() < 3);
+        button("Leave", 288, 4, 58, 17, () -> Forge.switchScene(DelveHubScene.instance()));
+        label("[%75]Click someone to talk or play. No fee; play for fun, a bet or an ante. Patrons play "
+                + fit(DelveDay.today().edition.getName(), 28) + " decks that grow stronger as you do.", 20, 22, W - 40, 22, Align.center);
+
+        // tonight's crowd in shuffled spots: the four patrons who'll play you, and the rumor regulars
+        List<float[]> spots = new ArrayList<>(java.util.Arrays.asList(SPOTS));
+        Collections.shuffle(spots, new Random(day * 104729L + 3));
+        List<Runnable> tags = new ArrayList<>(); // name tags and click areas go above the tables
+        int s = 0;
+        for (EnemyData e : patrons) {
+            float[] at = spots.get(s++);
+            com.badlogic.gdx.scenes.scene2d.Group g = person(new forge.adventure.character.EnemySprite(e), at);
+            tags.add(() -> tag(g, at, "[GOLD]" + DelvePersona.name(e), () -> patronMenu(e)));
         }
-        labels.add("Back to the games");
-        actions.add(() -> { });
-        choose("The regulars", "[%80]A few familiar faces are nursing their drinks. Everyone in this town hears something.",
-                labels, null, actions);
+        for (DelveRegulars r : DelveRegulars.tonight(day)) {
+            float[] at = spots.get(s++);
+            try {
+                com.badlogic.gdx.scenes.scene2d.Group g = person(new forge.adventure.character.CharacterSprite(r.atlas), at);
+                tags.add(() -> tag(g, at, "[#c0e0ff]" + r.name, () -> DelveTalkScene.speak(DelveTalkScene.TAVERN, r.atlas,
+                        r.name, "[%85]" + r.role, r.rumor(day), "[GOLD]Thanks", () -> Forge.switchScene(this))));
+            } catch (Exception ex) {
+                ex.printStackTrace(); // cosmetic: a missing sprite just means one fewer regular
+            }
+        }
+        try {
+            com.badlogic.gdx.scenes.scene2d.Group bram = person(new forge.adventure.character.CharacterSprite(BRAM_ATLAS), BRAM_SPOT);
+            tags.add(() -> tag(bram, BRAM_SPOT, "[GOLD]Bram", () -> DelveTourScene.instance().play(false, () -> Forge.switchScene(this))));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        image("ui/delve/tavern_fg.png", 0, 0, W, H); // the tables, in front of whoever sits at them
+        for (Runnable t : tags) t.run();
     }
 
-    private static String shorten(String s) {
-        return s.length() <= 16 ? s : s.substring(0, 15) + ".";
+    /** A person standing at {@code at} (feet), facing the middle of the room, scaled to a common height. */
+    private com.badlogic.gdx.scenes.scene2d.Group person(forge.adventure.character.CharacterSprite sprite, float[] at) {
+        sprite.setAnimation(forge.adventure.character.CharacterSprite.AnimationTypes.Idle);
+        sprite.setDirection(at[0] < W / 2 ? forge.adventure.character.CharacterSprite.AnimationDirections.Right
+                : forge.adventure.character.CharacterSprite.AnimationDirections.Left);
+        float h = Math.max(sprite.getHeight(), sprite.getWidth());
+        float scale = h > 0 ? Math.min(2f, 40f / h) : 2f;
+        com.badlogic.gdx.scenes.scene2d.Group g = standing(sprite, scale);
+        standAt(g, at[0], at[1]);
+        return track(g);
+    }
+
+    /** A name over someone's head and an invisible click area over them. */
+    private void tag(com.badlogic.gdx.scenes.scene2d.Group g, float[] at, String name, Runnable onClick) {
+        label("[%55]" + name, at[0] - 40, at[1] - at[2], 80, 10, Align.center);
+        com.badlogic.gdx.scenes.scene2d.Actor hit = new com.badlogic.gdx.scenes.scene2d.Actor();
+        hit.setBounds(at[0] - 14, H - at[1], 28, 46);
+        hit.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+            @Override
+            public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                onClick.run();
+            }
+        });
+        track(hit);
+    }
+
+    /** A patron: play them, or have a word first. Their deck strength grows with your progress. */
+    private void patronMenu(EnemyData e) {
+        List<String> labels = new ArrayList<>(List.of("[GOLD]Play a game", "Talk", "Back"));
+        List<Runnable> actions = new ArrayList<>(List.of(
+                () -> chooseDeck(e),
+                () -> DelveTalkScene.say(DelveTalkScene.TAVERN, e, DelvePersona.Moment.GREET, true, false, null, "Back",
+                        () -> Forge.switchScene(this)),
+                () -> { }));
+        choose(DelvePersona.title(e), "[%80]" + colorsOf(e) + "[WHITE]\n[%80]Their deck: [GOLD]" + strengthName(patronTier())
+                + "[WHITE] (it grows as you clear dungeons)", labels, null, actions);
+    }
+
+    // ---- patron decks grow with you ------------------------------------------------------------
+
+    /**
+     * How strong the patrons' decks are: your progress (days played, plus three per set tier you've
+     * unlocked) steps them from a gentle deck up to boss-quality, a little at a time.
+     */
+    static DelveDay.Tier patronTier() {
+        DelveProfile p = DelveProfile.get();
+        int progress = p.day() + 3 * p.topTier();
+        return progress < 4 ? DelveDay.Tier.EARLY : progress < 8 ? DelveDay.Tier.FIGHT : progress < 14 ? DelveDay.Tier.LATE
+                : progress < 22 ? DelveDay.Tier.ELITE : DelveDay.Tier.BOSS;
+    }
+
+    private static String strengthName(DelveDay.Tier t) {
+        switch (t) {
+            case EARLY: return "Green";
+            case FIGHT: return "Capable";
+            case LATE: return "Seasoned";
+            case ELITE: return "Veteran";
+            default: return "Fearsome";
+        }
+    }
+
+    private static Deck patronDeck(EnemyData e) {
+        return DelveDay.today().enemyDeck(e, patronTier());
     }
 
     private static String colorsOf(EnemyData e) {
@@ -135,7 +211,7 @@ public class DelveTavernScene extends DelveScene {
         List<Runnable> actions = new ArrayList<>();
         for (Deck d : decks) {
             labels.add(d.getName() + " (" + d.getMain().countAll() + ")");
-            actions.add(() -> chooseStakes(List.of(foe), List.of(DelveDay.today().enemyDeck(foe, DelveDay.Tier.ELITE)),
+            actions.add(() -> chooseStakes(List.of(foe), List.of(patronDeck(foe)),
                     () -> play(d, foe)));
         }
         labels.add("Cancel");
@@ -144,7 +220,7 @@ public class DelveTavernScene extends DelveScene {
     }
 
     private void play(Deck deck, EnemyData foe) {
-        Deck foeDeck = DelveDay.today().enemyDeck(foe, DelveDay.Tier.ELITE);
+        Deck foeDeck = patronDeck(foe);
         DelveTalkScene.before(DelveTalkScene.TAVERN, foe, true, false, null, () -> {
             DelveDuelScene.instance().setup(deck, 20, foe, foeDeck, 20, 1, false,
                     (won, life) -> DelveTalkScene.after(DelveTalkScene.TAVERN, foe, won, true, false, () -> result(won)));

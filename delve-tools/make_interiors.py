@@ -308,7 +308,7 @@ def fire(d, x, y, w, r):
 
 # ---------------------------------------------------------------- rooms
 
-def tavern():
+def tavern(furniture=True):
     r = random.Random(5)
     img = canvas()
     d = ImageDraw.Draw(img)
@@ -362,18 +362,19 @@ def tavern():
     for tx in (36, 120, 204):
         shadow(img, (tx - 18, 125, tx + 18, 131))
     d = ImageDraw.Draw(img)
-    for tx in (36, 120, 204):
-        table(d, tx, 128, 30, wood=(150, 100, 60))
-        stool(d, tx - 20, 130, wood=(140, 94, 56))
-        stool(d, tx + 20, 130, wood=(140, 94, 56))
-    mug(d, 30, 116)
-    mug(d, 40, 116)
-    candle(d, 120, 116)
-    mug(d, 198, 116)
-    mug(d, 210, 116)
-    # cards on the middle table
-    d.rectangle((110, 116, 114, 117), fill=(220, 214, 196))
-    d.rectangle((126, 116, 130, 117), fill=(220, 214, 196))
+    if furniture:  # (left out to cut the tables into tavern_fg.png, drawn over seated patrons)
+        for tx in (36, 120, 204):
+            table(d, tx, 128, 30, wood=(150, 100, 60))
+            stool(d, tx - 20, 130, wood=(140, 94, 56))
+            stool(d, tx + 20, 130, wood=(140, 94, 56))
+        mug(d, 30, 116)
+        mug(d, 40, 116)
+        candle(d, 120, 116)
+        mug(d, 198, 116)
+        mug(d, 210, 116)
+        # cards on the middle table
+        d.rectangle((110, 116, 114, 117), fill=(220, 214, 196))
+        d.rectangle((126, 116, 130, 117), fill=(220, 214, 196))
     barrel(d, 2, 104, 16, 12)
     barrel(d, 14, 106, 14, 11)
     barrel(d, 226, 104, 16, 12)
@@ -386,6 +387,22 @@ def tavern():
     glow(img, [(119, 4), (123, 4)], 10, (255, 200, 120), 90)
     vignette(img, 0.55)
     return img
+
+
+def tavern_foreground():
+    """The Tavern's tables, stools and mugs alone (transparent elsewhere), cut from the finished
+    Tavern by comparing it with a render that has no furniture. The game draws it over patrons
+    standing at the tables, so they look seated behind them."""
+    full, bare = tavern(True), tavern(False)
+    fp, bp = full.load(), bare.load()
+    out = Image.new("RGBA", full.size, (0, 0, 0, 0))
+    op = out.load()
+    for y in range(CH):
+        for x in range(CW):
+            a, b = fp[x, y], bp[x, y]
+            if abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2]) > 6:
+                op[x, y] = a[:3] + (255,)
+    return out.resize((CW * SCALE, CH * SCALE), Image.NEAREST)
 
 
 def shop():
@@ -974,6 +991,7 @@ def playmat(mat_id):
 def build():
     return {
         "tavern_bg.png": finish(tavern()),
+        "tavern_fg.png": tavern_foreground(),
         "shop_bg.png": finish(shop()),
         "outfitter_bg.png": finish(outfitter()),
         "castle_bg.png": finish(castle()),
