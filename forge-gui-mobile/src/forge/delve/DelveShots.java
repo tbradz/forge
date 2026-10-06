@@ -214,7 +214,7 @@ public final class DelveShots {
         add("paigow_mana", 12f, () -> {
             List<PaperCard> r = DelveDay.today().rares;
             DelveDuelScene.instance().setupPaiGow(new ArrayList<>(r.subList(0, 3)), DelveDay.today().themedElite().get(0),
-                    new ArrayList<>(r.subList(3, 6)), 1, (won, life) -> { });
+                    new ArrayList<>(r.subList(3, 6)), 2, (won, life) -> { }); // the AI goes first: does it handle a big pool?
             Forge.switchScene(DelveDuelScene.instance());
         });
     }

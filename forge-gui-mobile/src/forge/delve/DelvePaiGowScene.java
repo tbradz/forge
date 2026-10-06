@@ -21,7 +21,7 @@ import java.util.Random;
  *
  * You and a regular each open a booster and split it into 4 face-down piles of 3.
  * The piles are shuffled, then you play up to 4 quick games: each pile is your whole
- * hand, there's no library, everyone starts at 5 life with 60 floating mana (kept between steps), and the
+ * hand, there's no library, everyone starts at 5 life with 1,000 floating mana (kept between steps), and the
  * loser of each game goes first in the next. First to 3 wins (or the most wins
  * after 4) takes the 2 cards of their choice from the other player's pack.
  */
@@ -179,7 +179,7 @@ public class DelvePaiGowScene extends DelveScene {
         building = false;
         build();
         info("Pai Gow", DelvePersona.name(foe) + " shuffles your piles face down. You won't know which pile you'll get until each game starts.\n\n"
-                + "Every game: your pile is your hand, no library, 5 life, 60 floating mana that never empties (no lands needed). A stalemate is a draw. The loser of a game goes first in the next. First to "
+                + "Every game: your pile is your hand, no library, 5 life, 1,000 floating mana that never empties (no lands needed). A stalemate is a draw. The loser of a game goes first in the next. First to "
                 + TO_WIN + " wins takes " + DelveEconomy.PAI_GOW_TAKE + " cards from the other's pack.", null);
     }
 
@@ -302,7 +302,7 @@ public class DelvePaiGowScene extends DelveScene {
             }
         }
         label("[%70]Your piles, face down until each game starts. Hold a card to read it.", 30, 112, W - 60, 12, Align.center);
-        label("[%75]5 life each, 60 floating mana that never empties, no library. Stalemates are draws. Loser goes first next game.",
+        label("[%75]5 life each, 1,000 floating mana that never empties, no library. Stalemates are draws. Loser goes first next game.",
                 30, 128, W - 60, 24, Align.center);
 
         if (!over) {

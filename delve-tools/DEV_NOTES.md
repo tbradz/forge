@@ -93,12 +93,12 @@
 
 ## Pai Gow rules (2026-10-06, from a friend's playtest)
 - No more Wellspring lands (they broke anything that counts lands). The rules card (`delve_paigow_rules.txt`, command zone)
-  gives each player 10 of each colour + 10 colorless at the start of the game (NewGame trigger), keeps unspent mana between
+  gives each player 1,000 mana (170 of each colour + 150 colorless; Tyler asked for ~1000) at the start of the game (NewGame trigger), keeps unspent mana between
   steps and phases (Upwelling's `UnspentMana`), and removes the maximum hand size.
 - Stalemates are draws: at your upkeep, if no one has cards in hand and there are no creatures or planeswalkers, or the
   game reaches turn 15, `GameDrawn` ends it (Static triggers, no click needed). Delve already scores a drawn game as Draw;
   `DuelScene.drawnGameEndsMatch()` (upstream hook in AdventureWinLose) stops Forge offering "Quit Match (will count as a loss)".
-- Tested with the screenshot tour (`-Ddelve.shots.only=new_save|paigow`): 60 mana shown at turn 1 main phase; empty piles end in a draw.
+- Tested with the screenshot tour (`-Ddelve.shots.only=new_save|paigow`): 1,000 mana shown, AI plays its turn normally; empty piles end in a draw.
 
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
