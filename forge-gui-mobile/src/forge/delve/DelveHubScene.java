@@ -223,7 +223,7 @@ public class DelveHubScene extends UIScene {
         for (Actor b : buildings) b.setColor(restR, restG, restB, 1f);
     }
 
-    private void openHouse() {
+    void openHouse() {
         DelveProfile p = DelveProfile.get();
         StringBuilder sb = new StringBuilder();
         sb.append("Day ").append(p.day()).append(p.isEvening() ? " (evening)" : " (morning)")
@@ -259,7 +259,7 @@ public class DelveHubScene extends UIScene {
     }
 
     /** This save's optional modes: difficulty, dungeon length, how the starting deck is picked. */
-    private void options() {
+    void options() {
         com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make("Options");
         DelveModes.Length len = DelveModes.length();
         boolean chaos = DelveModes.chaosDecks();
@@ -293,12 +293,12 @@ public class DelveHubScene extends UIScene {
     }
 
     /** Change this save's difficulty (an optional mode; takes effect from the next fight). */
-    private void chooseDifficulty() {
+    void chooseDifficulty() {
         DelveDifficulty now = DelveProfile.get().difficulty();
         com.badlogic.gdx.scenes.scene2d.ui.Dialog d = DelveDialogs.make("Difficulty");
-        StringBuilder text = new StringBuilder("[%75]Dungeon fights only. Takes effect from your next fight.");
+        StringBuilder text = new StringBuilder("[%80]Dungeon fights only. Takes effect from your next fight.");
         for (DelveDifficulty x : DelveDifficulty.values())
-            text.append("\n[%70]").append(x == now ? "[GOLD]" : "").append(x.title).append("[WHITE]: ").append(x.description);
+            text.append("\n[%75]").append(x == now ? "[GOLD]" : "").append(x.title).append("[WHITE]: ").append(x.description);
         DelveDialogs.body(d, text.toString());
         for (DelveDifficulty x : DelveDifficulty.values())
             DelveDialogs.listButton(d, x == now ? "[GOLD]" + x.title + " (current)" : x.title, () -> {

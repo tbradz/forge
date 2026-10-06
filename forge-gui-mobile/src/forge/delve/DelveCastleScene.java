@@ -177,18 +177,19 @@ public class DelveCastleScene extends DelveScene {
             image("ui/delve/shade.png", 60, 233, 360, 15);
             label("[%80][GOLD]" + note, 60, 234, 360, 13, Align.center);
         }
-        button("[GOLD]Champions board", 60, 250, 120, 18, this::championsBoard);
-        button("Leave", 190, 250, 100, 18, () -> Forge.switchScene(DelveHubScene.instance()));
+        button("[GOLD]Champions board", W / 2f - 115, 250, 120, 18, this::championsBoard);
+        button("Leave", W / 2f + 15, 250, 100, 18, () -> Forge.switchScene(DelveHubScene.instance()));
     }
 
     /** The champions board: you and the rival duelists by Renown, and the title ladder with what each unlocks. */
-    private void championsBoard() {
+    void championsBoard() {
         StringBuilder sb = new StringBuilder("[%75]");
         List<DelveRenown.Standing> board = DelveRenown.board();
         for (int i = 0; i < board.size(); i++) {
             DelveRenown.Standing s = board.get(i);
             sb.append(s.you ? "[GOLD]" : "").append(i + 1).append(". ").append(s.you ? "You (" + DelveRenown.title().title + ")" : s.name)
-                    .append("  -  ").append(s.renown).append(s.you ? "[WHITE]" : "").append("\n[%75]");
+                    .append("  -  ").append(s.renown).append(s.you ? "[WHITE]" : "")
+                    .append(i % 2 == 0 && i + 1 < board.size() ? "        " : "\n[%75]"); // two to a line, so the board fits
         }
         DelveRenown.Title now = DelveRenown.title(), next = DelveRenown.next(now);
         sb.append("\n[%75]Renown: semifinal +").append(DelveRenown.SEMIFINAL).append(", final +").append(DelveRenown.FINALIST)

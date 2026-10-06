@@ -979,11 +979,13 @@ public class Forge implements ApplicationListener {
             OverlayText.getInstance().render(delta);
             // render framerate if enabled
             FrameRate.getInstance().render(showFPS);
+            forge.delve.DelveShots.afterFrame(); // Delve screenshot tour (only with -Ddelve.shots)
             return;
         }
         // render classic
         Classic.getInstance().render(screen);
         FrameRate.getInstance().render(showFPS);
+        forge.delve.DelveShots.afterFrame();
     }
 
     private static FContainer getHierachyScreen() {

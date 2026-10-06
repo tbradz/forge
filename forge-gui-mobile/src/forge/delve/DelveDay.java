@@ -167,7 +167,7 @@ public class DelveDay {
         for (CardEdition e : sets) codes.add(e.getCode());
         List<PaperCard> c = new ArrayList<>(), u = new ArrayList<>(), r = new ArrayList<>();
         for (PaperCard pc : FModel.getMagicDb().getCommonCards().getAllCards(x -> codes.contains(x.getEdition()))) {
-            if (pc.getRules().getType().isBasicLand()) continue;
+            if (pc.getRules().getType().isBasicLand() || pc.isRebalanced()) continue; // no Alchemy "A-" versions
             CardRarity rr = pc.getRarity();
             if (rr == CardRarity.Common) c.add(pc);
             else if (rr == CardRarity.Uncommon) u.add(pc);
@@ -180,8 +180,8 @@ public class DelveDay {
     private void buildPool() {
         String code = edition.getCode();
         for (PaperCard pc : FModel.getMagicDb().getCommonCards().getAllCards(c -> code.equals(c.getEdition()))) {
-            if (pc.getRules().getType().isBasicLand())
-                continue;
+            if (pc.getRules().getType().isBasicLand() || pc.isRebalanced())
+                continue; // no Alchemy "A-" (digital rebalanced) versions
             CardRarity r = pc.getRarity();
             if (r == CardRarity.Common) commons.add(pc);
             else if (r == CardRarity.Uncommon) uncommons.add(pc);
@@ -223,6 +223,36 @@ public class DelveDay {
 
     public String themeName() {
         return edition.getName();
+    }
+
+    private static final java.util.Map<String, String> SHORT_NAMES = java.util.Map.of(
+            "Dungeons & Dragons: Adventures in the Forgotten Realms", "Forgotten Realms",
+            "March of the Machine: The Aftermath", "The Aftermath",
+            "Avatar: The Last Airbender Eternal", "Avatar Eternal",
+            "Teenage Mutant Ninja Turtles Eternal", "Ninja Turtles Eternal",
+            "Teenage Mutant Ninja Turtles", "Ninja Turtles",
+            "Marvel's Spider-Man Eternal", "Spider-Man Eternal");
+
+    /**
+     * A set's name short enough for headers and labels: a known short form, else the part before a colon
+     * ("Strixhaven: School of Mages" -> "Strixhaven") when the full name runs past 24 characters.
+     */
+    public static String shortName(String name) {
+        if (name == null || name.length() <= 24) return name;
+        String s = SHORT_NAMES.get(name);
+        if (s != null) return s;
+        int colon = name.indexOf(':');
+        return colon > 0 ? name.substring(0, colon) : name;
+    }
+
+    public static String shortName(CardEdition e) {
+        return shortName(e.getName());
+    }
+
+    /** {@link #tierName} with the set's short name, for tight spots. */
+    public static String tierShortName(int tier) {
+        CardEdition e = tiers().get(Math.max(0, Math.min(tier, tiers().size() - 1)));
+        return tierName(tier).replace(e.getName(), shortName(e));
     }
 
     // ---- set-themed dungeon enemies (map generator 4+) ------------------------------------

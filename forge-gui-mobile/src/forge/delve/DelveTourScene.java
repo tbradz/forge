@@ -254,14 +254,15 @@ public class DelveTourScene extends DelveScene {
             p(track(f));
         }
         p(label("[%90][GOLD]Bram", 74, py + 6, 120, 12, Align.left));
-        p(label("[%80][#c0a060]" + s.heading, 250, py + 6, 208, 12, Align.right));
+        // the stretched panel art has an ~11px frame on each side, so keep everything inside x 24..454
+        p(label("[%80][#c0a060]" + s.heading, 250, py + 6, 200, 12, Align.right));
         String words = s.pages[page].replace("{FIRST_SET}", DelveDay.tiers().get(0).getName());
-        com.github.tommyettinger.textra.TextraLabel text = p(label("[%80]" + words, 74, py + 20, 386, 40, Align.topLeft));
+        com.github.tommyettinger.textra.TextraLabel text = p(label("[%80]" + words, 74, py + 20, 376, 40, Align.topLeft));
         text.setAlignment(Align.topLeft);
         boolean last = stop == STOPS.length - 1 && page == s.pages.length - 1;
         if (stop > 0 || page > 0) p(button("[%80]Back", 74, py + 62, 60, 15, this::back1));
-        p(button(last ? "[GOLD]Head into town" : "[GOLD]Next", 330, py + 61, 100, 17, this::next));
-        if (!last) p(button("[%70]Skip", 432, py + 62, 30, 15, this::skip));
+        p(button(last ? "[GOLD]Head into town" : "[GOLD]Next", 310, py + 61, 100, 17, this::next));
+        if (!last) p(button("[%80]Skip", 414, py + 62, 36, 15, this::skip));
     }
 
     private void next() {

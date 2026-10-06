@@ -147,7 +147,7 @@ public class DelveShopScene extends DelveScene {
     }
 
     /** The owner buys bulk 100 cards at a time for a few coins. */
-    private void sellBulk() {
+    void sellBulk() {
         List<PaperCard> spare = spareBulk();
         int lots = spare.size() / DelveEconomy.BULK_LOT;
         String text = "[%80]\"Commons and uncommons? I'll take them by the box: " + DelveEconomy.BULK_LOT + " cards for "

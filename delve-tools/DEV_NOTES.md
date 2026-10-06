@@ -78,6 +78,19 @@
 - Portable: `forge.profile.properties` with `userDir=./userdata/` and `cacheDir=./cache/`; seed `userdata/preferences/forge.preferences` with `UI_LANDSCAPE_MODE=true`, `UI_SELECTOR_MODE=Adventure` (opens straight to the Adventure title screen with the Delve button), `AUTO_UPDATE=none`, `CHECK_SNAPSHOT_AT_STARTUP=false`.
 - Zip with Python's zipfile (Windows PowerShell's ZipFile writes backslash paths). ~276 MB. First one: `Forge Fork/Delve-Playtest-2026-10-02.zip` (titles + playmats build, Dev save kept).
 
+## Screenshot tour (layout checks)
+- `DelveShots` (developer tool): start the game with `-Ddelve.shots=<folder>` and it makes a test save (50,000 gold, top tier set to the
+  longest set name to stress headers), visits ~30 Delve screens/dialogs, saves `NN_name.png` for each, writes `done.txt` and quits.
+  Hooks: `StartScene.addDelveButton` starts it, `Forge.render` calls `DelveShots.afterFrame()` to grab the frame. No flag = no effect.
+- Run it on a throwaway folder, never the real install: `%TEMP%\delve-shots` has delve.jar, `res` as a junction to the repo's
+  `forge-gui/res`, its own `userdata/` (prefs copied from the playtest package), and `cacheDir` pointing at the shared card-picture cache.
+  Launch with the playtest package's `jre\bin\java.exe` and the same `--add-opens` flags as Delve.cmd.
+- Not covered yet: merchant/rest/event rooms, relics, deck view, sealed builder, draft picks, Pai Gow, the duel screen.
+- 2026-10-06 pass fixed: Gate text under its button (and outdated reward text), long set names cut off (new `DelveDay.shortName`,
+  `fit()` now ends on a whole word with "..."), Champions board taller than the screen, tiny Difficulty and Tavern text, playmat folder
+  note wrapping mid-path, rumor grammar ("a The Book of..."), Castle buttons off-centre. Also found: Alchemy "A-" cards were in Delve's
+  set pools (now skipped via `PaperCard.isRebalanced()`), and Forge rooms had no map sprite (now a dwarf smith).
+
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
 - Jar >20MB: split into 18MB chunks, device_commit_files to `_delve_incoming/`, `cat` back together, verify sha256, delete `_delve_incoming`.

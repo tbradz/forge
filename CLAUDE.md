@@ -39,6 +39,7 @@ explicitly moves an idea over. (First entry: archetype characters with fixed sta
 - Lots built since 2026-10-02 but not yet seen running: Forge Fork/PLAYTEST-CHECKLIST.md lists what to check.
 - Commits from 2026-10-02 on may not be pushed: Tyler pushes from his own terminal (GitHub sign-in).
 - Nothing waiting on Tyler except the GitHub push and the playtest checklist.
+- 2026-10-06: text-overlap pass done with the screenshot tour (DEV_NOTES "Screenshot tour"); rooms/duel screens not yet covered.
 
 ## Backlog (Tyler's list, 2026-10-02)
 Next up

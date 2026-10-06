@@ -137,6 +137,7 @@ public class StartScene extends UIScene {
         delveButton.setBounds(360, 270 - 20 - 30, 100, 30);
         ui.addActor(delveButton);
         addToSelectable(delveButton);
+        forge.delve.DelveShots.startIfEnabled(); // developer screenshot tour (only with -Ddelve.shots)
     }
 
     public boolean delve() {

@@ -106,7 +106,7 @@ public class DelvePackOpenScene extends DelveScene {
     }
 
     private void header() {
-        label("[%90][GOLD]" + fit(title, 32), 8, 5, 230, 16, Align.left);
+        label("[%90][GOLD]" + fit(title.replace(setName, DelveDay.shortName(setName)), 48), 8, 5, 230, 16, Align.left);
         headerRight = label("[%90]Pack " + Math.min(opened + 1, packs) + " of " + packs + "    Pool: " + pool.size() + " cards",
                 240, 5, 232, 16, Align.right);
     }
@@ -125,7 +125,7 @@ public class DelvePackOpenScene extends DelveScene {
                 Actions.moveBy(0, 3, 0.9f, Interpolation.sine),
                 Actions.moveBy(0, -3, 0.9f, Interpolation.sine))));
         com.github.tommyettinger.textra.TextraLabel name =
-                label("[%55]" + setName, px + 4, py + ph * 0.72f, pw - 8, ph * 0.13f, Align.center);
+                label("[%55]" + DelveDay.shortName(setName), px + 4, py + ph * 0.72f, pw - 8, ph * 0.13f, Align.center);
         name.setTouchable(Touchable.disabled);
         name.addAction(Actions.forever(Actions.sequence(
                 Actions.moveBy(0, 3, 0.9f, Interpolation.sine),

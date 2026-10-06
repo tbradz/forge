@@ -83,7 +83,11 @@ abstract class DelveScene extends UIScene {
 
     /** Shorten text to {@code max} characters (with a trailing "."), so long set names fit one-line headers. */
     protected static String fit(String text, int max) {
-        return text == null || text.length() <= max ? text : text.substring(0, Math.max(1, max - 1)).trim() + ".";
+        if (text == null || text.length() <= max) return text;
+        String cut = text.substring(0, Math.max(1, max - 1));
+        int space = cut.lastIndexOf(' ');
+        if (space > max / 2) cut = cut.substring(0, space); // end on a whole word
+        return cut.replaceAll("[\\s:,&-]+$", "") + "...";
     }
 
     protected TextraLabel title(String text) {

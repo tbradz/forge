@@ -47,23 +47,22 @@ public class DelveGateScene extends DelveScene {
         label("[%85]Day " + prof.day() + "  -  choose a tier. Clear your highest tier to unlock the next set.",
                 30, 36, W - 60, 14, Align.center);
 
-        image("ui/delve/panel.png", 40, 56, W - 80, 150);
+        image("ui/delve/panel.png", 40, 56, W - 80, 158);
         button("<", 56, 70, 30, 24, () -> { selectedTier--; build(); }).setDisabled(selectedTier <= 0);
         button(">", W - 86, 70, 30, 24, () -> { selectedTier++; build(); }).setDisabled(selectedTier >= top);
         boolean frontier = selectedTier == top;
-        label("[%120]" + (frontier ? "[GOLD]" : "") + fit(DelveDay.tierName(selectedTier), 38), 90, 72, W - 180, 20, Align.center);
+        label("[%120]" + (frontier ? "[GOLD]" : "") + fit(DelveDay.tierShortName(selectedTier), 38), 90, 72, W - 180, 20, Align.center);
         label("[%80]" + (frontier
                         ? (top + 1 < DelveDay.tiers().size() ? "Your highest tier. Clear it to unlock " + DelveDay.tierName(top + 1) + "."
                         : "The newest set. There is no higher tier (yet).")
                         : "Already cleared. Replay it for its rewards."),
                 56, 98, W - 112, 14, Align.center);
         // three steps of a run, side by side
-        String set = DelveDay.tiers().get(selectedTier).getName();
         String[][] steps = {
-                {"1. Your deck", "Pick two of three " + set + " half-decks. Shuffled together they make your "
+                {"1. Your deck", "Pick two of three half-decks from this set. Together they make your "
                         + (DelveModes.compactRuns() ? DelveRun.COMPACT_MIN_DECK : DECK_SIZE) + "-card starting deck."},
                 {"2. The dungeon", "Fights pay gold: spend it with merchants on upgrades. Elites guard relics. The boss has a plan."},
-                {"3. Clear it", "Keep all your gold and pick a reward: packs, gold, cards from your deck, or lock it."}};
+                {"3. Clear it", "Keep all your gold and pick a reward: boosters, more gold, cards, or a rare."}};
         float colW = (W - 112) / 3f;
         for (int i = 0; i < 3; i++) {
             float x = 56 + i * colW;
@@ -77,13 +76,13 @@ public class DelveGateScene extends DelveScene {
         if (!denizens.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             for (String t : denizens) sb.append(sb.length() > 0 ? ", " : "").append(DelveDay.plural(t));
-            label("[%80][#c0a060]Below lurk: " + sb, 40, 212, W - 80, 14, Align.center);
+            label("[%80][#c0a060]Below lurk: " + sb, 40, 217, W - 80, 14, Align.center);
         }
 
         boolean canDelve = !prof.delvedToday() && !prof.isEvening();
-        button(canDelve ? "[GOLD]Choose your decks" : "[GRAY]The gate is sealed until morning", W / 2f - 100, 174, 200, 22,
+        button(canDelve ? "[GOLD]Choose your decks" : "[GRAY]The gate is sealed until morning", W / 2f - 100, 184, 200, 22,
                 this::startDraft).setDisabled(!canDelve);
-        button("Back", W / 2f - 50, 236, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
+        button("Back", W / 2f - 50, 240, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
     }
 
     // ---- Jumpstart start ----------------------------------------------------------

@@ -73,8 +73,8 @@ public enum DelveRegulars {
         if (bosses.size() >= 2) {
             List<EnemyData> b = new ArrayList<>(bosses);
             Collections.shuffle(b, r);
-            who += " And at the bottom? Last I heard, " + article(b.get(0).getName()) + " " + b.get(0).getName()
-                    + ", or maybe " + article(b.get(1).getName()) + " " + b.get(1).getName() + ". Bring answers for both.";
+            who += " And at the bottom? Last I heard, " + withArticle(b.get(0).getName())
+                    + ", or maybe " + withArticle(b.get(1).getName()) + ". Bring answers for both.";
         }
         return who;
     }
@@ -88,9 +88,9 @@ public enum DelveRegulars {
         PaperCard legend = stock.get(stock.size() - 1);
         PaperCard rare = stock.size() > 4 ? stock.get(4) : legend;
         return r.nextBoolean()
-                ? "Saw the crates going into the Card Shop. There's " + article(legend.getName()) + " " + legend.getName()
+                ? "Saw the crates going into the Card Shop. There's " + withArticle(legend.getName())
                         + " in tomorrow's lot. You didn't hear it from me."
-                : "Tomorrow the shop's putting out " + article(rare.getName()) + " " + rare.getName()
+                : "Tomorrow the shop's putting out " + withArticle(rare.getName())
                         + ". Go early. Or don't, and I'll... buy it myself. Honestly.";
     }
 
@@ -134,6 +134,11 @@ public enum DelveRegulars {
             "Pai Gow at the Card Shop: three cards a hand, five life. Fast, mean and a bit silly. My kind of game.",
             "The merchants below sell cheaper than the shop up here. Spend your dungeon gold down there.",
     };
+
+    /** "a Shock", "an Ox", and names that bring their own article as they are ("The Book of Vile Darkness"). */
+    private static String withArticle(String name) {
+        return name.startsWith("The ") ? name : article(name) + " " + name;
+    }
 
     private static String article(String name) {
         return "AEIOU".indexOf(Character.toUpperCase(name.charAt(0))) >= 0 ? "an" : "a";

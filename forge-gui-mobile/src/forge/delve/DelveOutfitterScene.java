@@ -73,7 +73,7 @@ public class DelveOutfitterScene extends DelveScene {
     }
 
     /** 0 = sleeves, 1 = foil sleeves, 2 = playmats */
-    private int tab;
+    int tab; // package: the screenshot tour (DelveShots) opens each tab
     private static final String[] TABS = {"Sleeves", "Foil sleeves", "Playmats"};
 
     private void build() {
@@ -203,7 +203,7 @@ public class DelveOutfitterScene extends DelveScene {
             prof.setCurrentPlaymat("");
             build();
         }).setDisabled(current.isEmpty());
-        label("[%65]Your own: put .png or .jpg images in " + DelvePlaymat.customDir().getAbsolutePath(),
+        label("[%75]Your own playmat: put a .png or .jpg image in the playmats folder.",
                 156, 208, 230, 24, Align.left);
         button("[%75]Open folder", 390, 212, 70, 15, () -> {
             try {

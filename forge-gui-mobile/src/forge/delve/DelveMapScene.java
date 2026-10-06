@@ -71,7 +71,7 @@ public class DelveMapScene extends DelveScene {
     }
 
     /** Add basic lands any time (free); the only deck edit allowed outside merchants, rests and events. */
-    private void basicLands(DelveRun run) {
+    void basicLands(DelveRun run) {
         String colors = "";
         forge.card.ColorSet cs = run.deckColors();
         for (char c : "WUBRG".toCharArray()) {
@@ -185,7 +185,7 @@ public class DelveMapScene extends DelveScene {
         chosen = run.chosen;
         if (!run.over) DelveRunSave.save(run);
         // header bar
-        label("[%90][GOLD]" + fit(run.day.themeName(), 18) + "[]  [%70]Tier " + (run.day.tier + 1), 8, 5, 180, 16, Align.left);
+        label("[%90][GOLD]" + fit(DelveDay.shortName(run.day.edition), 20) + "[]  [%70]Tier " + (run.day.tier + 1), 8, 5, 180, 16, Align.left);
         label("[%90][RED]Life[] " + run.life + "/" + run.maxLife() + "    [GOLD]Gold[] " + run.gold
                         + "    Deck " + run.deckSize() + "/" + run.minDeck() + "    Wins " + run.fightsWon,
                 150, 5, 322, 16, Align.right);
@@ -360,6 +360,7 @@ public class DelveMapScene extends DelveScene {
                 case MERCHANT: return facing(new CharacterSprite("sprites/enemy/humanoid/human/peasant/inn_hermit.atlas"));
                 case TREASURE: return idle(new CharacterSprite("sprites/treasure.atlas"));
                 case SHRINE: return idle(new CharacterSprite("sprites/enemy/undead/unholyskull.atlas"));
+                case FORGE: return facing(new CharacterSprite("sprites/enemy/humanoid/dwarf/dwarf.atlas")); // the smith
                 default: return facing(new forge.adventure.character.EnemySprite(node.enemy));
             }
         } catch (Exception e) {

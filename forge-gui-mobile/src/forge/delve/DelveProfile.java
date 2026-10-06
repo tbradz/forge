@@ -261,6 +261,12 @@ public class DelveProfile {
         saveStats();
     }
 
+    /** Screenshot tour (DelveShots): make {@code tier} the highest unlocked tier. */
+    void devSetTopTier(int tier) {
+        stats.setProperty("tier", String.valueOf(tier));
+        saveStats();
+    }
+
     /** Highest unlocked tier (0 = the first set). */
     /** TEMPORARY dev shortcut: unlock every set tier. */
     public void devUnlockAllTiers() {

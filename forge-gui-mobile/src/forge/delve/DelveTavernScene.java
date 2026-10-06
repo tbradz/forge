@@ -66,10 +66,10 @@ public class DelveTavernScene extends DelveScene {
      * is drawn over them, so they look seated); the rest are standing spots on the floor.
      */
     private static final float[][] SPOTS = { // x, feet y, how high the name tag sits (pairs at a table alternate)
-            {52, 248, 58}, {92, 248, 48}, {220, 248, 58}, {260, 248, 48}, {388, 248, 58}, {428, 248, 48},
-            {146, 202, 52}, {334, 206, 52}, {184, 174, 52}, {404, 186, 52}};
+            {52, 248, 54}, {92, 248, 42}, {220, 248, 54}, {260, 248, 42}, {388, 248, 54}, {428, 248, 42},
+            {146, 202, 36}, {334, 206, 36}, {184, 174, 36}, {404, 186, 36}};
     /** Bram, by the hearth */
-    private static final float[] BRAM_SPOT = {296, 170, 52};
+    private static final float[] BRAM_SPOT = {296, 170, 40};
     private static final String BRAM_ATLAS = "sprites/enemy/humanoid/human/peasant/farmer.atlas";
 
     private void build() {
@@ -81,8 +81,8 @@ public class DelveTavernScene extends DelveScene {
         button("[GOLD]Commander with the patrons", 128, 4, 154, 17, this::chooseCommanderDeck)
                 .setDisabled(patrons.size() < 3);
         button("Leave", 288, 4, 58, 17, () -> Forge.switchScene(DelveHubScene.instance()));
-        label("[%75]Click someone to talk or play. No fee; play for fun, a bet or an ante. Patrons play "
-                + fit(DelveDay.today().edition.getName(), 28) + " decks that grow stronger as you do.", 20, 22, W - 40, 22, Align.center);
+        label("[%75]Click someone to talk or play: for fun, a bet or an ante. Their "
+                + DelveDay.shortName(DelveDay.today().edition) + " decks grow stronger as you do.", 20, 22, W - 40, 14, Align.center);
 
         // tonight's crowd in shuffled spots: the four patrons who'll play you, and the rumor regulars
         List<float[]> spots = new ArrayList<>(java.util.Arrays.asList(SPOTS));
@@ -128,7 +128,7 @@ public class DelveTavernScene extends DelveScene {
 
     /** A name over someone's head and an invisible click area over them. */
     private void tag(com.badlogic.gdx.scenes.scene2d.Group g, float[] at, String name, Runnable onClick) {
-        label("[%55]" + name, at[0] - 40, at[1] - at[2], 80, 10, Align.center);
+        label("[%70]" + name, at[0] - 40, at[1] - at[2], 80, 11, Align.center);
         com.badlogic.gdx.scenes.scene2d.Actor hit = new com.badlogic.gdx.scenes.scene2d.Actor();
         hit.setBounds(at[0] - 14, H - at[1], 28, 46);
         hit.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
