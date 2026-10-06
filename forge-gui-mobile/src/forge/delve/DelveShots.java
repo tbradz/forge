@@ -98,7 +98,11 @@ public final class DelveShots {
         }, waits.get(i));
     }
 
+    /** optional regex ({@code -Ddelve.shots.only=new_save|paigow}): run just the matching steps */
+    private static final String ONLY = System.getProperty("delve.shots.only");
+
     private static void add(String name, float wait, Runnable action) {
+        if (ONLY != null && !name.matches(".*(" + ONLY + ").*")) return;
         names.add(name);
         waits.add(wait);
         steps.add(action);
@@ -200,6 +204,19 @@ public final class DelveShots {
         add("castle_champions", 1.5f, () -> DelveCastleScene.instance().championsBoard());
         add("castle_night_standings", 3f, () -> DelvePrereleaseScene.castle()
                 .debugStandings(DelvePrereleaseScene.Kind.DRAFT_NIGHT, run.deck));
+        // Pai Gow rules: empty piles can never produce a winner, so the stalemate rule should call a draw at once
+        add("paigow_stalemate", 12f, () -> {
+            DelveDuelScene.instance().setupPaiGow(new ArrayList<>(), DelveDay.today().themedElite().get(0), new ArrayList<>(), 1,
+                    (won, life) -> System.out.println("DelveShots: stalemate game ended, won=" + won
+                            + " draw=" + DelveDuelScene.instance().lastWasDraw()));
+            Forge.switchScene(DelveDuelScene.instance());
+        });
+        add("paigow_mana", 12f, () -> {
+            List<PaperCard> r = DelveDay.today().rares;
+            DelveDuelScene.instance().setupPaiGow(new ArrayList<>(r.subList(0, 3)), DelveDay.today().themedElite().get(0),
+                    new ArrayList<>(r.subList(3, 6)), 1, (won, life) -> { });
+            Forge.switchScene(DelveDuelScene.instance());
+        });
     }
 
     private static void outfitter(int tab) {

@@ -77,6 +77,11 @@ public class DuelScene extends ForgeScene {
         override = scene;
     }
 
+    /** True when the game just played was a draw that should end the match (no "Next game"); Delve's Pai Gow. */
+    public boolean drawnGameEndsMatch() {
+        return false;
+    }
+
     /** Label for the win/lose screen's exit button. */
     public String returnButtonLabel() {
         return Forge.getLocalizer().getMessage("lblBackToAdventure");

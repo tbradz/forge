@@ -2,4 +2,17 @@ Name:Delve Pai Gow Rules
 ManaCost:no cost
 Types:Artifact
 R:Event$ Draw | IsPresent$ Card.YouOwn | PresentZone$ Library | PresentCompare$ EQ0 | ActiveZones$ Command | ValidPlayer$ You | Prevent$ True | Description$ Pai Gow: you have no library. If you would draw a card while your library has no cards in it, skip that draw instead.
-Oracle:Pai Gow: you have no library. If you would draw a card while your library has no cards in it, skip that draw instead.
+S:Mode$ UnspentMana | EffectZone$ Command | ValidPlayer$ You | Description$ You don't lose unspent mana as steps and phases end.
+S:Mode$ Continuous | EffectZone$ Command | Affected$ You | SetMaxHandSize$ Unlimited | Description$ You have no maximum hand size.
+T:Mode$ NewGame | TriggerZones$ Command | Static$ True | Execute$ TrigManaW | TriggerDescription$ At the beginning of the game, add ten mana of each color and ten colorless mana.
+SVar:TrigManaW:DB$ Mana | Produced$ W | Amount$ 10 | SubAbility$ TrigManaU
+SVar:TrigManaU:DB$ Mana | Produced$ U | Amount$ 10 | SubAbility$ TrigManaB
+SVar:TrigManaB:DB$ Mana | Produced$ B | Amount$ 10 | SubAbility$ TrigManaR
+SVar:TrigManaR:DB$ Mana | Produced$ R | Amount$ 10 | SubAbility$ TrigManaG
+SVar:TrigManaG:DB$ Mana | Produced$ G | Amount$ 10 | SubAbility$ TrigManaC
+SVar:TrigManaC:DB$ Mana | Produced$ C | Amount$ 10
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Static$ True | IsPresent$ Card | PresentZone$ Hand | PresentCompare$ EQ0 | IsPresent2$ Creature,Planeswalker | PresentZone2$ Battlefield | PresentCompare2$ EQ0 | Execute$ Stalemate | TriggerDescription$ Stalemate: at the beginning of your upkeep, if no player has cards in hand and there are no creatures or planeswalkers, the game is a draw.
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Static$ True | CheckSVar$ TurnsTaken | SVarCompare$ GE15 | Execute$ Stalemate | TriggerDescription$ Stalemate: if the game reaches turn 15 without a winner, it is a draw.
+SVar:Stalemate:DB$ GameDrawn
+SVar:TurnsTaken:Count$TotalTurns
+Oracle:Pai Gow: you have no library. If you would draw a card while your library has no cards in it, skip that draw instead.\nYou begin the game with ten mana of each color and ten colorless mana, and you don't lose unspent mana as steps and phases end. You have no maximum hand size.\nIf no one can win (no cards in hand, no creatures or planeswalkers), or the game reaches turn 15, it is a draw.

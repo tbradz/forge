@@ -12,7 +12,8 @@ public class AdventureWinLose extends ControlWinLose {
     public AdventureWinLose(ViewWinLose v, GameView game) {
         super(v, game);
 
-        if (lastGame.isMatchOver()) {
+        if (lastGame.isMatchOver() || DuelScene.instance().drawnGameEndsMatch()) {
+            v.getBtnContinue().setVisible(false);
             v.getBtnQuit().setText(DuelScene.instance().returnButtonLabel());
             //v.getBtnContinue().setVisible(false);
         }

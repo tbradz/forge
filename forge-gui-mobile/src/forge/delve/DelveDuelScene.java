@@ -67,7 +67,7 @@ public class DelveDuelScene extends DuelScene {
     private boolean finished;
     private Runnable afterTransition;
     // Pai Gow: 3-card piles as opening hands, 5 life, unlimited mana, no library
-    static final int PAI_GOW_LIFE = 5, PAI_GOW_WELLS = 12;
+    static final int PAI_GOW_LIFE = 5;
     private boolean paiGow;
     private int paiGowFirst; // 0 = coin flip, 1 = you, 2 = the opponent
     private boolean lastDraw;
@@ -181,13 +181,8 @@ public class DelveDuelScene extends DuelScene {
             if (pp != null) cmd.add(pp);
             else System.err.println("Delve: Power Play missing; starting player falls back to a coin flip");
         }
+        // the rules card also gives the floating mana (kept between steps) and calls a stalemate a draw
         if (!cmd.isEmpty()) p.addExtraCardsInCommandZone(cmd);
-        forge.item.IPaperCard well = FModel.getMagicDb().getCommonCards().getCard("Pai Gow Wellspring");
-        if (well != null) {
-            List<forge.item.IPaperCard> bf = new ArrayList<>();
-            for (int i = 0; i < PAI_GOW_WELLS; i++) bf.add(well);
-            p.addExtraCardsOnBattlefield(bf);
-        } else System.err.println("Delve: Pai Gow wellspring card missing");
     }
 
     @Override
@@ -367,6 +362,13 @@ public class DelveDuelScene extends DuelScene {
                 ai.addExtraCardsOnBattlefield(bf);
             }
         }
+    }
+
+    @Override
+    public boolean drawnGameEndsMatch() {
+        if (!paiGow || match == null) return false; // a Pai Gow stalemate is scored as a draw, not replayed
+        forge.game.GameOutcome o = match.getGame() == null ? null : match.getGame().getOutcome();
+        return o != null && o.isDraw();
     }
 
     @Override
