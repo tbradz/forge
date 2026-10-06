@@ -24,6 +24,11 @@ Game install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (launch with `Delve.cm
   same paths under the install's `res\adventure\common\`.
 - In game: Delve button on the title screen -> saves. "Dev save" (temporary) starts with 50,000 gold.
 
+## A separate future game (do NOT build into Delve)
+Tyler tracks ideas for a different, future game in `Forge Fork/next-game-ideas/IDEAS.md` (outside this
+repo). Add new future-game ideas there when he raises them; never implement them in Delve unless he
+explicitly moves an idea over. (First entry: archetype characters with fixed starting decks.)
+
 ## Working agreements
 - After finishing additions, give Tyler a breakdown of what was added and the remaining discussed backlog.
 - Commit as Claude with the Co-Authored-By trailer; keep DEV_NOTES.md updated with decisions and status.

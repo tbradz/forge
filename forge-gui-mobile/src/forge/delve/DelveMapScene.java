@@ -70,7 +70,7 @@ public class DelveMapScene extends DelveScene {
         choose(title, body.toString(), labels, null, actions);
     }
 
-    /** Add or remove basic lands any time (free): tune your mana, or grow the deck past its minimum. */
+    /** Add basic lands any time (free); the only deck edit allowed outside merchants, rests and events. */
     private void basicLands(DelveRun run) {
         String colors = "";
         forge.card.ColorSet cs = run.deckColors();
@@ -89,9 +89,7 @@ public class DelveMapScene extends DelveScene {
             labels.add("+ " + basic.getName() + "  (" + have + ")");
             enabled.add(true);
             actions.add(() -> { run.deck.getMain().add(basic); afterLands(run); });
-            labels.add("- " + basic.getName());
-            enabled.add(have > 0 && run.deckSize() > run.minDeck());
-            actions.add(() -> { run.deck.getMain().remove(basic); afterLands(run); });
+            // add only (Tyler): removing cards, lands included, takes a merchant, rest or event
         }
         labels.add("Done");
         enabled.add(true);
@@ -99,8 +97,8 @@ public class DelveMapScene extends DelveScene {
         int lands = 0;
         for (java.util.Map.Entry<PaperCard, Integer> e : run.deck.getMain())
             if (e.getKey().getRules().getType().isBasicLand()) lands += e.getValue();
-        choose("Basic lands", "[%80]Free, any time between rooms. Your deck: " + run.deckSize() + " cards, " + lands
-                + " basic lands (minimum " + run.minDeck() + " cards).", labels, enabled, actions);
+        choose("Basic lands", "[%80]Add basic lands for free, any time between rooms. Your deck: " + run.deckSize()
+                + " cards, " + lands + " basic lands. (Removing cards takes a merchant, rest or event.)", labels, enabled, actions);
     }
 
     private void afterLands(DelveRun run) {
@@ -479,16 +477,26 @@ public class DelveMapScene extends DelveScene {
             endRun(true, false);
             return;
         }
+        // every won battle ends with a card for the deck (pick 1 of 3, or skip), Slay-the-Spire style (Tyler)
+        Runnable spoils = () -> offerCard(run, "Battle spoils: add a card to your deck", elite, true);
         if (elite) // elites guard a relic as well as gold
             relicChoice(run, "The elite's hoard", "You take " + gold + " gold, and among its belongings you find relics. Take one.",
-                    DelveRelic.offer(run.rng, run.relics, 3, 0.5), true, () -> { });
+                    DelveRelic.offer(run.rng, run.relics, 3, 0.5), true, spoils);
         else
             info("Victory", quote(node.enemy, DelvePersona.Moment.THEY_LOST) + "\n\n" + node.enemy.getName() + " is beaten. You find [GOLD]" + gold + " gold[WHITE] (" + run.gold
-                    + " this run). Spend it with merchants to strengthen your deck.", null);
+                    + " this run), and a card for your deck.", spoils);
     }
 
     /** Pick 1 of 3 upgrades for the run deck (Reroll while you have tokens), then add it or swap out your weakest card. */
     private void offerCard(DelveRun run, String header, boolean strong) {
+        offerCard(run, header, strong, false);
+    }
+
+    /**
+     * Pick 1 of 3 cards for the run deck. {@code addOnly}: battle spoils just join the deck (removing
+     * cards takes a merchant, rest or event); otherwise you may swap out your weakest card instead.
+     */
+    private void offerCard(DelveRun run, String header, boolean strong, boolean addOnly) {
         int depth = DelveMapGen.depth(run, Math.max(0, Math.min(run.layers.size() - 1, run.step - 1))) + (strong ? 1 : 0);
         List<PaperCard> offer = run.day.upgradeChoices(run.rng, run.deck, run.deckColors(), depth);
         int rerolls = DelveProfile.get().tokens(DelveTokens.REROLL);
@@ -496,17 +504,23 @@ public class DelveMapScene extends DelveScene {
             DelvePickScene.instance().withExtra("[GOLD]Reroll (free)", () -> {
                 run.freeReroll = false;
                 DelveRunSave.save(run);
-                offerCard(run, header, strong);
+                offerCard(run, header, strong, addOnly);
             });
         else if (rerolls > 0)
             DelvePickScene.instance().withExtra("Reroll (" + rerolls + ")", () -> {
                 DelveProfile.get().useToken(DelveTokens.REROLL);
-                offerCard(run, header, strong);
+                offerCard(run, header, strong, addOnly);
             });
         DelvePickScene.instance().show(header, offer, 1, 1, "Skip", picks -> {
             Forge.switchScene(this);
             if (picks.isEmpty()) return;
-            addOrSwap(run, picks.get(0));
+            if (addOnly) {
+                addPicks(run, picks);
+                DelveRunSave.save(run);
+                build();
+            } else {
+                addOrSwap(run, picks.get(0));
+            }
         });
     }
 
