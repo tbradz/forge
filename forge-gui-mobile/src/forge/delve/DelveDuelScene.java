@@ -326,6 +326,12 @@ public class DelveDuelScene extends DuelScene {
             if (c != null) cmd.add(c);
             else if (r.cardName != null) System.err.println("Delve: relic card missing: " + r.cardName);
         }
+        // dungeon fights: you're always on the play (Tyler; Castle/Tavern/prerelease games keep the coin flip).
+        // Power Play is a Conspiracy, so it lives in the variant card database (Pai Gow uses it the same way).
+        forge.item.IPaperCard powerPlay = FModel.getMagicDb().getVariantCards().getCard("Power Play");
+        if (powerPlay == null) powerPlay = FModel.getMagicDb().getCommonCards().getCard("Power Play");
+        if (powerPlay != null) cmd.add(powerPlay);
+        else System.err.println("Delve: Power Play missing; the dungeon's starting player falls back to a coin flip");
         if (run.compact) { // a 20-card deck can run dry in a long game: skip draws from an empty library
             forge.item.IPaperCard rules = FModel.getMagicDb().getCommonCards().getCard("Delve Compact Rules");
             if (rules != null) cmd.add(rules);

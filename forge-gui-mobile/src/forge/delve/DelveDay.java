@@ -382,10 +382,29 @@ public class DelveDay {
             default: best = true; // BOSS, CASTLE
         }
         Deck d = buildDeck(colors, q[0], q[1], q[2], true, rng,
-                tier == Tier.BOSS ? bossTheme(enemy).fits : null, lo, hi, best); // bosses play to a plan
+                tier == Tier.BOSS ? bossTheme(enemy).fits : null, lo, hi, best, gentler(tier)); // bosses play to a plan
         d.setName(enemy.getName());
         enemyDecks.put(key, d);
         return d;
+    }
+
+    /**
+     * Early dungeon fights leave out their most restrictive cards so one game isn't decided by the
+     * foe holding the perfect answer (Tyler, 2026-10-06; a light touch, not gutting them):
+     * opening fights skip counterspells, discard and hard creature removal; middle fights skip counterspells.
+     */
+    static java.util.function.Predicate<PaperCard> gentler(Tier tier) {
+        java.util.function.Predicate<PaperCard> counter = pc -> oracle(pc).contains("counter target");
+        if (tier == Tier.FIGHT) return counter;
+        if (tier != Tier.EARLY) return null;
+        return counter.or(pc -> {
+            String o = oracle(pc);
+            boolean discard = o.contains("discard") && (o.contains("opponent") || o.contains("target player"));
+            boolean hardRemoval = o.contains("destroy target creature") || o.contains("exile target creature")
+                    || o.contains("destroy target nonland permanent") || o.contains("exile target nonland permanent")
+                    || o.contains("destroy target permanent");
+            return discard || hardRemoval;
+        });
     }
 
     // ---- boss themes ------------------------------------------------------------------
@@ -628,6 +647,13 @@ public class DelveDay {
      */
     Deck buildDeck(ColorSet colors, int nCommon, int nUncommon, int nRare, boolean forAI, Random rng,
                    java.util.function.Predicate<PaperCard> prefer, double lo, double hi, boolean bestFirst) {
+        return buildDeck(colors, nCommon, nUncommon, nRare, forAI, rng, prefer, lo, hi, bestFirst, null);
+    }
+
+    /** As above, leaving out every card that matches {@code leaveOut} (e.g. counterspells in early fights). */
+    Deck buildDeck(ColorSet colors, int nCommon, int nUncommon, int nRare, boolean forAI, Random rng,
+                   java.util.function.Predicate<PaperCard> prefer, double lo, double hi, boolean bestFirst,
+                   java.util.function.Predicate<PaperCard> leaveOut) {
         loadEraPool();
         java.util.function.Predicate<PaperCard> fits = pc -> {
             if (pc.getRules().getType().isLand()) return false;
@@ -635,6 +661,7 @@ public class DelveDay {
             if (cmc < 1 || cmc > 7) return false;
             ColorSet id = pc.getRules().getColorIdentity();
             if (id.isColorless() || !colors.containsAllColorsFrom(id.getColor())) return false;
+            if (leaveOut != null && leaveOut.test(pc)) return false;
             return !forAI || !pc.getRules().getAiHints().getRemAIDecks();
         };
         List<List<PaperCard>> byRarity = new ArrayList<>(); // [rare, uncommon, common]: the tier's set
