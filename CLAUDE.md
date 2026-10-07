@@ -39,7 +39,8 @@ explicitly moves an idea over. (First entry: archetype characters with fixed sta
 - Lots built since 2026-10-02 but not yet seen running: Forge Fork/PLAYTEST-CHECKLIST.md lists what to check.
 - Commits from 2026-10-02 on may not be pushed: Tyler pushes from his own terminal (GitHub sign-in).
 - Nothing waiting on Tyler except the GitHub push and the playtest checklist.
-- 2026-10-06: text-overlap pass done with the screenshot tour (DEV_NOTES "Screenshot tour"); rooms/duel screens not yet covered.
+- 2026-10-06: text-overlap pass done with the screenshot tour (DEV_NOTES "Screenshot tour"). Tyler will report any other overlaps he sees.
+- 2026-10-07: set-themed backdrops shipped (Tyler approved). Next: Tyler playtests, then a balance pass (fight log / simulated fights were suggested).
 
 ## Backlog (Tyler's list, 2026-10-02)
 Next up
@@ -52,9 +53,9 @@ Next up
 
 More ways to play
 - [done] Castle Sealed night and Draft night (featured event rotates by day with the 1v1 tournament). Pauper / Standard-style nights: not chosen for now.
-- Set-themed dungeons: [done] enemies and bosses fit each set (DelveDay.themeEnemies, map gen 4); [done] set-flavoured events (DelveEvents.themed, gen 5); [todo] set-flavoured backdrops (art, needs Tyler's approval).
+- Set-themed dungeons: [done] enemies and bosses fit each set (DelveDay.themeEnemies, map gen 4); [done] set-flavoured events (DelveEvents.themed, gen 5); [done 2026-10-07, approved] set-themed backdrops (make_set_backdrops.py, DelveDay.BACKDROPS).
 - Optional run modes: see "Optional modes" below.
-- Commander packs.
+- (Dropped 2026-10-07: Commander packs.)
 
 Town and world
 - [done] Tavern NPCs and rumors (DelveRegulars). More regulars/rumor kinds can be added there.
@@ -76,7 +77,8 @@ options are stored in the save's profile.properties (like `era`) and chosen when
   onward, 31 tiers, the default). Per save, chosen at New save (`DelveProfile.allSets()`).
 - [built] Difficulty (DelveDifficulty: Easy/Normal/Hard/Brutal): foe life %, fight deck strength step, fight gold %,
   your max life, careless-AI openers. Chosen at New save, changeable at Your House (`difficulty` in profile).
-- [idea] More modifiers: permadeath-style rules, no-merchant runs, relic-less runs, mixed-set dungeons.
+- [pinned, not now] Permadeath-style rules (Tyler 2026-10-07: keep the idea, don't build yet).
+- [idea] More modifiers: no-merchant runs, relic-less runs, mixed-set dungeons.
 - [built] Dungeon length (DelveModes.Length: Short 7-9 / Standard 10-13 / Long 14-17 rooms; map gen 6, saved per run).
 - [built] Run format: Compact 20-card decks (default) or Classic 40 (DelveModes.compactRuns). Plus variance
   smoothing in every dungeon fight (opening-hand land smoothing, a free basic in play). Testing how it plays.

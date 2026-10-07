@@ -24,8 +24,38 @@ abstract class DelveScene extends UIScene {
         this("ui/delve_panel.json");
     }
 
+    private final String layoutFile;
+
     DelveScene(String layout) {
         super(layout);
+        layoutFile = layout;
+    }
+
+    /** The set whose themed backdrop the dungeon screens show: the run's, or null for the crypt. */
+    protected forge.card.CardEdition backdropSet() {
+        DelveRun run = DelveRun.current();
+        return run == null ? null : run.day.edition;
+    }
+
+    /** Set-themed dungeon backdrops (delve-tools/make_set_backdrops.py) on the dungeon-style layouts. */
+    protected void applyBackdrop() {
+        boolean path = layoutFile.endsWith("delve_path.json");
+        if (!path && !layoutFile.endsWith("delve_panel.json")) return;
+        Actor bg = ui.findActor("bg");
+        if (!(bg instanceof com.badlogic.gdx.scenes.scene2d.ui.Image)) return;
+        String file = DelveDay.backdrop(backdropSet(), path);
+        if (file == null || !forge.adventure.util.Config.instance().getFile(file).exists())
+            file = path ? "ui/delve/path_bg.png" : "ui/delve/dungeon_bg.png";
+        com.badlogic.gdx.graphics.Texture t = Forge.getAssets().getTexture(
+                forge.adventure.util.Config.instance().getFile(file), true, false);
+        ((com.badlogic.gdx.scenes.scene2d.ui.Image) bg).setDrawable(
+                new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(t)));
+    }
+
+    @Override
+    public void enter() {
+        applyBackdrop();
+        super.enter();
     }
 
     /**

@@ -38,8 +38,14 @@ public class DelveGateScene extends DelveScene {
         super.enter();
     }
 
+    @Override
+    protected forge.card.CardEdition backdropSet() {
+        return DelveDay.tiers().get(Math.max(0, selectedTier)); // the tier you're looking at
+    }
+
     private void build() {
         clearScreen();
+        applyBackdrop();
         atmosphere(new float[][]{{60, 160}, {420, 160}}); // matches dungeon_bg.png's torches
         DelveProfile prof = DelveProfile.get();
         int top = prof.topTier();
@@ -51,7 +57,7 @@ public class DelveGateScene extends DelveScene {
         button("<", 56, 70, 30, 24, () -> { selectedTier--; build(); }).setDisabled(selectedTier <= 0);
         button(">", W - 86, 70, 30, 24, () -> { selectedTier++; build(); }).setDisabled(selectedTier >= top);
         boolean frontier = selectedTier == top;
-        label("[%120]" + (frontier ? "[GOLD]" : "") + fit(DelveDay.tierShortName(selectedTier), 38), 90, 72, W - 180, 20, Align.center);
+        label("[%120]" + (frontier ? "[GOLD]" : "") + fit(DelveDay.tierShortName(selectedTier), 44), 90, 72, W - 180, 20, Align.center);
         label("[%80]" + (frontier
                         ? (top + 1 < DelveDay.tiers().size() ? "Your highest tier. Clear it to unlock " + DelveDay.tierName(top + 1) + "."
                         : "The newest set. There is no higher tier (yet).")

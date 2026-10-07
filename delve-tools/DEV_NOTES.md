@@ -100,6 +100,16 @@
   `DuelScene.drawnGameEndsMatch()` (upstream hook in AdventureWinLose) stops Forge offering "Quit Match (will count as a loss)".
 - Tested with the screenshot tour (`-Ddelve.shots.only=new_save|paigow`): 1,000 mana shown, AI plays its turn normally; empty piles end in a draw.
 
+## Set-themed backdrops (2026-10-07, Tyler approved the mockups)
+- `delve-tools/make_set_backdrops.py` builds 10 looks (cave, snow, mage, vampire, factory, phyrexia, grove, desert,
+  monastery, palace) like the crypt art: an even floor of one Adventure map's own tiles, clustered decoration, the dungeon
+  lighting tinted per plane. Outputs `ui/delve/backdrops/<theme>_path.png` (map) and `<theme>_menu.png` (panel layout).
+  Avoid floor tiles with transparent edges or a different tone (they read as holes / patchwork).
+- `DelveDay.BACKDROPS` maps set codes to looks (Modern tiers plus older planes for All-sets saves); unlisted sets keep the crypt.
+- `DelveScene.applyBackdrop()` (on enter) swaps the `bg` image of delve_path.json / delve_panel.json screens to the
+  current run's set; the Gate overrides `backdropSet()` to show the tier being browsed. No run = crypt.
+- Screenshot tour: `-Ddelve.shots.set=KHM` starts the test save at that set (checked KHM, MID, ONE).
+
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
 - Jar >20MB: split into 18MB chunks, device_commit_files to `_delve_incoming/`, `cat` back together, verify sha256, delete `_delve_incoming`.

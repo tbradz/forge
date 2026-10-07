@@ -123,6 +123,9 @@ public final class DelveShots {
             int longest = 0; // the set with the longest name, to stress headers
             for (int t = 0; t < tiers.size(); t++)
                 if (tiers.get(t).getName().length() > tiers.get(longest).getName().length()) longest = t;
+            String set = System.getProperty("delve.shots.set"); // e.g. KHM: test that set's tier instead
+            for (int t = 0; set != null && t < tiers.size(); t++)
+                if (tiers.get(t).getCode().equalsIgnoreCase(set)) longest = t;
             prof.devSetTopTier(longest);
             DelveCharacterScene.instance().open(() -> { });
         });

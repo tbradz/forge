@@ -225,6 +225,30 @@ public class DelveDay {
         return edition.getName();
     }
 
+    /** Set code -> themed dungeon backdrop (make_set_backdrops.py); sets not listed use the crypt. */
+    private static final java.util.Map<String, String> BACKDROPS = new java.util.HashMap<>();
+    static {
+        String[][] themes = {
+                {"cave", "ZNR", "LCI", "HOB", "TMT", "ZEN", "WWK", "ROE", "BFZ", "OGW"},
+                {"snow", "KHM", "CSP"},
+                {"mage", "STX", "SOS"},
+                {"vampire", "MID", "VOW", "DSK", "ISD", "DKA", "AVR", "SOI", "EMN"},
+                {"factory", "NEO", "SNC", "BRO", "DFT", "EOE", "SPM", "MSH", "KLD", "AER", "RTR", "GTC", "DGM", "GRN", "RNA", "WAR"},
+                {"phyrexia", "ONE", "MOM", "DMU", "SOM", "MBS", "NPH"},
+                {"grove", "WOE", "BLB", "ECL", "ELD", "LRW", "MOR", "SHM", "EVE", "IXL", "RIX"},
+                {"desert", "OTJ", "TDM", "KTK", "FRF", "DTK", "AKH", "HOU"},
+                {"monastery", "TLA"},
+                {"palace", "FIN", "THS", "BNG", "JOU", "THB"}};
+        for (String[] t : themes)
+            for (int i = 1; i < t.length; i++) BACKDROPS.put(t[i], t[0]);
+    }
+
+    /** The themed backdrop for a set's dungeon ({@code path}: the map, else menus/talk), or null for the crypt. */
+    public static String backdrop(CardEdition e, boolean path) {
+        String theme = e == null ? null : BACKDROPS.get(e.getCode());
+        return theme == null ? null : "ui/delve/backdrops/" + theme + (path ? "_path.png" : "_menu.png");
+    }
+
     private static final java.util.Map<String, String> SHORT_NAMES = java.util.Map.of(
             "Dungeons & Dragons: Adventures in the Forgotten Realms", "Forgotten Realms",
             "March of the Machine: The Aftermath", "The Aftermath",
