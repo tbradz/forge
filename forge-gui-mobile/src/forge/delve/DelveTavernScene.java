@@ -42,7 +42,7 @@ public class DelveTavernScene extends DelveScene {
     }
 
     private void rollPatrons() {
-        DelveDay day = DelveDay.today();
+        DelveDay day = DelveDay.townOrFirst();
         if (patronsDay == day.dayNumber && patronsTier == day.tier && !patrons.isEmpty()) return;
         patronsDay = day.dayNumber;
         patronsTier = day.tier;
@@ -82,7 +82,7 @@ public class DelveTavernScene extends DelveScene {
                 .setDisabled(patrons.size() < 3);
         button("Leave", 288, 4, 58, 17, () -> Forge.switchScene(DelveHubScene.instance()));
         label("[%75]Click someone to talk or play: for fun, a bet or an ante. Their "
-                + DelveDay.shortName(DelveDay.today().edition) + " decks grow stronger as you do.", 20, 22, W - 40, 14, Align.center);
+                + DelveDay.shortName(DelveDay.townOrFirst().edition) + " decks grow stronger as you do.", 20, 22, W - 40, 14, Align.center);
 
         // tonight's crowd in shuffled spots: the four patrons who'll play you, and the rumor regulars
         List<float[]> spots = new ArrayList<>(java.util.Arrays.asList(SPOTS));
@@ -176,7 +176,7 @@ public class DelveTavernScene extends DelveScene {
     }
 
     private static Deck patronDeck(EnemyData e) {
-        return DelveDay.today().enemyDeck(e, patronTier());
+        return DelveDay.townOrFirst().enemyDeck(e, patronTier());
     }
 
     private static String colorsOf(EnemyData e) {
@@ -357,7 +357,7 @@ public class DelveTavernScene extends DelveScene {
             labels.add(d.getName());
             actions.add(() -> commanderStakes(d));
         }
-        List<Deck> loaners = DelveDay.today().loanerCommanders();
+        List<Deck> loaners = DelveDay.townOrFirst().loanerCommanders();
         for (Deck d : loaners) {
             labels.add("House deck: " + d.getCommanders().get(0).getName());
             actions.add(() -> commanderStakes(d));
@@ -370,7 +370,7 @@ public class DelveTavernScene extends DelveScene {
     private void commanderFoes(List<EnemyData> foes, List<Deck> decks) {
         for (EnemyData e : patrons) {
             if (foes.size() >= 3) break;
-            Deck d = DelveDay.today().enemyCommanderDeck(e);
+            Deck d = DelveDay.townOrFirst().enemyCommanderDeck(e);
             if (d == null) continue;
             foes.add(e);
             decks.add(d);

@@ -70,9 +70,39 @@ public class DelveDay {
     public static DelveDay forTier(int dayNumber, int tier) {
         boolean all = allSetsMode();
         tier = Math.max(0, Math.min(tier, tiers(all).size() - 1));
-        if (cached == null || cached.dayNumber != dayNumber || cached.tier != tier || cached.allSets != all)
-            cached = new DelveDay(dayNumber, tier, all);
+        if (cached == null || cached.dayNumber != dayNumber || cached.tier != tier || cached.allSets != all) {
+            // a few days stay cached: the dungeon's frontier set and the town's newest cleared set are both in use
+            String key = dayNumber + "|" + tier + "|" + all;
+            DelveDay d = dayCache.get(key);
+            if (d == null) {
+                d = new DelveDay(dayNumber, tier, all);
+                dayCache.put(key, d);
+            }
+            cached = d;
+        }
         return cached;
+    }
+
+    private static final java.util.Map<String, DelveDay> dayCache = new java.util.LinkedHashMap<String, DelveDay>(8, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, DelveDay> eldest) {
+            return size() > 3;
+        }
+    };
+
+    /**
+     * The town trades only in sets you've cleared (Tyler, 2026-10-07): the Card Shop, Pai Gow, Castle nights and
+     * Tavern patrons use your newest cleared set. Null before your first clear.
+     */
+    public static DelveDay town() {
+        int cleared = DelveProfile.get().clearedTiers();
+        return cleared == 0 ? null : forTier(cleared - 1);
+    }
+
+    /** {@link #town()}, or the first tier's set before any clear (the Tavern stays open). */
+    public static DelveDay townOrFirst() {
+        DelveDay t = town();
+        return t != null ? t : forTier(0);
     }
 
     /** The current save's tiers, oldest first. */
@@ -712,6 +742,171 @@ public class DelveDay {
         return picks;
     }
 
+    // ---- archetype decks: the run's starting deck (replaces Jumpstart half-decks, 2026-10-07) ----
+
+    /** One archetype on offer at the Gate: its deck and the card shown for it. */
+    public static final class ArchetypeDeck {
+        public final DelveArchetype archetype;
+        public final Deck deck;
+        public final PaperCard face;
+        ArchetypeDeck(DelveArchetype archetype, Deck deck, PaperCard face) {
+            this.archetype = archetype; this.deck = deck; this.face = face;
+        }
+    }
+
+    private static final int ARCHETYPE_MIN_PAYOFFS = 10, ARCHETYPE_MIN_IN_COLOURS = 6;
+    private List<DelveArchetype> viable;
+
+    /** The set's cards that can go in a starting deck (no lands or AI-unplayable cards, mana value 1-7). */
+    private List<PaperCard> deckablePool() {
+        List<PaperCard> out = new ArrayList<>();
+        for (List<PaperCard> src : List.of(commons, uncommons, rares))
+            for (PaperCard pc : src) {
+                if (pc.getRules().getType().isLand() || pc.getRules().getAiHints().getRemAIDecks()) continue;
+                int cmc = pc.getRules().getManaCost().getCMC();
+                if (cmc >= 1 && cmc <= 7) out.add(pc);
+            }
+        return out;
+    }
+
+    /** Archetypes this set supports: enough payoffs overall and enough fitting cards in one colour pair. */
+    public List<DelveArchetype> viableArchetypes() {
+        if (viable != null) return viable;
+        List<PaperCard> pool = deckablePool();
+        List<DelveArchetype> ok = new ArrayList<>();
+        java.util.Map<DelveArchetype, Integer> support = new java.util.HashMap<>();
+        for (DelveArchetype a : DelveArchetype.values()) {
+            int payoffs = 0;
+            for (PaperCard pc : pool) if (a.payoff(pc)) payoffs++;
+            int inColours = 0;
+            for (ColorSet pair : colourPairs()) inColours = Math.max(inColours, fittingIn(a, pool, pair).size());
+            support.put(a, payoffs);
+            if (payoffs >= ARCHETYPE_MIN_PAYOFFS && inColours >= ARCHETYPE_MIN_IN_COLOURS) ok.add(a);
+        }
+        if (ok.size() < 3) { // a thin set: the best-supported of the rest fill in
+            List<DelveArchetype> rest = new ArrayList<>(List.of(DelveArchetype.values()));
+            rest.removeAll(ok);
+            rest.sort((x, y) -> support.get(y) - support.get(x));
+            for (DelveArchetype a : rest) if (ok.size() < 3) ok.add(a);
+        }
+        viable = ok;
+        return ok;
+    }
+
+    private static List<ColorSet> colourPairs() {
+        List<ColorSet> out = new ArrayList<>();
+        for (int i = 0; i < 5; i++)
+            for (int j = i + 1; j < 5; j++)
+                out.add(ColorSet.fromNames(new char[]{WUBRG.charAt(i), WUBRG.charAt(j)}));
+        return out;
+    }
+
+    private static boolean inColours(PaperCard pc, ColorSet pair) {
+        ColorSet id = pc.getRules().getColorIdentity();
+        return id.isColorless() || pair.containsAllColorsFrom(id.getColor());
+    }
+
+    private static List<PaperCard> fittingIn(DelveArchetype a, List<PaperCard> pool, ColorSet pair) {
+        List<PaperCard> out = new ArrayList<>();
+        for (PaperCard pc : pool)
+            if (a.fits(pc) && inColours(pc, pair) && !pc.getRules().getColorIdentity().isColorless()) out.add(pc);
+        return out;
+    }
+
+    /** Three archetypes for today's Gate: random among those the set supports, each with its deck. */
+    public List<ArchetypeDeck> archetypeOffers(Random rng, boolean compact) {
+        List<DelveArchetype> pick = new ArrayList<>(viableArchetypes());
+        Collections.shuffle(pick, rng);
+        List<ArchetypeDeck> out = new ArrayList<>();
+        java.util.Set<PaperCard> faces = new java.util.HashSet<>();
+        for (DelveArchetype a : pick) {
+            if (out.size() >= 3) break;
+            Deck d = archetypeDeck(a, compact, rng);
+            if (d == null) continue;
+            PaperCard face = null; // the deck's best archetype card, different from the other offers'
+            for (PaperCard pc : d.getMain().toFlatList()) {
+                if (pc.getRules().getType().isLand() || faces.contains(pc)) continue;
+                if (face == null || (a.fits(pc) && !a.fits(face))
+                        || (a.fits(pc) == a.fits(face) && DelveRank.score(pc) > DelveRank.score(face)))
+                    face = pc;
+            }
+            if (face == null) continue;
+            faces.add(face);
+            out.add(new ArchetypeDeck(a, d, face));
+        }
+        return out;
+    }
+
+    /**
+     * A starting deck for {@code a} from this set only, in the colour pair where the archetype is strongest:
+     * up to half archetype cards (payoffs first), then the sturdier-deck rules (answers, enough creatures,
+     * cheap cards), then more of the plan, then basics. Compact: 12 spells + 8 basics; Classic: 23 + 17.
+     */
+    public Deck archetypeDeck(DelveArchetype a, boolean compact, Random rng) {
+        List<PaperCard> pool = deckablePool();
+        ColorSet best = null;
+        double bestScore = -1;
+        for (ColorSet pair : colourPairs()) {
+            double sc = 0;
+            for (PaperCard pc : fittingIn(a, pool, pair)) sc += 1 + DelveRank.score(pc);
+            sc += rng.nextDouble() * 0.5; // near-ties: vary
+            if (sc > bestScore) { bestScore = sc; best = pair; }
+        }
+        if (best == null) return null;
+        final ColorSet colours = best;
+        final int n = compact ? 12 : 23;
+        final int maxRares = compact ? 1 : 2, maxFive = compact ? 2 : 3, maxFour = compact ? 4 : 7;
+        final int wantAnswers = compact ? 2 : 3, wantCreatures = compact ? 7 : 13, wantCheap = compact ? 3 : 6;
+        // modest but coherent: skip the set's very best cards, a little shuffle among near-equals
+        java.util.Map<PaperCard, Double> key = new java.util.HashMap<>();
+        List<PaperCard> cand = new ArrayList<>();
+        for (PaperCard pc : pool) {
+            if (!inColours(pc, colours) || pc.getRules().getManaCost().getCMC() > (compact ? 6 : 7)) continue;
+            double sc = DelveRank.score(pc);
+            if (sc > 0.9) continue;
+            cand.add(pc);
+            key.put(pc, sc + rng.nextDouble() * 0.12);
+        }
+        cand.sort((x, y) -> Double.compare(key.get(y), key.get(x)));
+        List<PaperCard> picks = new ArrayList<>();
+        java.util.function.Predicate<PaperCard> room = pc -> {
+            if (picks.size() >= n || picks.contains(pc)) return false;
+            if (isRare(pc) && picks.stream().filter(DelveDay::isRare).count() >= maxRares) return false;
+            int cmc = pc.getRules().getManaCost().getCMC();
+            if (cmc >= 5 && picks.stream().filter(x -> x.getRules().getManaCost().getCMC() >= 5).count() >= maxFive) return false;
+            return cmc < 4 || picks.stream().filter(x -> x.getRules().getManaCost().getCMC() >= 4).count() < maxFour;
+        };
+        for (PaperCard pc : cand) if (a.payoff(pc) && picks.size() < n / 2 && room.test(pc)) picks.add(pc);
+        for (PaperCard pc : cand) if (a.fits(pc) && picks.size() < n / 2 && room.test(pc)) picks.add(pc);
+        for (PaperCard pc : cand) {
+            if (picks.stream().filter(DelveDay::interaction).count() >= wantAnswers) break;
+            if (interaction(pc) && room.test(pc)) picks.add(pc);
+        }
+        for (PaperCard pc : cand) {
+            if (picks.stream().filter(x -> x.getRules().getType().isCreature()).count() >= wantCreatures) break;
+            if (pc.getRules().getType().isCreature() && room.test(pc)) picks.add(pc);
+        }
+        for (PaperCard pc : cand) {
+            if (picks.stream().filter(x -> x.getRules().getManaCost().getCMC() <= 2).count() >= wantCheap) break;
+            if (pc.getRules().getManaCost().getCMC() <= 2 && room.test(pc)) picks.add(pc);
+        }
+        for (PaperCard pc : cand) if (a.fits(pc) && room.test(pc)) picks.add(pc); // more of the plan
+        for (PaperCard pc : cand) if (room.test(pc)) picks.add(pc);
+        for (PaperCard pc : cand) if (picks.size() < n && !picks.contains(pc)) picks.add(pc); // a thin pair: anything
+        if (picks.size() < n) return null;
+        Deck d = DelveGateScene.buildDraftDeck(picks, compact ? 8 : 17);
+        StringBuilder cn = new StringBuilder();
+        for (int i = 0; i < 5; i++)
+            if (colours.hasAnyColor(ColorSet.fromNames(new char[]{WUBRG.charAt(i)}).getColor()))
+                cn.append(cn.length() > 0 ? "-" : "").append(COLOR_NAMES[i]);
+        d.setName(a.title + " (" + cn + ")");
+        return d;
+    }
+
+    private static boolean isRare(PaperCard pc) {
+        return pc.getRarity() == CardRarity.Rare || pc.getRarity() == CardRarity.MythicRare;
+    }
+
     /** A basic land by colour letter (W U B R G). */
     static PaperCard basic(char color) {
         return FModel.getMagicDb().getCommonCards().getCard(BASICS[WUBRG.indexOf(color)]);
@@ -1002,9 +1197,11 @@ public class DelveDay {
     public CardEdition recentPackSet() {
         if (recentPackSet == null) {
             List<CardEdition> recent = new ArrayList<>();
-            for (CardEdition e : eraSets)
-                if (e != edition && forge.StaticData.instance().getBoosters().contains(e.getCode()))
-                    recent.add(e);
+            List<CardEdition> tierSets = tiers(allSets); // only sets you've cleared (this one and the tiers before it)
+            for (int t = 0; t < tier && t < tierSets.size(); t++) {
+                CardEdition e = tierSets.get(t);
+                if (forge.StaticData.instance().getBoosters().contains(e.getCode())) recent.add(e);
+            }
             recent.sort(Comparator.comparing(CardEdition::getCode));
             recentPackSet = recent.isEmpty() ? edition : recent.get(new Random(seed ^ 0xB00L).nextInt(recent.size()));
         }
@@ -1065,6 +1262,12 @@ public class DelveDay {
                 cand.add(pc);
             }
             Collections.shuffle(cand, rng);
+            DelveRun run = DelveRun.current();
+            if (run != null && run.archetype != null) { // up to two of the three fit the run's archetype
+                int lead = 0;
+                for (PaperCard pc : cand)
+                    if (lead < 2 && out.size() < 3 && !out.contains(pc) && run.archetype.fits(pc)) { out.add(pc); lead++; }
+            }
             if (depth >= 3 && out.isEmpty()) // elites: lead with a rare if there is one
                 for (PaperCard pc : cand)
                     if (pc.getRarity() == CardRarity.Rare || pc.getRarity() == CardRarity.MythicRare) { out.add(pc); break; }

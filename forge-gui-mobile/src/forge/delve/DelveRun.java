@@ -92,6 +92,8 @@ public class DelveRun {
 
     /** The starting boon picked at the gate (saved; null for runs from before boons). */
     public DelveBoon boon;
+    /** the deck plan chosen at the Gate (null for runs from before archetypes) */
+    public DelveArchetype archetype;
 
     public boolean has(DelveRelic r) {
         return relics.contains(r);

@@ -84,10 +84,11 @@ public class DelvePrereleaseScene extends DelveScene {
     /** A Castle night (call on {@link #castle()}): pay, get a pool (six packs, or a draft), build, play. */
     public void beginNight(Kind night) {
         DelveProfile prof = DelveProfile.get();
+        if (DelveDay.town() == null) return; // nights use a cleared set: closed before your first clear
         if (!prof.spendGold(DelveRenown.castleEntry(DelveEconomy.CASTLE_NIGHT_ENTRY))) return;
         prof.markCastle();
         kind = night;
-        day = DelveDay.today();
+        day = DelveDay.town(); // the newest cleared set (nights are closed before your first clear)
         Random rng = new Random(day.seed ^ System.nanoTime());
         Consumer<List<PaperCard>> build = pool -> {
             prof.addToCollection(pool); // the pool is yours to keep
@@ -100,7 +101,7 @@ public class DelvePrereleaseScene extends DelveScene {
     /** Screenshot tour (DelveShots): show an event's standings screen without paying or building. */
     void debugStandings(Kind event, Deck built) {
         kind = event;
-        day = DelveDay.today();
+        day = DelveDay.townOrFirst();
         start(built, new Random(1));
     }
 

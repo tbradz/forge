@@ -110,6 +110,11 @@ public class DelveCastleScene extends DelveScene {
         }
     }
 
+    /** What a winner's booster is: a booster of your newest cleared set, or its price in gold before any clear. */
+    private static String boosterPrize() {
+        return DelveDay.town() != null ? "booster" : "[GOLD]" + DelveEconomy.PACK_PRICE + "g[]";
+    }
+
     /** Sealed / Draft night in the left panel. */
     private void buildNightPanel(DelvePrereleaseScene.Kind night, boolean done) {
         DelveProfile prof = DelveProfile.get();
@@ -117,9 +122,15 @@ public class DelveCastleScene extends DelveScene {
         int entry = DelveRenown.castleEntry(DelveEconomy.CASTLE_NIGHT_ENTRY);
         image("ui/delve/panel.png", 12, 30, 224, 200);
         label("[%120]" + (draft ? "Draft night" : "Sealed night"), 12, 38, 224, 20, Align.center);
+        DelveDay town = DelveDay.town(); // nights use your newest cleared set; closed before your first clear
+        if (town == null) {
+            label(sized("[%80]", "The Castle's " + (draft ? "draft" : "sealed") + " nights are for delvers who've cleared a dungeon."
+                    + "\n\nClear your first dungeon and tonight's packs will be from its set."), 24, 70, 200, 120, Align.center);
+            return;
+        }
         label(sized("[%80]", (draft
-                        ? "Draft three packs of " + DelveDay.today().edition.getName() + " with seven other duelists, pick by pick. "
-                        : "Open six packs of " + DelveDay.today().edition.getName() + ". ")
+                        ? "Draft three packs of " + town.edition.getName() + " with seven other duelists, pick by pick. "
+                        : "Open six packs of " + town.edition.getName() + ". ")
                         + "Build a 40-card deck and play three rounds. You keep every card.\n\n"
                         + "Entry [GOLD]" + entry + "g[]\n"
                         + "3-0 [GOLD]" + DelveRenown.castlePrize(100) + "g[] + booster, +" + DelveRenown.CHAMPION + " Renown\n"
@@ -148,7 +159,7 @@ public class DelveCastleScene extends DelveScene {
         label(sized("[%80]", "Eight duelists, single elimination, best of three. "
                         + "Bring a deck built in Your House (40+ cards).\n\n"
                         + "Entry [GOLD]" + DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY) + "g[]\n"
-                        + "Champion [GOLD]" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + "g[] + booster + token\n"
+                        + "Champion [GOLD]" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + "g[] + " + boosterPrize() + " + token\n"
                         + "Finalist [GOLD]" + DelveRenown.castlePrize(DelveEconomy.CASTLE_FINALIST) + "g[]   Semifinal [GOLD]"
                         + DelveRenown.castlePrize(DelveEconomy.CASTLE_SEMIFINAL) + "g[]"),
                 24, 62, 200, 130, Align.center);
@@ -165,7 +176,7 @@ public class DelveCastleScene extends DelveScene {
         label(sized("[%80]", "Four players, one game, everyone for themselves. 40 life, commanders in the command zone. "
                         + "Bring a Commander deck from Your House, or borrow one of tonight's house decks.\n\n"
                         + "Entry [GOLD]" + DelveRenown.castleEntry(DelveEconomy.POD_ENTRY) + "g[]\n"
-                        + "Last one standing [GOLD]" + DelveRenown.castlePrize(DelveEconomy.POD_WIN) + "g[] + booster + token"),
+                        + "Last one standing [GOLD]" + DelveRenown.castlePrize(DelveEconomy.POD_WIN) + "g[] + " + boosterPrize() + " + token"),
                 256, 62, 200, 130, Align.center);
         if (!done)
             button("[GOLD]Join a pod", 266, 200, 180, 22, this::choosePodDeck)
@@ -229,7 +240,7 @@ public class DelveCastleScene extends DelveScene {
     }
 
     private void chooseLoaner() {
-        List<Deck> loaners = DelveDay.today().loanerCommanders();
+        List<Deck> loaners = DelveDay.townOrFirst().loanerCommanders();
         if (loaners.isEmpty()) {
             info("No house decks", "There are no legendary creatures in this era to lead a deck. Try another day.", null);
             return;
@@ -249,7 +260,7 @@ public class DelveCastleScene extends DelveScene {
         if (!DelveProfile.get().spendGold(DelveRenown.castleEntry(DelveEconomy.POD_ENTRY))) return;
         DelveProfile.get().markCastle();
         pod = new Pod(deck, loaner);
-        DelveDay day = DelveDay.today();
+        DelveDay day = DelveDay.townOrFirst();
         List<EnemyData> pool = new ArrayList<>(day.eliteEnemies);
         pool.addAll(day.bossEnemies);
         if (pool.size() < 3) pool.addAll(day.weakEnemies);
@@ -314,11 +325,19 @@ public class DelveCastleScene extends DelveScene {
         if (won) {
             prof.addGold(DelveRenown.castlePrize(DelveEconomy.POD_WIN));
             prof.addCastleTitle();
-            List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, new Random());
-            prof.addToCollection(pack);
-            prize = pack;
-            msg = "Last one standing! +" + DelveRenown.castlePrize(DelveEconomy.POD_WIN) + " gold, " + article(DelveDay.today().themeName()) + " " + DelveDay.today().themeName()
-                    + " booster (added to your collection) and " + DelveTokens.grant(1, new Random()) + "."
+            DelveDay town = DelveDay.town(); // prize boosters only from cleared sets
+            String booster;
+            if (town != null) {
+                List<PaperCard> pack = town.openPack(town.edition, new Random());
+                prof.addToCollection(pack);
+                prize = pack;
+                booster = article(town.themeName()) + " " + town.themeName() + " booster (added to your collection)";
+            } else {
+                prof.addGold(DelveEconomy.PACK_PRICE);
+                booster = DelveEconomy.PACK_PRICE + " gold in place of a booster (clear a dungeon to win its packs)";
+            }
+            msg = "Last one standing! +" + DelveRenown.castlePrize(DelveEconomy.POD_WIN) + " gold, " + booster
+                    + " and " + DelveTokens.grant(1, new Random()) + "."
                     + DelveRenown.award(DelveRenown.POD_WIN);
         } else {
             msg = "You were knocked out of the pod. Better luck next time.";
@@ -366,7 +385,7 @@ public class DelveCastleScene extends DelveScene {
         if (!DelveProfile.get().spendGold(DelveRenown.castleEntry(DelveEconomy.CASTLE_ENTRY))) return;
         DelveProfile.get().markCastle();
         t = new Tournament(deck);
-        DelveDay day = DelveDay.today();
+        DelveDay day = DelveDay.townOrFirst();
         List<EnemyData> pool = new ArrayList<>(day.eliteEnemies);
         pool.addAll(day.bossEnemies);
         if (pool.size() < 7) pool.addAll(day.weakEnemies);
@@ -437,7 +456,7 @@ public class DelveCastleScene extends DelveScene {
     private void playMatch() {
         EnemyData foe = enemyNamed(currentOpponent());
         if (foe == null) return;
-        Deck foeDeck = DelveDay.today().enemyDeck(foe, DelveDay.Tier.CASTLE);
+        Deck foeDeck = DelveDay.townOrFirst().enemyDeck(foe, DelveDay.Tier.CASTLE);
         DelveTalkScene.before(DelveTalkScene.CASTLE, foe, true, false, ROUND_NAMES[t.round], () -> {
             DelveDuelScene.instance().setup(t.deck, 20, foe, foeDeck, 20, 3, t.round == 2,
                     (won, life) -> DelveTalkScene.after(DelveTalkScene.CASTLE, foe, won, true, false, () -> afterMatch(won)));
@@ -482,12 +501,19 @@ public class DelveCastleScene extends DelveScene {
             case 3: {
                 prof.addGold(DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION));
                 prof.addCastleTitle();
-                List<PaperCard> pack = DelveDay.today().openPack(DelveDay.today().edition, t.rng);
-                prof.addToCollection(pack);
-                prize = pack;
-                msg = "You are the Castle champion! +" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + " gold, a "
-                        + DelveDay.today().themeName() + " booster (added to your collection) and "
-                        + DelveTokens.grant(1, t.rng) + ".";
+                DelveDay town = DelveDay.town(); // prize boosters only from cleared sets
+                String booster;
+                if (town != null) {
+                    List<PaperCard> pack = town.openPack(town.edition, t.rng);
+                    prof.addToCollection(pack);
+                    prize = pack;
+                    booster = "a " + town.themeName() + " booster (added to your collection)";
+                } else {
+                    prof.addGold(DelveEconomy.PACK_PRICE);
+                    booster = DelveEconomy.PACK_PRICE + " gold in place of a booster (clear a dungeon to win its packs)";
+                }
+                msg = "You are the Castle champion! +" + DelveRenown.castlePrize(DelveEconomy.CASTLE_CHAMPION) + " gold, "
+                        + booster + " and " + DelveTokens.grant(1, t.rng) + ".";
                 break;
             }
             case 2:
@@ -517,7 +543,7 @@ public class DelveCastleScene extends DelveScene {
     /** A prize booster (already in your collection) gets the pack-opening show, then back to the Castle. */
     private void openPrize(List<PaperCard> pack) {
         if (pack == null || pack.isEmpty()) return;
-        String set = DelveDay.today().edition.getName();
+        String set = DelveDay.town().edition.getName();
         DelvePackOpenScene.instance().openPack("Castle prize: " + set + " booster", set, pack,
                 x -> Forge.switchScene(this));
     }
@@ -597,7 +623,7 @@ public class DelveCastleScene extends DelveScene {
                 Pod restored = new Pod(deck, Boolean.parseBoolean(p.getProperty("loaner", "false")));
                 for (String n : p.getProperty("foes", "").split("\\|")) {
                     EnemyData e = enemyByName(n);
-                    Deck d = e == null ? null : DelveDay.today().enemyCommanderDeck(e);
+                    Deck d = e == null ? null : DelveDay.townOrFirst().enemyCommanderDeck(e);
                     if (d != null) {
                         restored.foes.add(e);
                         restored.decks.add(d);

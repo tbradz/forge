@@ -120,6 +120,26 @@
   1-2 per half, then the best-ranked cards (curve caps unchanged). Sample decks: 8-11 creatures, 2-3 answers, 4-8 cheap.
 - Screenshot tour step `decks` prints both to the log (`-Ddelve.shots.only=new_save|decks -Ddelve.shots.set=ZNR`).
 
+## Archetypes replace Jumpstart half-decks (2026-10-07, Tyler)
+- `DelveArchetype`: 11 plans (Go Wide, +1/+1 Counters, Skies, Graveyard, Lifegain, Equipment, Spellslinger, Landfall,
+  Artifacts, Enchantments, Sacrifice). `payoff()` = cards that reward the plan (decides support), `fits()` = payoffs plus
+  enablers (equipment, instants/sorceries, artifacts, enchantments).
+- A set supports an archetype with 10+ payoffs (C/U/R, non-land) and 6+ fitting cards in one colour pair
+  (`viableArchetypes`; a thin set tops up to 3 with the best-supported). The Gate offers 3 at random (`archetypeOffers`).
+- `archetypeDeck`: set-only, best colour pair for the plan; up to half the spells are the plan (payoffs first), then
+  answers / creatures / cheap cards (Compact 2/7/3, Classic 3/13/6), max 1-2 rares, curve caps; basics by pips.
+  Checked: ZNR offers Landfall, NEO Equipment + Artifacts, SNC Sacrifice; universal ones everywhere.
+- The run stores `archetype` (run.properties); `upgradeChoices` (battle spoils, merchants) leads with up to 2 fitting cards.
+- Chaos mode now picks the archetype for you. Half-deck code is still in DelveDay (unused by the Gate).
+
+## Town trades only in cleared sets (2026-10-07, Tyler)
+- `DelveProfile.clearedTiers()` = topTier, +1 once the newest set is cleared (`cleared.last`). `DelveDay.town()` = newest
+  cleared set or null; `townOrFirst()` falls back to tier 0. DelveDay now caches 3 days (frontier + town both in use).
+- Card Shop singles/packs: town set + an older cleared set (`recentPackSet` picks from cleared tiers); bare shelves before
+  the first clear. Pai Gow: cleared sets only (disabled before). Prerelease stays on the frontier set (a preview).
+- Castle: nights use the town set and are closed before the first clear; 1v1/pods open; booster prizes are town boosters,
+  or the pack price in gold before any clear. Tavern patrons: `townOrFirst()`. Pip's shop rumor follows the town set.
+
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
 - Jar >20MB: split into 18MB chunks, device_commit_files to `_delve_incoming/`, `cat` back together, verify sha256, delete `_delve_incoming`.

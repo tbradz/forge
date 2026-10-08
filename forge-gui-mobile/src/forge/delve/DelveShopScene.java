@@ -39,13 +39,19 @@ public class DelveShopScene extends DelveScene {
 
     private void build() {
         clearScreen();
-        DelveDay day = DelveDay.today();
+        DelveDay day = DelveDay.town(); // singles and packs come only from sets you've cleared
         DelveProfile prof = DelveProfile.get();
         label("[%90][GOLD]Card Shop", 8, 5, 200, 16, Align.left);
         label("[%90][GOLD]Gold[] " + prof.gold(), 280, 5, 192, 16, Align.right);
 
         // singles: two rows of four on the left
-        List<PaperCard> stock = day.shopSingles();
+        List<PaperCard> stock = day == null ? List.of() : day.shopSingles();
+        if (day == null) {
+            image("ui/delve/panel.png", 14, 60, 244, 110);
+            label("[%85][GOLD]The shelves are bare.", 20, 80, 232, 16, Align.center);
+            label("[%75]\"Clear a dungeon and I'll stock its set: singles and boosters. Until then, try the prerelease: it's a"
+                    + " preview of the set you're about to face.\"", 24, 100, 224, 60, Align.center);
+        }
         float cardH = 82, cardW = cardH * 0.716f, gap = 6, left = 10, top = 34;
         for (int i = 0; i < stock.size(); i++) {
             int r = i / 4, c = i % 4;
@@ -72,8 +78,10 @@ public class DelveShopScene extends DelveScene {
         label("[%100]Booster packs", px, 36, pw, 14, Align.center);
         label("[%70]" + DelveRenown.shopPrice(DelveEconomy.PACK_PRICE) + " gold each, " + DelveEconomy.PACKS_PER_DAY + " of each per day",
                 px, 50, pw, 12, Align.center);
-        packButton(0, day.edition, px, 70, pw);
-        packButton(1, day.recentPackSet(), px, 116, pw);
+        if (day != null) {
+            packButton(0, day.edition, px, 70, pw);
+            if (day.recentPackSet() != day.edition) packButton(1, day.recentPackSet(), px, 116, pw); // an older cleared set
+        } else label("[%75]Nothing yet: clear a dungeon first.", px, 92, pw, 14, Align.center);
         label("[%70]Singles and packs go straight into your collection. The last single is always a legend that can lead a Commander deck.", px, 160, pw, 34, Align.center);
         button("[GOLD]Run tokens", px, 202, pw / 2f - 3, 19, this::tokenCounter);
         boolean pre = prof.prereleaseToday();
@@ -82,7 +90,8 @@ public class DelveShopScene extends DelveScene {
                 .setDisabled(pre || prof.gold() < DelveEconomy.PRERELEASE_ENTRY);
         int pgLeft = DelveEconomy.PAI_GOW_PER_DAY - prof.paiGowToday();
         button(pgLeft > 0 ? "[GOLD]Pai Gow[WHITE]  (" + pgLeft + " left today)" : "[GRAY]Pai Gow: come back tomorrow",
-                px, 224, pw, 18, this::paiGow).setDisabled(pgLeft <= 0 || prof.gold() < DelveEconomy.PACK_PRICE);
+                px, 224, pw, 18, this::paiGow).setDisabled(pgLeft <= 0 || prof.gold() < DelveEconomy.PACK_PRICE
+                || prof.clearedTiers() == 0); // packs of cleared sets only
 
         button("Leave", 190, 244, 100, 20, () -> Forge.switchScene(DelveHubScene.instance()));
         button("[GOLD]Sell rares", 300, 245, 110, 18, () -> sellRares(0));
@@ -242,7 +251,7 @@ public class DelveShopScene extends DelveScene {
         List<String> labels = new java.util.ArrayList<>();
         List<Boolean> enabled = new java.util.ArrayList<>();
         List<Runnable> actions = new java.util.ArrayList<>();
-        int newest = prof.topTier() - page * PAI_GOW_PAGE;
+        int newest = prof.clearedTiers() - 1 - page * PAI_GOW_PAGE; // cleared sets only
         for (int t = newest; t >= 0 && t > newest - PAI_GOW_PAGE; t--) {
             CardEdition set = DelveDay.tiers().get(t);
             labels.add(set.getName() + "  " + DelveEconomy.PACK_PRICE + "g");
@@ -307,7 +316,7 @@ public class DelveShopScene extends DelveScene {
         DelveProfile prof = DelveProfile.get();
         if (prof.packsBought(type) >= DelveEconomy.PACKS_PER_DAY || !prof.spendGold(DelveRenown.shopPrice(DelveEconomy.PACK_PRICE))) return;
         prof.markPackBought(type);
-        List<PaperCard> cards = DelveDay.today().openPack(set, rng);
+        List<PaperCard> cards = DelveDay.town().openPack(set, rng);
         prof.addToCollection(cards);
         DelvePackOpenScene.instance().openPack("Card Shop: " + set.getName() + " booster", set.getName(), cards,
                 x -> Forge.switchScene(this));

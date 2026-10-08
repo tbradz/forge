@@ -82,8 +82,8 @@ public enum DelveRegulars {
     /** Pip: something good arriving at the Card Shop tomorrow (stock is fixed by day and tier). */
     private static String shopRumor(int day, Random r) {
         DelveProfile prof = DelveProfile.get();
-        List<PaperCard> stock = DelveDay.forTier(day + 1, prof.topTier()).shopSingles();
-        DelveDay.today(); // put today's card world back in the cache
+        if (prof.clearedTiers() == 0) return "The Card Shop's shelves are bare till someone clears a dungeon. Could be you. Could be me, if I were braver.";
+        List<PaperCard> stock = DelveDay.forTier(day + 1, prof.clearedTiers() - 1).shopSingles(); // the town's set tomorrow
         if (stock.isEmpty()) return "The shop's restocking tomorrow. Couldn't get a look at the crates, though.";
         PaperCard legend = stock.get(stock.size() - 1);
         PaperCard rare = stock.size() > 4 ? stock.get(4) : legend;

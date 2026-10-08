@@ -140,19 +140,18 @@ public final class DelveShots {
         add("outfitter_foil", 2f, () -> outfitter(1));
         add("outfitter_playmats", 2f, () -> outfitter(2));
         add("gate", 2.5f, () -> Forge.switchScene(DelveGateScene.instance()));
-        add("half_deck_pick", 3f, () -> {
-            DelveDay day = DelveDay.today();
-            List<DelveDay.HalfDeck> halves = day.halfDecks(new Random(1));
+        add("archetype_pick", 3f, () -> {
+            List<DelveDay.ArchetypeDeck> offers = DelveDay.today().archetypeOffers(new Random(1), true);
             List<PaperCard> faces = new ArrayList<>();
-            for (DelveDay.HalfDeck h : halves) faces.add(h.face);
-            DelvePickScene.instance().show("Pick two half-decks:  " + halves.get(0).name + "   |   " + halves.get(1).name
-                    + (halves.size() > 2 ? "   |   " + halves.get(2).name : ""), faces, 2, 2, null, pc -> "Half-deck", x -> { });
+            for (DelveDay.ArchetypeDeck o : offers) faces.add(o.face);
+            DelvePickScene.instance().show("Choose your archetype", faces, 1, 1, null,
+                    pc -> { for (DelveDay.ArchetypeDeck o : offers) if (o.face.equals(pc)) return o.deck.getName(); return ""; }, x -> { });
         });
         add("map", 3f, () -> {
             DelveDay day = DelveDay.today();
-            List<DelveDay.HalfDeck> halves = day.halfDecks(new Random(1));
-            Deck deck = DelveDay.combineCompact(halves.get(0), halves.get(1));
-            run = DelveRun.start(day, deck);
+            DelveDay.ArchetypeDeck o = day.archetypeOffers(new Random(1), true).get(0);
+            run = DelveRun.start(day, o.deck);
+            run.archetype = o.archetype;
             run.boon = DelveBoon.VIGOR;
             Forge.switchScene(DelveMapScene.instance());
         });
@@ -217,10 +216,11 @@ public final class DelveShots {
                     if (!e.getKey().getRules().getType().isLand()) sb.append(" ").append(e.getValue()).append("x ").append(e.getKey().getName()).append(",");
                 System.out.println(sb);
             }
-            for (int s = 1; s <= 6; s++) {
-                List<DelveDay.HalfDeck> halves = day.halfDecks(new Random(s));
-                Deck d = DelveDay.combineCompact(halves.get(0), halves.get(1));
-                int creatures = 0, answers = 0, cheap = 0;
+            System.out.println("DelveShots archetypes " + day.edition.getCode() + ": " + day.viableArchetypes());
+            for (DelveArchetype a : day.viableArchetypes()) {
+                Deck d = day.archetypeDeck(a, true, new Random(7));
+                if (d == null) { System.out.println("DelveShots deck " + a + ": none"); continue; }
+                int creatures = 0, answers = 0, cheap = 0, fit = 0;
                 StringBuilder sb = new StringBuilder();
                 for (java.util.Map.Entry<PaperCard, Integer> e : d.getMain()) {
                     PaperCard pc = e.getKey();
@@ -228,10 +228,11 @@ public final class DelveShots {
                     if (pc.getRules().getType().isCreature()) creatures += e.getValue();
                     if (DelveDay.interaction(pc)) answers += e.getValue();
                     if (pc.getRules().getManaCost().getCMC() <= 2) cheap += e.getValue();
+                    if (a.fits(pc)) fit += e.getValue();
                     sb.append(" ").append(pc.getName()).append(",");
                 }
-                System.out.println("DelveShots compact " + d.getName() + ": " + creatures + " creatures, " + answers
-                        + " answers, " + cheap + " cheap |" + sb);
+                System.out.println("DelveShots deck " + d.getName() + ": " + fit + " fit, " + creatures + " creatures, "
+                        + answers + " answers, " + cheap + " cheap |" + sb);
             }
         });
         // Pai Gow rules: empty piles can never produce a winner, so the stalemate rule should call a draw at once

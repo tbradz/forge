@@ -53,7 +53,7 @@ public final class DelveModes {
         DelveProfile.get().setOption("compactRuns", String.valueOf(on));
     }
 
-    /** Chaos: the game picks your two starting half-decks for you, sight unseen. */
+    /** Chaos: the game picks your archetype for you, sight unseen. */
     public static boolean chaosDecks() {
         return Boolean.parseBoolean(DelveProfile.get().option("chaosDecks", "false"));
     }

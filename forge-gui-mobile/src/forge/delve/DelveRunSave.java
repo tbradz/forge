@@ -49,6 +49,7 @@ public final class DelveRunSave {
             p.setProperty("length", run.length.name());
             p.setProperty("compact", Boolean.toString(run.compact));
             p.setProperty("boon", run.boon == null ? "" : run.boon.name());
+            p.setProperty("archetype", run.archetype == null ? "" : run.archetype.name());
             p.setProperty("freeReroll", Boolean.toString(run.freeReroll));
             p.setProperty("life", Integer.toString(run.life));
             p.setProperty("gold", Integer.toString(run.gold));
@@ -101,6 +102,7 @@ public final class DelveRunSave {
             run.freeReroll = Boolean.parseBoolean(p.getProperty("freeReroll", "false"));
             run.compact = Boolean.parseBoolean(p.getProperty("compact", "false")); // runs from before Compact were 40-card
             run.boon = DelveBoon.parse(p.getProperty("boon", ""));
+            run.archetype = DelveArchetype.parse(p.getProperty("archetype", ""));
             run.gold = Integer.parseInt(p.getProperty("gold", "0"));
             run.step = Integer.parseInt(p.getProperty("step", "0"));
             run.fightsWon = Integer.parseInt(p.getProperty("fightsWon", "0"));

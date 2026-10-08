@@ -40,7 +40,9 @@ explicitly moves an idea over. (First entry: archetype characters with fixed sta
 - Commits from 2026-10-02 on may not be pushed: Tyler pushes from his own terminal (GitHub sign-in).
 - Nothing waiting on Tyler except the GitHub push and the playtest checklist.
 - 2026-10-06: text-overlap pass done with the screenshot tour (DEV_NOTES "Screenshot tour"). Tyler will report any other overlaps he sees.
-- 2026-10-07: set-themed backdrops shipped (Tyler approved). Next: Tyler playtests, then a balance pass (fight log / simulated fights were suggested).
+- 2026-10-07: set-themed backdrops shipped (Tyler approved). Archetype decks replaced Jumpstart half-decks; the town
+  (shop, Pai Gow, Castle nights, Tavern) trades only in cleared sets. Next from the design doc: Wellspring mana + Landfall
+  build, then the house. Balance pass after Tyler's playtests.
 
 ## Design in progress (2026-10-07)
 `delve-tools/DESIGN-archetypes-and-house.md`: archetype decks instead of Jumpstart half-decks, cards/packs only

@@ -65,8 +65,8 @@ public class DelveGateScene extends DelveScene {
                 56, 98, W - 112, 14, Align.center);
         // three steps of a run, side by side
         String[][] steps = {
-                {"1. Your deck", "Pick two of three half-decks from this set. Together they make your "
-                        + (DelveModes.compactRuns() ? DelveRun.COMPACT_MIN_DECK : DECK_SIZE) + "-card starting deck."},
+                {"1. Your deck", "Choose one of three archetypes this set supports. It builds your "
+                        + (DelveModes.compactRuns() ? DelveRun.COMPACT_MIN_DECK : DECK_SIZE) + "-card deck from the set's cards."},
                 {"2. The dungeon", "Fights pay gold: spend it with merchants on upgrades. Elites guard relics. The boss has a plan."},
                 {"3. Clear it", "Keep all your gold and pick a reward: boosters, more gold, cards, or a rare."}};
         float colW = (W - 112) / 3f;
@@ -93,54 +93,42 @@ public class DelveGateScene extends DelveScene {
 
     // ---- Jumpstart start ----------------------------------------------------------
 
-    /** Pick two of three half-decks from the tier's set; together they're the run's 40-card deck. */
+    /** Pick one of three archetypes the tier's set supports; its deck is the run's starting deck. */
     private void startDraft() {
         DelveDay day = DelveDay.forTier(selectedTier);
         Random rng = new Random(day.seed ^ System.nanoTime());
-        List<DelveDay.HalfDeck> halves = day.halfDecks(rng);
-        if (halves.size() < 2) {
-            info("Dungeon Gate", "This set doesn't have enough single-colour cards for half-decks.", null);
+        List<DelveDay.ArchetypeDeck> offers = day.archetypeOffers(rng, DelveModes.compactRuns());
+        if (offers.isEmpty()) {
+            info("Dungeon Gate", "This set doesn't have enough cards to build an archetype deck.", null);
             return;
         }
-        if (DelveModes.chaosDecks()) { // optional mode: the game picks two half-decks, sight unseen
-            List<DelveDay.HalfDeck> shuffled = new ArrayList<>(halves);
-            java.util.Collections.shuffle(shuffled, rng);
-            showDeck(day, combine(shuffled.get(0), shuffled.get(1)), "Chaos deck: ");
+        if (DelveModes.chaosDecks()) { // optional mode: the game picks your archetype, sight unseen
+            DelveDay.ArchetypeDeck o = offers.get(rng.nextInt(offers.size()));
+            showDeck(day, o, "Chaos deck: ");
             return;
         }
         List<PaperCard> faces = new ArrayList<>();
-        StringBuilder names = new StringBuilder();
-        for (DelveDay.HalfDeck h : halves) {
-            faces.add(h.face);
-            names.append(names.length() > 0 ? "   |   " : "").append(h.name);
-        }
-        DelvePickScene.instance().show("Pick two half-decks:  " + names, faces, 2, 2, null,
-                pc -> halfFor(halves, pc).name, picked -> {
-                    DelveDay.HalfDeck a = halfFor(halves, picked.get(0)), b = halfFor(halves, picked.get(1));
-                    showDeck(day, combine(a, b), "");
-                });
+        for (DelveDay.ArchetypeDeck o : offers) faces.add(o.face);
+        DelvePickScene.instance().show("Choose your archetype", faces, 1, 1, null,
+                pc -> offerFor(offers, pc).deck.getName(), picked -> showDeck(day, offerFor(offers, picked.get(0)), ""));
     }
 
-    /** Show the run's starting deck (spells by mana value), then into the dungeon. */
-    private void showDeck(DelveDay day, Deck deck, String prefix) {
+    private static DelveDay.ArchetypeDeck offerFor(List<DelveDay.ArchetypeDeck> offers, PaperCard face) {
+        for (DelveDay.ArchetypeDeck o : offers) if (o.face.equals(face)) return o;
+        return offers.get(0);
+    }
+
+    /** Show the run's starting deck (spells by mana value) and what the archetype does, then into the dungeon. */
+    private void showDeck(DelveDay day, DelveDay.ArchetypeDeck offer, String prefix) {
+        Deck deck = offer.deck;
         List<PaperCard> view = new ArrayList<>();
         for (PaperCard pc : deck.getMain().toFlatList())
             if (!pc.getRules().getType().isBasicLand() && !view.contains(pc)) view.add(pc);
         view.sort(java.util.Comparator.comparingInt(pc -> pc.getRules().getManaCost().getCMC()));
         int lands = 0;
         for (PaperCard pc : deck.getMain().toFlatList()) if (pc.getRules().getType().isBasicLand()) lands++;
-        DelvePickScene.instance().show(prefix + deck.getName() + "  (" + (deck.getMain().countAll() - lands) + " spells + " + lands + " basic lands)", view, 0, 0,
-                "Into the dungeon", x -> begin(day, deck));
-    }
-
-    /** The starting deck for this save's run format: Compact (20) by default, or Classic (40). */
-    private static Deck combine(DelveDay.HalfDeck a, DelveDay.HalfDeck b) {
-        return DelveModes.compactRuns() ? DelveDay.combineCompact(a, b) : DelveDay.combine(a, b);
-    }
-
-    private static DelveDay.HalfDeck halfFor(List<DelveDay.HalfDeck> halves, PaperCard face) {
-        for (DelveDay.HalfDeck h : halves) if (h.face.equals(face)) return h;
-        return halves.get(0);
+        DelvePickScene.instance().show(prefix + deck.getName() + ": " + offer.archetype.description + "  (" + (deck.getMain().countAll() - lands)
+                        + " spells + " + lands + " lands)", view, 0, 0, "Into the dungeon", x -> begin(day, deck, offer.archetype));
     }
 
     /** The picks plus {@code lands} basic lands split by the colored mana symbols in the picks. */
@@ -183,7 +171,7 @@ public class DelveGateScene extends DelveScene {
     }
 
     /** Pick a starting boon (1 of 3), then into the dungeon. */
-    private void begin(DelveDay day, Deck deck) {
+    private void begin(DelveDay day, Deck deck, DelveArchetype archetype) {
         Forge.switchScene(this);
         List<DelveBoon> boons = DelveBoon.offer(new Random());
         List<String> labels = new ArrayList<>();
@@ -192,13 +180,14 @@ public class DelveGateScene extends DelveScene {
         for (DelveBoon b : boons) {
             text.append("\n[%75][GOLD]").append(b.title).append("[WHITE]: ").append(b.description);
             labels.add("[GOLD]" + b.title);
-            actions.add(() -> enter(day, deck, b));
+            actions.add(() -> enter(day, deck, b, archetype));
         }
         choose("Starting boon", text.toString(), labels, null, actions);
     }
 
-    private void enter(DelveDay day, Deck deck, DelveBoon boon) {
+    private void enter(DelveDay day, Deck deck, DelveBoon boon, DelveArchetype archetype) {
         DelveRun run = DelveRun.start(day, deck);
+        run.archetype = archetype;
         run.boon = boon;
         boon.applyAtStart(run);
         DelveRunSave.save(run);

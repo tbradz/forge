@@ -62,7 +62,7 @@ public class DelvePaiGowScene extends DelveScene {
         prof.markPaiGow();
         DelveAudio.shuffle();
         this.set = set;
-        DelveDay day = DelveDay.today();
+        DelveDay day = DelveDay.townOrFirst(); // Pai Gow sells packs of cleared sets only
         myPack = day.openPack(set, rng);
         foePack = day.openPack(set, rng);
         prof.addToCollection(myPack); // yours from the start; a loss hands 2 over afterwards

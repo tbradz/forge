@@ -282,7 +282,7 @@ public class DelveHubScene extends UIScene {
             DelveModes.setLength(all[(len.ordinal() + 1) % all.length]); // cycle Short -> Standard -> Long
             options();
         }, 18f);
-        DelveDialogs.listButton(d, "Starting decks: [GOLD]" + (chaos ? "Chaos" : "Pick 2 of 3")
+        DelveDialogs.listButton(d, "Archetype: [GOLD]" + (chaos ? "Chaos" : "Pick 1 of 3")
                 + "[]" + (chaos ? " (picked for you)" : ""), () -> {
             removeDialog();
             DelveModes.setChaosDecks(!chaos);

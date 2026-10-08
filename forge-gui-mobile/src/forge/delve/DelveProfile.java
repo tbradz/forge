@@ -274,12 +274,21 @@ public class DelveProfile {
         saveStats();
     }
 
+    /** How many tiers you've cleared: every tier below your highest, plus the newest set once it's cleared. */
+    public int clearedTiers() {
+        return topTier() + (stats.getProperty("cleared.last", "false").equals("true") ? 1 : 0);
+    }
+
     public int topTier() {
         return Integer.parseInt(stats.getProperty("tier", "0"));
     }
 
     /** Clearing your highest tier unlocks the next one; returns true if a new tier opened. */
     public boolean clearTier(int tier) {
+        if (tier == DelveDay.tiers().size() - 1 && tier == topTier() && !stats.getProperty("cleared.last", "false").equals("true")) {
+            stats.setProperty("cleared.last", "true"); // the newest set: nothing to unlock, but it counts as cleared
+            saveStats();
+        }
         if (tier != topTier() || tier + 1 >= DelveDay.tiers().size()) return false;
         stats.setProperty("tier", String.valueOf(tier + 1));
         saveStats();
