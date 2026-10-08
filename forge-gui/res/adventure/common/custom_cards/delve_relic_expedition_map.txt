@@ -1,0 +1,7 @@
+Name:Delve Relic Expedition Map
+ManaCost:no cost
+Types:Artifact
+T:Mode$ CounterAdded | ValidCard$ Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | TriggerZones$ Command | Static$ True | IsPresent$ Card.Self+counters_EQ0_LORE | PresentZone$ Command | Execute$ Mana | TriggerDescription$ The first time you Attune each fight, add one mana of any color.
+SVar:Mana:DB$ Mana | Produced$ Any | Amount$ 1 | SubAbility$ Used
+SVar:Used:DB$ PutCounter | Defined$ Self | CounterType$ LORE | CounterNum$ 1
+Oracle:Expedition Map: the first time you Attune each fight, add one mana of any color right away.

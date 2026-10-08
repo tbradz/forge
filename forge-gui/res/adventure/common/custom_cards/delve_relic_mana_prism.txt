@@ -1,0 +1,6 @@
+Name:Delve Relic Mana Prism
+ManaCost:no cost
+Types:Artifact
+S:Mode$ ReduceCost | EffectZone$ Command | ValidCard$ Card.nonColorless | Type$ Spell | Activator$ You | Amount$ 1 | CheckSVar$ X | SVarCompare$ EQ0 | Description$ Your first colored spell each turn costs {1} less.
+SVar:X:Count$ThisTurnCast_Card.nonColorless+YouCtrl
+Oracle:Mana Prism: your first colored spell each turn costs {1} less.

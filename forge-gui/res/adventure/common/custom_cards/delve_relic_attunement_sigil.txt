@@ -1,0 +1,7 @@
+Name:Delve Relic Attunement Sigil
+ManaCost:no cost
+Types:Artifact
+T:Mode$ CounterAdded | ValidCard$ Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | TriggerZones$ Command | Static$ True | IsPresent$ Card.Self+counters_EQ0_LORE | PresentZone$ Command | Execute$ Draw | TriggerDescription$ The first time you Attune each fight, draw a card.
+SVar:Draw:DB$ Draw | Defined$ You | NumCards$ 1 | SubAbility$ Used
+SVar:Used:DB$ PutCounter | Defined$ Self | CounterType$ LORE | CounterNum$ 1
+Oracle:Attunement Sigil: the first time you Attune each fight, draw a card.

@@ -277,7 +277,7 @@ public class DelveHubScene extends UIScene {
             options();
         }, 18f);
         boolean channel = DelveModes.channelMana();
-        DelveDialogs.listButton(d, "Mana: [GOLD]" + (channel ? "Channel" : "Lands") + "[] ("
+        DelveDialogs.listButton(d, "Mana: [GOLD]" + (channel ? "Attune" : "Lands") + "[] ("
                 + (channel ? "no lands; turn cards into mana" : "basic lands in your deck") + ")", () -> {
             removeDialog();
             DelveModes.setChannelMana(!channel);

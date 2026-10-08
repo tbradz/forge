@@ -140,6 +140,17 @@
 - Castle: nights use the town set and are closed before the first clear; 1v1/pods open; booster prizes are town boosters,
   or the pack price in gold before any clear. Tavern patrons: `townOrFirst()`. Pip's shop rumor follows the town set.
 
+## Mana relics and the Attune rename (2026-10-08)
+- "Channel" renamed **Attune** in all player-facing text (Magic's own Channel keyword shows up on Neon Dynasty cards).
+  Internal names stay (option `channelMana`, run flag `channel`) so saves keep working.
+- Mana relics (Attune runs only; `DelveRelic.fitsRun`, Lodestone is Lands-only): Mana Crystal (+1 Spark), Attunement
+  Sigil (first Attune each fight draws), Expedition Map (first Attune adds one mana of any colour), Blood Chalice (a
+  creature of yours dies: one mana of any colour), Deep Reserves (two Attunes a turn: refunds the first CHARGE counter),
+  Broken Crown (+2 Sparks, one fewer opening card), Mana Prism (first coloured spell each turn costs {1} less), Prism
+  Lens (spend colourless as any colour). Boon Deep Well = Mana Crystal for the run (Attune runs only).
+- Script-tested (`-Ddelve.shots.relics=...`): Crystal, Sigil, Deep Reserves, Broken Crown, Prism Lens. Expedition Map /
+  Blood Chalice ask for a colour (the script can't answer); Mana Prism's discount not yet observed. Check in playtest.
+
 ## Channel mana: no lands in the dungeon (2026-10-08, Tyler + his recommendations doc)
 - Default for new runs (Your House > Options > Mana: Channel / Lands; `DelveModes.channelMana`, run.properties `channel`).
 - `delve_mana_rules.txt` (your command zone): 3 colourless **Mana Sparks** at game start; every card in hand gets

@@ -1,0 +1,6 @@
+Name:Delve Relic Blood Chalice
+ManaCost:no cost
+Types:Artifact
+T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.YouCtrl | TriggerZones$ Command | Execute$ Mana | TriggerDescription$ Whenever a creature you control dies, add one mana of any color.
+SVar:Mana:DB$ Mana | Produced$ Any | Amount$ 1
+Oracle:Blood Chalice: whenever a creature you control dies, add one mana of any color.

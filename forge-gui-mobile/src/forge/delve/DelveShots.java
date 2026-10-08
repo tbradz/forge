@@ -244,6 +244,9 @@ public final class DelveShots {
             run.archetype = o.archetype;
             run.channel = true;
             run.compact = true;
+            String relics = System.getProperty("delve.shots.relics", "MANA_CRYSTAL,DEEP_RESERVES,ATTUNEMENT_SIGIL");
+            for (String r : relics.split(",")) if (DelveRelic.byName(r.trim()) != null) run.relics.add(DelveRelic.byName(r.trim()));
+            System.out.println("DelveShots channel: relics " + run.relics);
             DelveRun.Node node = null;
             for (List<DelveRun.Node> layer : run.layers)
                 for (DelveRun.Node n : layer) if (node == null && n.type == DelveRun.NodeType.FIGHT) node = n;
@@ -306,24 +309,39 @@ public final class DelveShots {
             forge.game.spellability.SpellAbility channel = null;
             for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand))
                 for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
-                    if (channel == null && sa.getDescription() != null && sa.getDescription().contains("Channel")) channel = sa;
+                    if (channel == null && sa.getDescription() != null && sa.getDescription().contains("Attune")) channel = sa;
             if (channel == null) { log("no Channel ability found in hand"); return; }
-            log("channeling " + channel.getHostCard().getName() + ": " + channel.getDescription());
+            int handBefore = me.getCardsIn(forge.game.zone.ZoneType.Hand).size();
+            log("before attuning: hand " + handBefore + ", pool " + me.getManaPool().totalMana());
+            log("attuning " + channel.getHostCard().getName() + ": " + channel.getDescription() + " (hand " + handBefore + ")");
             pc.getInputProxy().selectAbility(channel);
             Thread.sleep(2000);
-            log("after channel, command zone: " + names(me.getCardsIn(forge.game.zone.ZoneType.Command)));
+            log("after attune, command zone: " + names(me.getCardsIn(forge.game.zone.ZoneType.Command))
+                    + " | hand " + me.getCardsIn(forge.game.zone.ZoneType.Hand).size() + " (Sigil should draw: same size as before)");
             log("graveyard: " + names(me.getCardsIn(forge.game.zone.ZoneType.Graveyard)));
+            log("pool after attune: " + me.getManaPool().totalMana() + " (Expedition Map adds 1)");
+            for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand)) // Prism Lens / Mana Prism: what's affordable
+                for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
+                    if (sa.isSpell()) {
+                        sa.setActivatingPlayer(me);
+                        log("  " + c.getName() + " " + c.getManaCost() + " affordable: " + forge.ai.ComputerUtilMana.canPayManaCost(sa, me, 0, false));
+                    }
             // a second channel this turn should not be allowed
             int before = me.getCardsIn(forge.game.zone.ZoneType.Command).size();
             forge.game.spellability.SpellAbility again = null;
             for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand))
                 for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
-                    if (again == null && sa.getDescription() != null && sa.getDescription().contains("Channel")) again = sa;
-            if (again != null) {
-                log("second channel offered on " + again.getHostCard().getName() + " (should not be); trying it");
+                    if (again == null && sa.getDescription() != null && sa.getDescription().contains("Attune")) again = sa;
+            if (again != null) { // Deep Reserves: a second Attune is allowed, a third is not
+                log("second attune offered on " + again.getHostCard().getName() + " (Deep Reserves: correct); using it");
                 pc.getInputProxy().selectAbility(again);
                 Thread.sleep(1500);
-            } else log("no second channel offered (correct)");
+                boolean third = false;
+                for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand))
+                    for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
+                        third |= sa.getDescription() != null && sa.getDescription().contains("Attune");
+                log(third ? "a third attune is offered (wrong)" : "no third attune (correct)");
+            } else log("no second attune offered (wrong with Deep Reserves)");
             log("command zone count before/after second try: " + before + "/" + me.getCardsIn(forge.game.zone.ZoneType.Command).size());
             // cast the cheapest creature with auto-pay
             forge.game.spellability.SpellAbility cast = null;

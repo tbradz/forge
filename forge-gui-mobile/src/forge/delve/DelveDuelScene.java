@@ -343,13 +343,18 @@ public class DelveDuelScene extends DuelScene {
             if (rules != null) cmd.add(rules);
             else System.err.println("Delve: Compact rules card missing");
         }
-        if (run.channel) { // no lands: Mana Sparks and Channel
+        if (run.channel) { // no lands: Mana Sparks and Attune
             forge.item.IPaperCard mana = FModel.getMagicDb().getCommonCards().getCard("Delve Mana Rules");
             if (mana != null) cmd.add(mana);
             else System.err.println("Delve: mana rules card missing");
+            if (run.boon == DelveBoon.DEEP_WELL) { // the boon is a Mana Crystal for the whole run
+                forge.item.IPaperCard well = DelveRelic.MANA_CRYSTAL.card();
+                if (well != null) cmd.add(well);
+            }
         }
         if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);
         if (run.has(DelveRelic.LUCKY_COIN)) human.setStartingHand(human.getStartingHand() + 1);
+        if (run.has(DelveRelic.BROKEN_CROWN)) human.setStartingHand(human.getStartingHand() - 1);
         // (a free basic in play at the start was tried 2026-10-04 and dropped: too strong, Tyler)
     }
 

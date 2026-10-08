@@ -28,7 +28,28 @@ public enum DelveRelic {
     LODESTONE("Lodestone", "Delve Relic Lodestone", true, "You may play two lands each turn."),
     WAR_BANNER("War Banner", "Delve Relic War Banner", true, "Your attacking creatures get +1/+0."),
     EMBER_IDOL("Ember Idol", "Delve Relic Ember Idol", true, "Opponents lose 1 life at the start of each of your turns."),
-    SWIFT_BOOTS("Swift Boots", "Delve Relic Swift Boots", true, "Your creature spells cost {1} less.");
+    SWIFT_BOOTS("Swift Boots", "Delve Relic Swift Boots", true, "Your creature spells cost {1} less."),
+    // mana relics (Attune runs only; Tyler's recommendations doc, 2026-10-08): they bend the mana rules
+    MANA_CRYSTAL("Mana Crystal", "Delve Relic Mana Crystal", false, "Start every fight with an extra Mana Spark (+1 mana each turn)."),
+    ATTUNEMENT_SIGIL("Attunement Sigil", "Delve Relic Attunement Sigil", false, "The first time you Attune each fight, draw a card."),
+    EXPEDITION_MAP("Expedition Map", "Delve Relic Expedition Map", false, "The first time you Attune each fight, add one mana of any color right away."),
+    BLOOD_CHALICE("Blood Chalice", "Delve Relic Blood Chalice", false, "Whenever a creature you control dies, add one mana of any color."),
+    DEEP_RESERVES("Deep Reserves", "Delve Relic Deep Reserves", true, "You may Attune twice each turn."),
+    BROKEN_CROWN("Broken Crown", "Delve Relic Broken Crown", true, "Start every fight with two extra Mana Sparks, but one fewer card in your opening hand."),
+    MANA_PRISM("Mana Prism", "Delve Relic Mana Prism", true, "Your first colored spell each turn costs {1} less."),
+    PRISM_LENS("Prism Lens", "Delve Relic Prism Lens", true, "Spend colorless mana (your Mana Sparks) as though it were any color.");
+
+    /** Relics that only make sense with Attune mana (no lands), and those that only make sense with lands. */
+    private static final java.util.Set<DelveRelic> ATTUNE_ONLY = java.util.EnumSet.of(MANA_CRYSTAL, ATTUNEMENT_SIGIL,
+            EXPEDITION_MAP, BLOOD_CHALICE, DEEP_RESERVES, BROKEN_CROWN, MANA_PRISM, PRISM_LENS);
+    private static final java.util.Set<DelveRelic> LANDS_ONLY = java.util.EnumSet.of(LODESTONE);
+
+    /** Whether this relic can turn up in the current run (Attune runs have no lands). */
+    public boolean fitsRun() {
+        DelveRun run = DelveRun.current();
+        boolean attune = run != null ? run.channel : DelveModes.channelMana();
+        return attune ? !LANDS_ONLY.contains(this) : !ATTUNE_ONLY.contains(this);
+    }
 
     public final String title;
     /** the rules card placed in your command zone, or null for relics handled in code */
@@ -51,7 +72,7 @@ public enum DelveRelic {
     public static List<DelveRelic> offer(Random rng, List<DelveRelic> owned, int n, double rareChance) {
         List<DelveRelic> common = new ArrayList<>(), rares = new ArrayList<>();
         for (DelveRelic r : values()) {
-            if (owned.contains(r)) continue;
+            if (owned.contains(r) || !r.fitsRun()) continue;
             (r.rare ? rares : common).add(r);
         }
         List<DelveRelic> out = new ArrayList<>();

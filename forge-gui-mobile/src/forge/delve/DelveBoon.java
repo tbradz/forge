@@ -14,7 +14,8 @@ public enum DelveBoon {
     PURSE("Fat Purse", "Start the run with 30 gold."),
     SECOND_CHANCE("Second Chance", "One free Reroll of a card offer this run."),
     SCOUT("Scout's Eye", "Merchants stock one extra card this run."),
-    SHARP_START("Sharp Start", "Your first foe starts with 4 less life.");
+    SHARP_START("Sharp Start", "Your first foe starts with 4 less life."),
+    DEEP_WELL("Deep Well", "An extra Mana Spark in every fight this run (+1 mana each turn).");
 
     public final String title, description;
 
@@ -26,6 +27,7 @@ public enum DelveBoon {
     /** Three different boons to choose from. */
     public static List<DelveBoon> offer(Random rng) {
         List<DelveBoon> all = new ArrayList<>(List.of(values()));
+        if (!DelveModes.channelMana()) all.remove(DEEP_WELL); // a mana boon: Attune runs only
         Collections.shuffle(all, rng);
         return all.subList(0, 3);
     }

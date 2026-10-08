@@ -55,8 +55,9 @@ public final class DelveModes {
 
     /** Chaos: the game picks your archetype for you, sight unseen. */
     /**
-     * Channel mana (default, Tyler 2026-10-08): dungeon decks have no lands; you start each fight with 3 colourless
-     * Mana Sparks and may Channel one card a turn into a mana source of its colours (Delve Mana Rules).
+     * Attune mana (default, Tyler 2026-10-08; first called Channel, renamed to avoid Magic's own Channel keyword):
+     * dungeon decks have no lands; you start each fight with 3 colourless Mana Sparks and may Attune one card a turn
+     * into a mana source of its colours (Delve Mana Rules). Stored as option "channelMana".
      * Off: the old lands-in-deck dungeon.
      */
     public static boolean channelMana() {

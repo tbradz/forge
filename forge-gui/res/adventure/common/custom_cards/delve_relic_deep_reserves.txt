@@ -1,0 +1,6 @@
+Name:Delve Relic Deep Reserves
+ManaCost:no cost
+Types:Artifact
+T:Mode$ CounterAdded | ValidCard$ Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | TriggerZones$ Command | Static$ True | ActivationLimit$ 1 | Execute$ Refund | TriggerDescription$ You may Attune twice each turn.
+SVar:Refund:DB$ RemoveCounter | Defined$ ValidCommand Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | CounterNum$ 1
+Oracle:Deep Reserves: you may Attune twice each turn.
