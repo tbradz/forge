@@ -207,6 +207,33 @@ public final class DelveShots {
         add("castle_champions", 1.5f, () -> DelveCastleScene.instance().championsBoard());
         add("castle_night_standings", 3f, () -> DelvePrereleaseScene.castle()
                 .debugStandings(DelvePrereleaseScene.Kind.DRAFT_NIGHT, run.deck));
+        // deck check (printed to the log): opening-fight starter decks and Compact starting decks
+        add("decks", 1f, () -> {
+            DelveDay day = DelveDay.today();
+            for (String c : new String[]{"WU", "UB", "BR", "RG", "GW"}) {
+                Deck d = day.starterDeck(forge.card.ColorSet.fromNames(c.toCharArray()));
+                StringBuilder sb = new StringBuilder("DelveShots starter " + c + ":");
+                for (java.util.Map.Entry<PaperCard, Integer> e : d.getMain())
+                    if (!e.getKey().getRules().getType().isLand()) sb.append(" ").append(e.getValue()).append("x ").append(e.getKey().getName()).append(",");
+                System.out.println(sb);
+            }
+            for (int s = 1; s <= 6; s++) {
+                List<DelveDay.HalfDeck> halves = day.halfDecks(new Random(s));
+                Deck d = DelveDay.combineCompact(halves.get(0), halves.get(1));
+                int creatures = 0, answers = 0, cheap = 0;
+                StringBuilder sb = new StringBuilder();
+                for (java.util.Map.Entry<PaperCard, Integer> e : d.getMain()) {
+                    PaperCard pc = e.getKey();
+                    if (pc.getRules().getType().isLand()) continue;
+                    if (pc.getRules().getType().isCreature()) creatures += e.getValue();
+                    if (DelveDay.interaction(pc)) answers += e.getValue();
+                    if (pc.getRules().getManaCost().getCMC() <= 2) cheap += e.getValue();
+                    sb.append(" ").append(pc.getName()).append(",");
+                }
+                System.out.println("DelveShots compact " + d.getName() + ": " + creatures + " creatures, " + answers
+                        + " answers, " + cheap + " cheap |" + sb);
+            }
+        });
         // Pai Gow rules: empty piles can never produce a winner, so the stalemate rule should call a draw at once
         add("paigow_stalemate", 12f, () -> {
             DelveDuelScene.instance().setupPaiGow(new ArrayList<>(), DelveDay.today().themedElite().get(0), new ArrayList<>(), 1,

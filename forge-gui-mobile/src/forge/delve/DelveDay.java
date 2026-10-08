@@ -415,6 +415,12 @@ public class DelveDay {
         Deck cached = enemyDecks.get(key);
         if (cached != null) return cached;
         Random rng = new Random(seed ^ key.hashCode());
+        if (tier == Tier.EARLY) { // opening fights: a fixed starter deck for the enemy's colours
+            Deck d = starterDeck(enemyColors(enemy, new Random(enemy.getName().hashCode())));
+            d.setName(enemy.getName());
+            enemyDecks.put(key, d);
+            return d;
+        }
         ColorSet colors = enemyColors(enemy, rng);
         int[] q; // commons, uncommons, rares (of 23 spells)
         switch (tier) {
@@ -440,6 +446,32 @@ public class DelveDay {
         d.setName(enemy.getName());
         enemyDecks.put(key, d);
         return d;
+    }
+
+    /**
+     * Opening fights (Tyler 2026-10-07: the enemy's deck made the first fight swingy): a fixed, modest deck
+     * for the set and colours, the same every day. Creatures only, from the lower-middle of the set's
+     * rankings, and none that target, remove, counter or make you discard: a plain board to play against.
+     */
+    Deck starterDeck(ColorSet colors) {
+        Random rng = new Random(edition.getCode().hashCode() * 31L + colors.getColor());
+        java.util.function.Predicate<PaperCard> leaveOut = pc -> {
+            if (!pc.getRules().getType().isCreature() || pc.getRules().getType().isLegendary()) return true;
+            if (pc.getRarity() != CardRarity.Common && pc.getRarity() != CardRarity.Uncommon) return true; // no bombs
+            if (pc.getRules().getManaCost().getCMC() > 5) return true;
+            String o = oracle(pc);
+            return o.contains("target") || o.contains("destroy") || o.contains("exile") || o.contains("counter target")
+                    || o.contains("discard") || o.contains("fights") || o.contains("deals damage to each");
+        };
+        return buildDeck(colors, 23, 0, 0, true, rng, null, 0.1, 0.55, false, leaveOut);
+    }
+
+    /** Removal, burn, bounce or tap-down: a way to answer a creature (sturdier starting decks). */
+    static boolean interaction(PaperCard pc) {
+        String o = oracle(pc);
+        return o.contains("destroy target") || o.contains("exile target") || o.contains("damage to target")
+                || o.contains("damage to any target") || o.contains("fights") || o.contains("fight target")
+                || o.contains("return target creature") || o.contains("tap target creature") || o.matches("(?s).*target creature[^.]*gets -.*");
     }
 
     /**
@@ -611,6 +643,8 @@ public class DelveDay {
                 have++;
             }
         }
+        for (PaperCard pc : band) // one answer to a creature, when the colour has one (sturdier starts)
+            if (spells.size() < 12 && !spells.contains(pc) && interaction(pc)) { spells.add(pc); break; }
         for (PaperCard pc : band) if (spells.size() < 12 && !spells.contains(pc) && !pc.getRules().getType().isCreature()) spells.add(pc);
         for (PaperCard pc : band) if (spells.size() < 12 && !spells.contains(pc)) spells.add(pc);
         PaperCard face = spells.get(0);
@@ -634,34 +668,48 @@ public class DelveDay {
     }
 
     /**
-     * A Compact (20-card) starting deck: each half's 6 best spells by the set's rankings, keeping the
-     * curve low (at most one card costing 5+ and two costing 4+ per half), plus 4 basics of each colour.
+     * A Compact (20-card) starting deck: 6 spells from each half plus 4 basics of each colour. Each half keeps
+     * (Tyler 2026-10-07, sturdier starts) its best answer to a creature if it has one, at least 4 creatures and
+     * at least 2 cards costing 1-2, then its best-ranked cards; at most one card costing 5+ and two costing 4+.
      */
     public static Deck combineCompact(HalfDeck a, HalfDeck b) {
         Deck d = new Deck(a.name + " + " + b.name);
         for (HalfDeck h : List.of(a, b)) {
-            List<PaperCard> byRank = new ArrayList<>(h.spells);
-            byRank.sort((x, y) -> Double.compare(DelveRank.score(y), DelveRank.score(x)));
-            List<PaperCard> picks = new ArrayList<>();
-            int four = 0, five = 0;
-            for (PaperCard pc : byRank) {
-                if (picks.size() >= 6) break;
-                int cmc = pc.getRules().getManaCost().getCMC();
-                if (cmc >= 5 && five >= 1) continue;
-                if (cmc >= 4 && four >= 2) continue;
-                if (cmc >= 4) four++;
-                if (cmc >= 5) five++;
-                picks.add(pc);
-            }
-            for (PaperCard pc : byRank) { // a very top-heavy half: fill up anyway
-                if (picks.size() >= 6) break;
-                if (!picks.contains(pc)) picks.add(pc);
-            }
-            d.getMain().add(picks);
+            d.getMain().add(compactPicks(h.spells));
             for (int i = 0; i < 4; i++)
                 d.getMain().add(FModel.getMagicDb().getCommonCards().getCard(BASICS[WUBRG.indexOf(h.color)]));
         }
         return d;
+    }
+
+    static List<PaperCard> compactPicks(List<PaperCard> spells) {
+        List<PaperCard> byRank = new ArrayList<>(spells);
+        byRank.sort((x, y) -> Double.compare(DelveRank.score(y), DelveRank.score(x)));
+        List<PaperCard> picks = new ArrayList<>();
+        java.util.function.BiPredicate<PaperCard, Boolean> add = (pc, curveRules) -> {
+            if (picks.size() >= 6 || picks.contains(pc)) return false;
+            if (curveRules) {
+                int cmc = pc.getRules().getManaCost().getCMC();
+                long four = picks.stream().filter(x -> x.getRules().getManaCost().getCMC() >= 4).count();
+                long five = picks.stream().filter(x -> x.getRules().getManaCost().getCMC() >= 5).count();
+                if (cmc >= 5 && five >= 1) return false;
+                if (cmc >= 4 && four >= 2) return false;
+            }
+            picks.add(pc);
+            return true;
+        };
+        for (PaperCard pc : byRank) if (interaction(pc) && add.test(pc, true)) break;       // one answer
+        for (PaperCard pc : byRank) {                                                       // 4+ creatures
+            if (picks.stream().filter(x -> x.getRules().getType().isCreature()).count() >= 4) break;
+            if (pc.getRules().getType().isCreature()) add.test(pc, true);
+        }
+        for (PaperCard pc : byRank) {                                                       // 2+ cheap cards
+            if (picks.stream().filter(x -> x.getRules().getManaCost().getCMC() <= 2).count() >= 2) break;
+            if (pc.getRules().getManaCost().getCMC() <= 2) add.test(pc, true);
+        }
+        for (PaperCard pc : byRank) add.test(pc, true);                                     // best of the rest
+        for (PaperCard pc : byRank) add.test(pc, false);                                    // a top-heavy half: fill anyway
+        return picks;
     }
 
     /** A basic land by colour letter (W U B R G). */

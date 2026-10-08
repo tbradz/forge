@@ -110,6 +110,16 @@
   current run's set; the Gate overrides `backdropSet()` to show the tier being browsed. No run = crypt.
 - Screenshot tour: `-Ddelve.shots.set=KHM` starts the test save at that set (checked KHM, MID, ONE).
 
+## Less swingy first fights (2026-10-07; Tyler: enemy decks were usually the problem)
+- Opening fights (Tier.EARLY, i.e. depth-0 regular fights on Easy/Normal; Hard and Brutal shift past it) use
+  `DelveDay.starterDeck(colors)`: fixed per set + colour pair (not per day), 23 common/uncommon non-legendary creatures
+  costing 5 or less from the lower-middle of the rankings, none whose text targets, destroys, exiles, counters, makes
+  you discard or fights. Tavern "Green" patrons use these too.
+- Sturdier starting decks: each half-deck includes one answer (`DelveDay.interaction`: removal, burn, bounce, tap-down,
+  -X/-X) when its colour has one; Compact picks (`compactPicks`) keep that answer, 4+ creatures and 2+ cards costing
+  1-2 per half, then the best-ranked cards (curve caps unchanged). Sample decks: 8-11 creatures, 2-3 answers, 4-8 cheap.
+- Screenshot tour step `decks` prints both to the log (`-Ddelve.shots.only=new_save|decks -Ddelve.shots.set=ZNR`).
+
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
 - Jar >20MB: split into 18MB chunks, device_commit_files to `_delve_incoming/`, `cat` back together, verify sha256, delete `_delve_incoming`.
