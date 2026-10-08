@@ -42,6 +42,11 @@ explicitly moves an idea over. (First entry: archetype characters with fixed sta
 - 2026-10-06: text-overlap pass done with the screenshot tour (DEV_NOTES "Screenshot tour"). Tyler will report any other overlaps he sees.
 - 2026-10-07: set-themed backdrops shipped (Tyler approved). Next: Tyler playtests, then a balance pass (fight log / simulated fights were suggested).
 
+## Design in progress (2026-10-07)
+`delve-tools/DESIGN-archetypes-and-house.md`: archetype decks instead of Jumpstart half-decks, cards/packs only
+from cleared sets, land-free "Wellspring" mana and a Landfall build, an upgradable/decoratable house. Proposal
+stage: build nothing from it until Tyler decides (decisions are recorded at the bottom of that file).
+
 ## Backlog (Tyler's list, 2026-10-02)
 Next up
 - [done] Visual pass 2 (make_interiors.py). [done] Card Shop buys spare rares/mythics (value less a 5g fee).
