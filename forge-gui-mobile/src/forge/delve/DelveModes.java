@@ -54,6 +54,19 @@ public final class DelveModes {
     }
 
     /** Chaos: the game picks your archetype for you, sight unseen. */
+    /**
+     * Channel mana (default, Tyler 2026-10-08): dungeon decks have no lands; you start each fight with 3 colourless
+     * Mana Sparks and may Channel one card a turn into a mana source of its colours (Delve Mana Rules).
+     * Off: the old lands-in-deck dungeon.
+     */
+    public static boolean channelMana() {
+        return Boolean.parseBoolean(DelveProfile.get().option("channelMana", "true"));
+    }
+
+    public static void setChannelMana(boolean on) {
+        DelveProfile.get().setOption("channelMana", String.valueOf(on));
+    }
+
     public static boolean chaosDecks() {
         return Boolean.parseBoolean(DelveProfile.get().option("chaosDecks", "false"));
     }

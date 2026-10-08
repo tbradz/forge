@@ -235,6 +235,25 @@ public final class DelveShots {
                         + answers + " answers, " + cheap + " cheap |" + sb);
             }
         });
+        // Channel mana test: a dungeon fight with no lands; channel a card, then cast a spell with auto-pay
+        add("channel_duel", 130f, () -> {
+            DelveModes.setChannelMana(true);
+            DelveDay day = DelveDay.today();
+            DelveDay.ArchetypeDeck o = day.archetypeOffers(new Random(3), true).get(0);
+            run = DelveRun.start(day, o.deck);
+            run.archetype = o.archetype;
+            run.channel = true;
+            run.compact = true;
+            DelveRun.Node node = null;
+            for (List<DelveRun.Node> layer : run.layers)
+                for (DelveRun.Node n : layer) if (node == null && n.type == DelveRun.NodeType.FIGHT) node = n;
+            System.out.println("DelveShots channel: deck " + o.deck.getName() + " " + o.deck.getMain().countAll() + " cards");
+            DelveDuelScene.instance().setup(run, node, (won, life) -> { });
+            Forge.switchScene(DelveDuelScene.instance());
+            Thread t = new Thread(DelveShots::channelTest, "DelveShots-channel");
+            t.setDaemon(true);
+            t.start();
+        });
         // Pai Gow rules: empty piles can never produce a winner, so the stalemate rule should call a draw at once
         add("paigow_stalemate", 12f, () -> {
             DelveDuelScene.instance().setupPaiGow(new ArrayList<>(), DelveDay.today().themedElite().get(0), new ArrayList<>(), 1,
@@ -248,6 +267,114 @@ public final class DelveShots {
                     new ArrayList<>(r.subList(3, 6)), 2, (won, life) -> { }); // the AI goes first: does it handle a big pool?
             Forge.switchScene(DelveDuelScene.instance());
         });
+    }
+
+    private static void log(String s) {
+        System.out.println("DelveShots channel: " + s);
+    }
+
+    private static String names(Iterable<forge.game.card.Card> cards) {
+        StringBuilder sb = new StringBuilder();
+        for (forge.game.card.Card c : cards) sb.append(c.getName()).append(c.isTapped() ? "(T)" : "").append(", ");
+        return sb.toString();
+    }
+
+    /** Drives the Channel test duel through the human's controller (no clicks needed). */
+    private static void channelTest() {
+        try {
+            forge.gamemodes.match.HostedMatch m = null;
+            forge.game.Game g = null;
+            for (int i = 0; i < 60 && (m == null || g == null); i++) {
+                Thread.sleep(500);
+                m = DelveDuelScene.instance().match();
+                if (m != null) g = m.getGame();
+            }
+            if (g == null) { log("no game"); return; }
+            forge.player.PlayerControllerHuman pc = m.getHumanControllers().get(0);
+            forge.game.player.Player me = pc.getPlayer();
+            Thread.sleep(4000);
+            pc.selectButtonOk(); // keep the opening hand
+            for (int i = 0; i < 60; i++) { // wait for my first main phase with priority
+                Thread.sleep(500);
+                if (g.getPhaseHandler().is(forge.game.phase.PhaseType.MAIN1) && me.equals(g.getPhaseHandler().getPriorityPlayer())) break;
+            }
+            Thread.sleep(1500);
+            log("phase " + g.getPhaseHandler().getPhase() + ", hand: " + names(me.getCardsIn(forge.game.zone.ZoneType.Hand)));
+            log("command zone: " + names(me.getCardsIn(forge.game.zone.ZoneType.Command)));
+            log("foe command zone: " + names(me.getOpponents().get(0).getCardsIn(forge.game.zone.ZoneType.Command)));
+            // channel the first card that has a Channel ability
+            forge.game.spellability.SpellAbility channel = null;
+            for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand))
+                for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
+                    if (channel == null && sa.getDescription() != null && sa.getDescription().contains("Channel")) channel = sa;
+            if (channel == null) { log("no Channel ability found in hand"); return; }
+            log("channeling " + channel.getHostCard().getName() + ": " + channel.getDescription());
+            pc.getInputProxy().selectAbility(channel);
+            Thread.sleep(2000);
+            log("after channel, command zone: " + names(me.getCardsIn(forge.game.zone.ZoneType.Command)));
+            log("graveyard: " + names(me.getCardsIn(forge.game.zone.ZoneType.Graveyard)));
+            // a second channel this turn should not be allowed
+            int before = me.getCardsIn(forge.game.zone.ZoneType.Command).size();
+            forge.game.spellability.SpellAbility again = null;
+            for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand))
+                for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
+                    if (again == null && sa.getDescription() != null && sa.getDescription().contains("Channel")) again = sa;
+            if (again != null) {
+                log("second channel offered on " + again.getHostCard().getName() + " (should not be); trying it");
+                pc.getInputProxy().selectAbility(again);
+                Thread.sleep(1500);
+            } else log("no second channel offered (correct)");
+            log("command zone count before/after second try: " + before + "/" + me.getCardsIn(forge.game.zone.ZoneType.Command).size());
+            // cast the cheapest creature with auto-pay
+            forge.game.spellability.SpellAbility cast = null;
+            int best = 99;
+            for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand))
+                for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
+                    if (sa.isSpell() && c.isCreature() && c.getCMC() < best) {
+                        sa.setActivatingPlayer(me);
+                        if (forge.ai.ComputerUtilMana.canPayManaCost(sa, me, 0, false)) { cast = sa; best = c.getCMC(); }
+                    }
+            if (cast == null) { log("no castable creature"); return; }
+            log("casting " + cast.getHostCard().getName() + " (mana value " + best + ")");
+            try {
+                log("AI sees mana sources: " + names(forge.ai.ComputerUtilMana.getAvailableManaSources(me, true))
+                        + " estimate " + forge.ai.ComputerUtilMana.getAvailableManaEstimate(me));
+            } catch (Exception e) { log("source check failed: " + e); }
+            pc.getInputProxy().selectAbility(cast);
+            Thread.sleep(1500);
+            forge.gamemodes.match.input.Input in = pc.getInputQueue().getInput();
+            log("input while paying: " + (in == null ? "none" : in.getClass().getSimpleName()));
+            pc.selectButtonOk(); // auto-pay
+            Thread.sleep(2500);
+            in = pc.getInputQueue().getInput();
+            log("input after auto-pay: " + (in == null ? "none" : in.getClass().getSimpleName()));
+            if (in != null && in.getClass().getSimpleName().contains("PayMana")) { // pay by hand: activate each source
+                for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Command))
+                    if (!c.getManaAbilities().isEmpty()) { pc.getInputProxy().selectCard(c.getView(), null, null); Thread.sleep(400); }
+                Thread.sleep(1500);
+                in = pc.getInputQueue().getInput();
+                log("input after paying by hand: " + (in == null ? "none" : in.getClass().getSimpleName()));
+            }
+            log("stack: " + g.getStack().size() + ", pool: " + me.getManaPool().totalMana());
+            in = pc.getInputQueue().getInput();
+            if (in != null && in.getClass().getSimpleName().contains("PayMana")) { pc.selectButtonCancel(); Thread.sleep(800); }
+            log("battlefield: " + names(me.getCardsIn(forge.game.zone.ZoneType.Battlefield)));
+            log("stack size " + g.getStack().size() + ", hand: " + names(me.getCardsIn(forge.game.zone.ZoneType.Hand)));
+            // let a few turns pass (pass priority, no blocks) and see whether the foe casts spells with its mana
+            forge.game.player.Player foe = me.getOpponents().get(0);
+            for (int i = 0; i < 160 && g.getPhaseHandler().getTurn() < 5 && !g.isGameOver(); i++) {
+                forge.gamemodes.match.input.Input cur = pc.getInputQueue().getInput();
+                if (cur != null) pc.selectButtonOk();
+                Thread.sleep(400);
+            }
+            log("turn " + g.getPhaseHandler().getTurn() + ", foe battlefield: " + names(foe.getCardsIn(forge.game.zone.ZoneType.Battlefield))
+                    + " | foe graveyard: " + names(foe.getCardsIn(forge.game.zone.ZoneType.Graveyard)));
+            log("foe mana sources: " + foe.getCardsIn(forge.game.zone.ZoneType.Command).size() + ", foe life " + foe.getLife() + ", my life " + me.getLife()
+                    + ", my battlefield: " + names(me.getCardsIn(forge.game.zone.ZoneType.Battlefield)));
+        } catch (Exception e) {
+            log("failed: " + e);
+            e.printStackTrace();
+        }
     }
 
     private static void outfitter(int tab) {

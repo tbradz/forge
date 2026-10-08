@@ -1298,7 +1298,9 @@ public class ComputerUtilMana {
     public static int getAvailableManaEstimate(final Player p, final boolean checkPlayable) {
         int availableMana = 0;
 
-        final List<Card> srcs = CardLists.filter(p.getCardsIn(ZoneType.Battlefield), c -> !c.getManaAbilities().isEmpty());
+        // Delve: mana sources can also live in the command zone (its land-free mana system)
+        final List<Card> srcs = CardLists.filter(CardCollection.combine(p.getCardsIn(ZoneType.Battlefield), p.getCardsIn(ZoneType.Command)),
+                c -> !c.getManaAbilities().isEmpty());
 
         int maxProduced = 0;
         int producedWithCost = 0;
@@ -1341,7 +1343,8 @@ public class ComputerUtilMana {
     }
 
     public static CardCollection getAvailableManaSources(final Player ai, final boolean checkPlayable) {
-        final CardCollectionView list = CardCollection.combine(ai.getCardsIn(ZoneType.Battlefield), ai.getCardsIn(ZoneType.Hand));
+        final CardCollectionView list = CardCollection.combine(CardCollection.combine(ai.getCardsIn(ZoneType.Battlefield),
+                ai.getCardsIn(ZoneType.Hand)), ai.getCardsIn(ZoneType.Command)); // Delve: command-zone mana sources
         final List<Card> manaSources = CardLists.filter(list, c -> {
             for (final SpellAbility am : getAIPlayableMana(c)) {
                 am.setActivatingPlayer(ai);
@@ -1678,7 +1681,8 @@ public class ComputerUtilMana {
             // if a mana ability has a mana cost the AI will miscalculate
             // if there is a parent ability the AI can't use it
             final Cost cost = a.getPayCosts();
-            if (cost.hasManaCost() || (a.getApi() != ApiType.Mana && a.getApi() != ApiType.ManaReflected)) {
+            // (a free {0} mana ability is fine: Delve's command-zone mana sources)
+            if ((cost.hasManaCost() && !cost.isFree()) || (a.getApi() != ApiType.Mana && a.getApi() != ApiType.ManaReflected)) {
                 continue;
             }
 

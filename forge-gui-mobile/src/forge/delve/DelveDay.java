@@ -496,6 +496,25 @@ public class DelveDay {
         return buildDeck(colors, 23, 0, 0, true, rng, null, 0.1, 0.55, false, leaveOut);
     }
 
+    /** Cards that need lands to do anything (Channel runs have none): land searching, landfall, land counts. */
+    static boolean landMatters(PaperCard pc) {
+        if (pc.getRules().getType().isLand()) return true;
+        forge.card.ICardFace back = pc.getRules().getOtherPart(); // a spell with a land on its back (modal double-faced)
+        if (back != null && back.getType().isLand()) return true;
+        String o = oracle(pc);
+        return o.contains("land card") || o.contains("basic land") || o.contains("lands you control") || o.contains("landfall")
+                || o.contains("land you control") || o.contains("a land enters") || o.contains("sacrifice a land")
+                || o.contains("number of lands") || o.contains("additional land") || o.contains("domain");
+    }
+
+    /** A copy of {@code deck} with no lands and no land-dependent cards (Channel runs' foes). */
+    public static Deck landless(Deck deck) {
+        Deck d = new Deck(deck.getName());
+        for (java.util.Map.Entry<PaperCard, Integer> e : deck.getMain())
+            if (!landMatters(e.getKey())) d.getMain().add(e.getKey(), e.getValue());
+        return d;
+    }
+
     /** Removal, burn, bounce or tap-down: a way to answer a creature (sturdier starting decks). */
     static boolean interaction(PaperCard pc) {
         String o = oracle(pc);
@@ -772,10 +791,12 @@ public class DelveDay {
     /** Archetypes this set supports: enough payoffs overall and enough fitting cards in one colour pair. */
     public List<DelveArchetype> viableArchetypes() {
         if (viable != null) return viable;
+        boolean channel = DelveModes.channelMana();
         List<PaperCard> pool = deckablePool();
         List<DelveArchetype> ok = new ArrayList<>();
         java.util.Map<DelveArchetype, Integer> support = new java.util.HashMap<>();
         for (DelveArchetype a : DelveArchetype.values()) {
+            if (channel && a == DelveArchetype.LANDFALL) continue; // needs its own land pile first (design doc)
             int payoffs = 0;
             for (PaperCard pc : pool) if (a.payoff(pc)) payoffs++;
             int inColours = 0;
@@ -786,6 +807,7 @@ public class DelveDay {
         if (ok.size() < 3) { // a thin set: the best-supported of the rest fill in
             List<DelveArchetype> rest = new ArrayList<>(List.of(DelveArchetype.values()));
             rest.removeAll(ok);
+            if (channel) rest.remove(DelveArchetype.LANDFALL);
             rest.sort((x, y) -> support.get(y) - support.get(x));
             for (DelveArchetype a : rest) if (ok.size() < 3) ok.add(a);
         }
@@ -821,7 +843,7 @@ public class DelveDay {
         java.util.Set<PaperCard> faces = new java.util.HashSet<>();
         for (DelveArchetype a : pick) {
             if (out.size() >= 3) break;
-            Deck d = archetypeDeck(a, compact, rng);
+            Deck d = archetypeDeck(a, compact, DelveModes.channelMana(), rng);
             if (d == null) continue;
             PaperCard face = null; // the deck's best archetype card, different from the other offers'
             for (PaperCard pc : d.getMain().toFlatList()) {
@@ -843,7 +865,13 @@ public class DelveDay {
      * cheap cards), then more of the plan, then basics. Compact: 12 spells + 8 basics; Classic: 23 + 17.
      */
     public Deck archetypeDeck(DelveArchetype a, boolean compact, Random rng) {
+        return archetypeDeck(a, compact, false, rng);
+    }
+
+    /** {@code channel}: Channel mana, so no lands: 20 (or 40) spells, and no cards that need lands. */
+    public Deck archetypeDeck(DelveArchetype a, boolean compact, boolean channel, Random rng) {
         List<PaperCard> pool = deckablePool();
+        if (channel) pool.removeIf(DelveDay::landMatters);
         ColorSet best = null;
         double bestScore = -1;
         for (ColorSet pair : colourPairs()) {
@@ -854,9 +882,9 @@ public class DelveDay {
         }
         if (best == null) return null;
         final ColorSet colours = best;
-        final int n = compact ? 12 : 23;
-        final int maxRares = compact ? 1 : 2, maxFive = compact ? 2 : 3, maxFour = compact ? 4 : 7;
-        final int wantAnswers = compact ? 2 : 3, wantCreatures = compact ? 7 : 13, wantCheap = compact ? 3 : 6;
+        final int n = channel ? (compact ? 20 : 40) : (compact ? 12 : 23);
+        final int maxRares = n <= 12 ? 1 : n <= 23 ? 2 : 3, maxFive = Math.max(2, n / 6), maxFour = n / 3;
+        final int wantAnswers = Math.max(2, n / 8), wantCreatures = Math.round(n * 0.58f), wantCheap = n / 4;
         // modest but coherent: skip the set's very best cards, a little shuffle among near-equals
         java.util.Map<PaperCard, Double> key = new java.util.HashMap<>();
         List<PaperCard> cand = new ArrayList<>();
@@ -894,7 +922,7 @@ public class DelveDay {
         for (PaperCard pc : cand) if (room.test(pc)) picks.add(pc);
         for (PaperCard pc : cand) if (picks.size() < n && !picks.contains(pc)) picks.add(pc); // a thin pair: anything
         if (picks.size() < n) return null;
-        Deck d = DelveGateScene.buildDraftDeck(picks, compact ? 8 : 17);
+        Deck d = DelveGateScene.buildDraftDeck(picks, channel ? 0 : compact ? 8 : 17);
         StringBuilder cn = new StringBuilder();
         for (int i = 0; i < 5; i++)
             if (colours.hasAnyColor(ColorSet.fromNames(new char[]{WUBRG.charAt(i)}).getColor()))
@@ -1252,8 +1280,10 @@ public class DelveDay {
             double lo = Math.max(worst + 0.001, band[0] - attempt * 0.1), hi = Math.min(1.0, band[1] + attempt * 0.05);
             boolean onColorOnly = attempt < 3;
             List<PaperCard> cand = new ArrayList<>();
+            DelveRun current = DelveRun.current();
             for (PaperCard pc : all) {
                 if (pc.getRules().getType().isLand() || inDeck.contains(pc.getName()) || out.contains(pc)) continue;
+                if (current != null && current.channel && landMatters(pc)) continue; // Channel runs have no lands
                 if (DelveEconomy.buyPrice(pc) > maxPrice) continue;
                 double sc = DelveRank.score(pc);
                 if (sc < lo || sc > hi) continue;

@@ -48,6 +48,8 @@ public class DelveRun {
 
     /** Compact run (20-card start; saved with the run). Classic runs start at 40. */
     public boolean compact;
+    /** Channel mana: no lands, Mana Sparks and Channel (DelveModes.channelMana); false for older runs */
+    public boolean channel;
 
     /** The smallest this run's deck may get: 20 for Compact runs, 40 for Classic. */
     public int minDeck() {

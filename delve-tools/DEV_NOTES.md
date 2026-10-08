@@ -140,6 +140,23 @@
 - Castle: nights use the town set and are closed before the first clear; 1v1/pods open; booster prizes are town boosters,
   or the pack price in gold before any clear. Tavern patrons: `townOrFirst()`. Pip's shop rumor follows the town set.
 
+## Channel mana: no lands in the dungeon (2026-10-08, Tyler + his recommendations doc)
+- Default for new runs (Your House > Options > Mana: Channel / Lands; `DelveModes.channelMana`, run.properties `channel`).
+- `delve_mana_rules.txt` (your command zone): 3 colourless **Mana Sparks** at game start; every card in hand gets
+  **Channel (colour)**: once during each of your turns, the card goes to the graveyard and becomes a mana source of that
+  colour (multicolour cards offer each colour; colourless cards a colourless source). Sources and Sparks are command-zone
+  Effect cards with `AB$ Mana | Cost$ 0 | ActivationZone$ Command | ActivationLimit$ 1`: one mana each, once a turn,
+  never lands/artifacts/enchantments (Tyler's doc: Mana Sources are not lands). Channel is an `ST$` special action (no
+  stack); once-per-turn uses CHARGE counters on the rules card, cleared at cleanup.
+- `delve_foe_mana.txt` (enemies): one Foe Mana Source at the start and one more each upkeep, up to 7; each adds any colour.
+- Upstream edits (forge-ai ComputerUtilMana): auto-pay and AI estimates include command-zone mana sources; free {0} mana
+  abilities count as usable. The available-mana *estimate* still reads 0 for these sources (only matters for AI X spells).
+- Decks: archetype decks are 20 spells (40 Classic), no lands; land-dependent cards (`DelveDay.landMatters`, incl. spells
+  with a land back face) are left out of decks, enemy decks (`landless`) and rewards; Landfall isn't offered until its land
+  pile exists. No opening-hand land smoothing in Channel runs; the map's Lands button is hidden.
+- Tested by script (tour step `channel_duel`, drives the human controller): channel, refusal of a 2nd channel, auto-pay,
+  a creature resolving, the foe casting creatures from its sources over 4 turns.
+
 ## Deploying to Tyler's PC
 - Install: `C:\Users\tyler\OneDrive\Desktop\MTG Forge` (OneDrive — don't copy the install). `delve.jar` + `Delve.cmd` in the root, Delve res files in `res/adventure/common/ui/`.
 - Jar >20MB: split into 18MB chunks, device_commit_files to `_delve_incoming/`, `cat` back together, verify sha256, delete `_delve_incoming`.

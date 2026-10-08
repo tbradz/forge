@@ -1,0 +1,42 @@
+Name:Delve Mana Rules
+ManaCost:no cost
+Types:Artifact
+T:Mode$ NewGame | TriggerZones$ Command | Static$ True | Execute$ Spark1 | TriggerDescription$ At the beginning of the game, you get three Mana Sparks (each adds {C} once each turn).
+SVar:Spark1:DB$ Effect | Name$ Mana Spark | Abilities$ SparkMana | Duration$ Permanent | SubAbility$ Spark2
+SVar:Spark2:DB$ Effect | Name$ Mana Spark | Abilities$ SparkMana | Duration$ Permanent | SubAbility$ Spark3
+SVar:Spark3:DB$ Effect | Name$ Mana Spark | Abilities$ SparkMana | Duration$ Permanent
+SVar:SparkMana:AB$ Mana | Cost$ 0 | Produced$ C | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {C}. Activate only once each turn.
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Card.White+YouOwn | AffectedZone$ Hand | AddAbility$ ChannelW | AddSVar$ SourceW,MarkW,AwayW | Description$ Channel: once during each of your turns, a white card in your hand can become a white mana source.
+SVar:ChannelW:ST$ Effect | Cost$ 0 | SpecialAction$ True | ActivationZone$ Hand | PlayerTurn$ True | IsPresent$ Card.namedDelve Mana Rules+YouOwn+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | Name$ White Mana Source | Abilities$ SourceW | Duration$ Permanent | SubAbility$ MarkW | PrecostDesc$ Channel (white) — | SpellDescription$ Put this card into your graveyard: it becomes a white mana source (adds {W} once each turn). Once per turn.
+SVar:SourceW:AB$ Mana | Cost$ 0 | Produced$ W | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {W}. Activate only once each turn.
+SVar:MarkW:DB$ PutCounter | Defined$ ValidCommand Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | CounterNum$ 1 | SubAbility$ AwayW
+SVar:AwayW:DB$ ChangeZone | Defined$ Self | Origin$ Hand | Destination$ Graveyard
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Card.Blue+YouOwn | AffectedZone$ Hand | AddAbility$ ChannelU | AddSVar$ SourceU,MarkU,AwayU | Description$ Channel: once during each of your turns, a blue card in your hand can become a blue mana source.
+SVar:ChannelU:ST$ Effect | Cost$ 0 | SpecialAction$ True | ActivationZone$ Hand | PlayerTurn$ True | IsPresent$ Card.namedDelve Mana Rules+YouOwn+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | Name$ Blue Mana Source | Abilities$ SourceU | Duration$ Permanent | SubAbility$ MarkU | PrecostDesc$ Channel (blue) — | SpellDescription$ Put this card into your graveyard: it becomes a blue mana source (adds {U} once each turn). Once per turn.
+SVar:SourceU:AB$ Mana | Cost$ 0 | Produced$ U | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {U}. Activate only once each turn.
+SVar:MarkU:DB$ PutCounter | Defined$ ValidCommand Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | CounterNum$ 1 | SubAbility$ AwayU
+SVar:AwayU:DB$ ChangeZone | Defined$ Self | Origin$ Hand | Destination$ Graveyard
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Card.Black+YouOwn | AffectedZone$ Hand | AddAbility$ ChannelB | AddSVar$ SourceB,MarkB,AwayB | Description$ Channel: once during each of your turns, a black card in your hand can become a black mana source.
+SVar:ChannelB:ST$ Effect | Cost$ 0 | SpecialAction$ True | ActivationZone$ Hand | PlayerTurn$ True | IsPresent$ Card.namedDelve Mana Rules+YouOwn+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | Name$ Black Mana Source | Abilities$ SourceB | Duration$ Permanent | SubAbility$ MarkB | PrecostDesc$ Channel (black) — | SpellDescription$ Put this card into your graveyard: it becomes a black mana source (adds {B} once each turn). Once per turn.
+SVar:SourceB:AB$ Mana | Cost$ 0 | Produced$ B | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {B}. Activate only once each turn.
+SVar:MarkB:DB$ PutCounter | Defined$ ValidCommand Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | CounterNum$ 1 | SubAbility$ AwayB
+SVar:AwayB:DB$ ChangeZone | Defined$ Self | Origin$ Hand | Destination$ Graveyard
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Card.Red+YouOwn | AffectedZone$ Hand | AddAbility$ ChannelR | AddSVar$ SourceR,MarkR,AwayR | Description$ Channel: once during each of your turns, a red card in your hand can become a red mana source.
+SVar:ChannelR:ST$ Effect | Cost$ 0 | SpecialAction$ True | ActivationZone$ Hand | PlayerTurn$ True | IsPresent$ Card.namedDelve Mana Rules+YouOwn+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | Name$ Red Mana Source | Abilities$ SourceR | Duration$ Permanent | SubAbility$ MarkR | PrecostDesc$ Channel (red) — | SpellDescription$ Put this card into your graveyard: it becomes a red mana source (adds {R} once each turn). Once per turn.
+SVar:SourceR:AB$ Mana | Cost$ 0 | Produced$ R | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {R}. Activate only once each turn.
+SVar:MarkR:DB$ PutCounter | Defined$ ValidCommand Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | CounterNum$ 1 | SubAbility$ AwayR
+SVar:AwayR:DB$ ChangeZone | Defined$ Self | Origin$ Hand | Destination$ Graveyard
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Card.Green+YouOwn | AffectedZone$ Hand | AddAbility$ ChannelG | AddSVar$ SourceG,MarkG,AwayG | Description$ Channel: once during each of your turns, a green card in your hand can become a green mana source.
+SVar:ChannelG:ST$ Effect | Cost$ 0 | SpecialAction$ True | ActivationZone$ Hand | PlayerTurn$ True | IsPresent$ Card.namedDelve Mana Rules+YouOwn+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | Name$ Green Mana Source | Abilities$ SourceG | Duration$ Permanent | SubAbility$ MarkG | PrecostDesc$ Channel (green) — | SpellDescription$ Put this card into your graveyard: it becomes a green mana source (adds {G} once each turn). Once per turn.
+SVar:SourceG:AB$ Mana | Cost$ 0 | Produced$ G | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {G}. Activate only once each turn.
+SVar:MarkG:DB$ PutCounter | Defined$ ValidCommand Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | CounterNum$ 1 | SubAbility$ AwayG
+SVar:AwayG:DB$ ChangeZone | Defined$ Self | Origin$ Hand | Destination$ Graveyard
+S:Mode$ Continuous | EffectZone$ Command | Affected$ Card.Colorless+YouOwn+nonLand | AffectedZone$ Hand | AddAbility$ ChannelC | AddSVar$ SourceC,MarkC,AwayC | Description$ Channel: a colorless card can become a colorless mana source.
+SVar:ChannelC:ST$ Effect | Cost$ 0 | SpecialAction$ True | ActivationZone$ Hand | PlayerTurn$ True | IsPresent$ Card.namedDelve Mana Rules+YouOwn+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | Name$ Colorless Mana Source | Abilities$ SourceC | Duration$ Permanent | SubAbility$ MarkC | PrecostDesc$ Channel (colorless) — | SpellDescription$ Put this card into your graveyard: it becomes a colorless mana source (adds {C} once each turn). Once per turn.
+SVar:SourceC:AB$ Mana | Cost$ 0 | Produced$ C | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {C}. Activate only once each turn.
+SVar:MarkC:DB$ PutCounter | Defined$ ValidCommand Card.namedDelve Mana Rules+YouOwn | CounterType$ CHARGE | CounterNum$ 1 | SubAbility$ AwayC
+SVar:AwayC:DB$ ChangeZone | Defined$ Self | Origin$ Hand | Destination$ Graveyard
+T:Mode$ Phase | Phase$ Cleanup | TriggerZones$ Command | Static$ True | Execute$ ResetChannel | TriggerDescription$ Your Channel resets each turn.
+SVar:ResetChannel:DB$ RemoveCounter | Defined$ Self | CounterType$ CHARGE | CounterNum$ All
+Oracle:Delve mana: no lands. You start each fight with three Mana Sparks (each adds {C} once each turn).
+Channel: once during each of your turns, put a card from your hand into your graveyard to make it a mana source of one of its colors (it adds that mana once each turn).

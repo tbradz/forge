@@ -134,5 +134,8 @@ trophy wall for titles, the door for Options, like the Tavern's clickable patron
 - Archetype option (2026-10-07): per set, the archetypes its cards support; 3 offered at random when it supports more.
   Set-only decks. BUILT: DelveArchetype (11), DelveDay.viableArchetypes/archetypeOffers/archetypeDeck.
 - Gating (2026-10-07): approved as written in section 2. BUILT: DelveDay.town()/townOrFirst(), DelveProfile.clearedTiers().
-- Mana system:
+- Mana system (2026-10-08): Tyler's version: 3 mana per turn + Channel one card a turn into a permanent mana source of its
+  colours; sources are not lands; Landfall gets its own land pile; max mana raised by relics/boons/cards. BUILT (base +
+  Channel + foe mana). Next: mana relics/boons, temporary mana, the Landfall land pile.
+  Tyler's "Delve_Design_Recommendations.docx" (2026-10-08) is the guiding doc for the dungeon from here on.
 - House sizes / rooms / prices:

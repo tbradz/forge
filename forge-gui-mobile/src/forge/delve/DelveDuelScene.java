@@ -49,6 +49,11 @@ public class DelveDuelScene extends DuelScene {
     private static final int PLAYER_AVATAR_KEY = 91000;
 
     private HostedMatch match;
+
+    /** The running match (screenshot tour tests drive it). */
+    HostedMatch match() {
+        return match;
+    }
     private RegisteredPlayer human;
     private Deck playerDeck;
     private final List<forge.adventure.data.EnemyData> foes = new ArrayList<>();
@@ -86,6 +91,7 @@ public class DelveDuelScene extends DuelScene {
                 : node.type == DelveRun.NodeType.ELITE ? DelveDay.Tier.ELITE
                 : diff.fightDeck(depth == 0 ? DelveDay.Tier.EARLY : depth == 2 ? DelveDay.Tier.LATE : DelveDay.Tier.FIGHT);
         Deck enemyDeck = run.day.enemyDeck(node.enemy, tier); // era cards in the enemy's colors
+        if (run.channel) enemyDeck = DelveDay.landless(enemyDeck); // Channel runs: foes get Delve Foe Mana instead
         int foeLife = run.foeLife(node);
         run.nextFoeLife = 0; // blessings and curses last for one fight
         int life = run.life + (run.has(DelveRelic.IRON_BUCKLER) ? 4 : 0);
@@ -240,6 +246,11 @@ public class DelveDuelScene extends DuelScene {
             ai.setStartingLife(enemyLife);
             if (i == 0 && perk != null) applyPerk(ai, foeDecks.get(i));
             if (paiGow) applyPaiGow(ai, foeDecks.get(i).getMain().countAll(), paiGowFirst == 2);
+            if (run != null && run.channel) { // no lands: a mana source a turn, up to seven
+                forge.item.IPaperCard foeMana = FModel.getMagicDb().getCommonCards().getCard("Delve Foe Mana");
+                if (foeMana != null) ai.addExtraCardsInCommandZone(new ArrayList<>(List.of(foeMana)));
+                else System.err.println("Delve: foe mana card missing");
+            }
             players.add(ai);
         }
         players.add(human);
@@ -254,7 +265,7 @@ public class DelveDuelScene extends DuelScene {
         rules.setManaBurn(false);
         rules.setWarnAboutAICards(false);
         if (paiGow) rules.setMulligans(false);
-        if (run != null) rules.setSmoothOpeningHands(true); // dungeon fights: no 0-1 or 6-7 land opening hands
+        if (run != null && !run.channel) rules.setSmoothOpeningHands(true); // lands runs: no 0-1 or 6-7 land opening hands
 
         match = MatchController.hostMatch();
         match.startMatch(rules, variants, players, guiMap,
@@ -331,6 +342,11 @@ public class DelveDuelScene extends DuelScene {
             forge.item.IPaperCard rules = FModel.getMagicDb().getCommonCards().getCard("Delve Compact Rules");
             if (rules != null) cmd.add(rules);
             else System.err.println("Delve: Compact rules card missing");
+        }
+        if (run.channel) { // no lands: Mana Sparks and Channel
+            forge.item.IPaperCard mana = FModel.getMagicDb().getCommonCards().getCard("Delve Mana Rules");
+            if (mana != null) cmd.add(mana);
+            else System.err.println("Delve: mana rules card missing");
         }
         if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);
         if (run.has(DelveRelic.LUCKY_COIN)) human.setStartingHand(human.getStartingHand() + 1);

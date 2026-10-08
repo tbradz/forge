@@ -276,6 +276,13 @@ public class DelveHubScene extends UIScene {
             DelveModes.setCompactRuns(!compact);
             options();
         }, 18f);
+        boolean channel = DelveModes.channelMana();
+        DelveDialogs.listButton(d, "Mana: [GOLD]" + (channel ? "Channel" : "Lands") + "[] ("
+                + (channel ? "no lands; turn cards into mana" : "basic lands in your deck") + ")", () -> {
+            removeDialog();
+            DelveModes.setChannelMana(!channel);
+            options();
+        }, 18f);
         DelveDialogs.listButton(d, "Dungeon length: [GOLD]" + len.title + "[] (" + len.rooms + ")", () -> {
             removeDialog();
             DelveModes.Length[] all = DelveModes.Length.values();

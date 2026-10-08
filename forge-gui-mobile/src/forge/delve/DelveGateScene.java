@@ -188,6 +188,8 @@ public class DelveGateScene extends DelveScene {
     private void enter(DelveDay day, Deck deck, DelveBoon boon, DelveArchetype archetype) {
         DelveRun run = DelveRun.start(day, deck);
         run.archetype = archetype;
+        run.channel = DelveModes.channelMana(); // Channel mana: the deck has no lands
+        if (run.channel) run.compact = DelveModes.compactRuns();
         run.boon = boon;
         boon.applyAtStart(run);
         DelveRunSave.save(run);

@@ -257,7 +257,7 @@ public class DelveMapScene extends DelveScene {
         panRight = button("[%90]>", W - 18, 136, 16, 26, () -> panTo(scroll + W * 0.6f, 0.35f));
         follow(spot[0], 0);
 
-        button("[%80]Lands", 140, 246, 64, 18, () -> basicLands(run));
+        if (!run.channel) button("[%80]Lands", 140, 246, 64, 18, () -> basicLands(run)); // Channel runs have no lands
         button("[%80]Relics (" + run.relics.size() + ")", 210, 246, 80, 18, () -> showRelics(run));
         button("[%80]View deck", 300, 246, 80, 18, this::viewDeck);
         button("[%80]Abandon run", 390, 246, 84, 18, () ->
