@@ -314,6 +314,7 @@ public class DelveMapScene extends DelveScene {
             case MERCHANT: type = "[GOLD]Merchant"; break;
             case TREASURE: type = "[GOLD]Treasure"; break;
             case SHRINE: type = "[#ff6060]Cursed Shrine"; break;
+            case FORGE: type = "[ORANGE]Forge"; break;
             case BOSS: type = "[RED]Boss" + (node.perk != null ? " - " + node.perk.title : "") + (node.perk2 != null ? " +1" : ""); break;
             case ELITE: type = "[ORANGE]Elite" + (node.perk != null ? " - " + node.perk.title : ""); break;
             default: type = "Fight";
@@ -417,8 +418,10 @@ public class DelveMapScene extends DelveScene {
             case MERCHANT: walkTo(run, step, index, () -> merchant(run, node, index)); return;
             case TREASURE: walkTo(run, step, index, () -> treasure(run, index)); return;
             case SHRINE: walkTo(run, step, index, () -> shrine(run, index)); return;
+            case FORGE: walkTo(run, step, index, () -> forgeRoom(run, index)); return;
             default:
         }
+        if (node.enemy == null) return; // any other room without a foe: never treat it as a fight
         String what = node.type == NodeType.BOSS ? "the boss" : node.type == NodeType.ELITE ? "an elite" : "a fight";
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
                         + "They start at " + run.foeLife(node) + " life"
@@ -750,7 +753,7 @@ public class DelveMapScene extends DelveScene {
     // ---- forge ------------------------------------------------------------------
 
     /** Forge room: pick a card in your run deck, then reforge it into one of three stronger cards of its colour. */
-    private void forgeRoom(DelveRun run, int index) {
+    void forgeRoom(DelveRun run, int index) { // package-private for DelveShots
         completeStep(run, index);
         List<PaperCard> candidates = new ArrayList<>();
         for (PaperCard pc : uniqueCards(run, false))

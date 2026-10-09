@@ -146,6 +146,12 @@
   GameStage.startPause). Upstream edits: GuiMobile.showImageDialog skips the popup when there's no map player
   (achievement still recorded); GameStage.startPause tolerates a null player.
 
+## Forge room crash (2026-10-09, Tyler's run)
+- Clicking a Forge room crashed the game (NPE on `node.enemy` in `DelveMapScene.choose`): the room's code (`forgeRoom`) was written on
+  2026-10-05 but never hooked to the click, so it fell through to the fight dialog. Now wired, with a guard so no foe-less room is
+  ever treated as a fight. The map also labelled Forge rooms "Fight"; now "Forge". In Attune runs, reforging skips land-matters cards.
+- Tested with the screenshot tour step `forge_room` (first time this room has run).
+
 ## Foe mana ramp (2026-10-08, Tyler: starter foes low, the boss the most)
 - Foes can't Attune (Forge's AI would misuse it), so `DelveDuelScene.foeMana` sets their starting lands by role and dungeon depth,
   and a hidden ramp card in the foe's command zone grows a tapped copy of one of its basics at its upkeep, up to a cap:

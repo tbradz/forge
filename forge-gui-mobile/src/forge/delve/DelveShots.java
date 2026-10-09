@@ -163,6 +163,13 @@ public final class DelveShots {
             Forge.switchScene(DelveMapScene.instance());
         });
         add("map_lands", 1.5f, () -> DelveMapScene.instance().basicLands(run));
+        add("forge_room", 3f, () -> { // the smith's first screen, plus what an Attune run can reforge into
+            run.channel = true;
+            for (PaperCard pc : run.deck.getMain().toFlatList().subList(0, 3))
+                System.out.println("DelveShots forge: " + pc.getName() + " -> " + run.reforgeOptions(pc, 3));
+            Forge.switchScene(DelveMapScene.instance());
+            DelveMapScene.instance().forgeRoom(run, 0);
+        });
         add("battle_spoils", 3f, () -> {
             List<PaperCard> three = new ArrayList<>(DelveDay.today().rares.subList(0, Math.min(3, DelveDay.today().rares.size())));
             DelvePickScene.instance().show("Battle spoils: add a card to your deck", three, 1, 1, "Skip", pc -> "Take", x -> { });

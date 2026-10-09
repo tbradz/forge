@@ -326,7 +326,8 @@ public class DelveRun {
         for (List<PaperCard> src : List.of(day.commons, day.uncommons, day.rares))
             for (PaperCard pc : src)
                 if (pc.getRules().getColorIdentity().getColor() == want && DelveRank.score(pc) > sc
-                        && !pc.getName().equals(like.getName()) && !pc.getRules().getType().isLand())
+                        && !pc.getName().equals(like.getName()) && !pc.getRules().getType().isLand()
+                        && !(channel && DelveDay.landMatters(pc))) // Attune runs have no lands to care about
                     (Math.abs(pc.getRules().getManaCost().getCMC() - cmc) <= 1 ? close : far).add(pc);
         java.util.Collections.shuffle(close, rng);
         java.util.Collections.shuffle(far, rng);
