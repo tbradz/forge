@@ -255,9 +255,11 @@ public final class DelveShots {
             for (String r : relics.split(",")) if (DelveRelic.byName(r.trim()) != null) run.relics.add(DelveRelic.byName(r.trim()));
             run.boon = DelveBoon.parse(System.getProperty("delve.shots.boon", ""));
             System.out.println("DelveShots channel: relics " + run.relics + ", boon " + run.boon);
+            DelveRun.NodeType want = DelveRun.NodeType.valueOf(System.getProperty("delve.shots.node", "FIGHT"));
             DelveRun.Node node = null;
             for (List<DelveRun.Node> layer : run.layers)
-                for (DelveRun.Node n : layer) if (node == null && n.type == DelveRun.NodeType.FIGHT) node = n;
+                for (DelveRun.Node n : layer) if (node == null && n.type == want) node = n;
+            System.out.println("DelveShots channel: fighting a " + want + " at step " + run.step);
             System.out.println("DelveShots channel: deck " + o.deck.getName() + " " + o.deck.getMain().countAll() + " cards");
             DelveDuelScene.instance().setup(run, node, (won, life) -> { });
             Forge.switchScene(DelveDuelScene.instance());
@@ -391,10 +393,18 @@ public final class DelveShots {
             log("stack size " + g.getStack().size() + ", hand: " + names(me.getCardsIn(forge.game.zone.ZoneType.Hand)));
             // let a few turns pass (pass priority, no blocks) and see whether the foe casts spells with its mana
             forge.game.player.Player foe = me.getOpponents().get(0);
-            for (int i = 0; i < 160 && g.getPhaseHandler().getTurn() < 5 && !g.isGameOver(); i++) {
+            int lastTurn = -1;
+            for (int i = 0; i < 400 && g.getPhaseHandler().getTurn() < 13 && !g.isGameOver(); i++) {
                 forge.gamemodes.match.input.Input cur = pc.getInputQueue().getInput();
                 if (cur != null) pc.selectButtonOk();
-                Thread.sleep(400);
+                Thread.sleep(300);
+                int turn = g.getPhaseHandler().getTurn();
+                if (turn != lastTurn && g.getPhaseHandler().getPlayerTurn().equals(foe)
+                        && g.getPhaseHandler().getPhase() != null && g.getPhaseHandler().getPhase().isAfter(forge.game.phase.PhaseType.UPKEEP)) {
+                    lastTurn = turn;
+                    log("foe turn " + foe.getTurn() + " (game turn " + turn + "): foe lands " + foe.getLandsInPlay().size()
+                            + " " + names(foe.getLandsInPlay()));
+                }
             }
             log("turn " + g.getPhaseHandler().getTurn() + ", foe battlefield: " + names(foe.getCardsIn(forge.game.zone.ZoneType.Battlefield))
                     + " | foe graveyard: " + names(foe.getCardsIn(forge.game.zone.ZoneType.Graveyard)));

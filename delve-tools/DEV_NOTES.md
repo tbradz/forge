@@ -146,6 +146,15 @@
   GameStage.startPause). Upstream edits: GuiMobile.showImageDialog skips the popup when there's no map player
   (achievement still recorded); GameStage.startPause tolerates a null player.
 
+## Foe mana ramp (2026-10-08, Tyler: starter foes low, the boss the most)
+- Foes can't Attune (Forge's AI would misuse it), so `DelveDuelScene.foeMana` sets their starting lands by role and dungeon depth,
+  and a hidden ramp card in the foe's command zone grows a tapped copy of one of its basics at its upkeep, up to a cap:
+  - fights: 2 lands in the first third of the dungeon, 3 after; `Delve Foe Ramp Slow` (every 3rd turn, up to 5)
+  - elites: 3 (4 in the last third); `Delve Foe Ramp Steady` (every 2nd turn, up to 6)
+  - bosses: 3; `Delve Foe Ramp Surge` (every turn, up to 7), so 4 lands on its first turn
+- Turn check: `Count$YourTurns/Mod.N` EQ0; cap: `IsPresent$ Land.YouCtrl | PresentCompare$ LTcap`.
+- Tested (`-Ddelve.shots.only=channel_duel -Ddelve.shots.node=BOSS|FIGHT|ELITE`): boss 4,5,6 lands on its turns 1-3; fight 2,2,3.
+
 ## Attune v2: real lands (2026-10-08, after Tyler's first playtest)
 - Tyler: mana should show as lands on the battlefield, not in the command zone; turn 1 must not allow 2+2 mana.
 - You start each fight with 3 basic lands on the battlefield: one per deck colour (most pips first), extra = Wastes

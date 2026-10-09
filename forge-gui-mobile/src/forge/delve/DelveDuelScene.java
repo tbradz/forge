@@ -74,8 +74,9 @@ public class DelveDuelScene extends DuelScene {
     // Pai Gow: 3-card piles as opening hands, 5 life, unlimited mana, no library
     static final int PAI_GOW_LIFE = 5;
     private boolean paiGow;
-    /** Attune runs: how many lands the foe starts with (normal 3, elite 4, boss 5) */
+    /** Attune runs: how many lands the foe starts with, and its ramp card (see foeMana) */
     private int foeLandCount = 3;
+    private String foeRamp;
     private int paiGowFirst; // 0 = coin flip, 1 = you, 2 = the opponent
     private boolean lastDraw;
 
@@ -101,11 +102,30 @@ public class DelveDuelScene extends DuelScene {
                 node.type == DelveRun.NodeType.BOSS, onFinished);
         this.perk = node.perk;
         this.perk2 = node.perk2;
-        this.foeLandCount = node.type == DelveRun.NodeType.BOSS ? 5 : node.type == DelveRun.NodeType.ELITE ? 4 : 3;
+        foeMana(node.type, depth);
         this.run = run;
         this.lifeCap = run.maxLife();
         // the opening fights get a careless opponent; everyone else plays Forge's best AI (difficulty can change this)
         this.aiProfile = diff.fightAi(depth == 0, node.type == DelveRun.NodeType.FIGHT);
+    }
+
+    /**
+     * Attune runs: foes can't Attune, so they start with lands by role and depth and gain more on a schedule
+     * (Tyler 2026-10-08: starter foes low, the boss the most). Fights start with 2 lands in the first third of
+     * the dungeon and 3 after, gaining one every third turn (up to 5); elites start with 3 (4 in the last third),
+     * gaining one every second turn (up to 6); bosses start with 3 and gain one every turn (up to 7).
+     */
+    private void foeMana(DelveRun.NodeType type, int depth) {
+        if (type == DelveRun.NodeType.BOSS) {
+            foeLandCount = 3;
+            foeRamp = "Delve Foe Ramp Surge";
+        } else if (type == DelveRun.NodeType.ELITE) {
+            foeLandCount = depth >= 2 ? 4 : 3;
+            foeRamp = "Delve Foe Ramp Steady";
+        } else {
+            foeLandCount = depth == 0 ? 2 : 3;
+            foeRamp = "Delve Foe Ramp Slow";
+        }
     }
 
     /**
@@ -249,8 +269,12 @@ public class DelveDuelScene extends DuelScene {
             ai.setStartingLife(enemyLife);
             if (i == 0 && perk != null) applyPerk(ai, foeDecks.get(i));
             if (paiGow) applyPaiGow(ai, foeDecks.get(i).getMain().countAll(), paiGowFirst == 2);
-            if (run != null && run.channel) // Attune runs: foes start with fixed lands of their colours (3, elites 4, bosses 5)
+            if (run != null && run.channel) { // Attune runs: foes start with lands of their colours and ramp (foeMana)
                 ai.addExtraCardsOnBattlefield(startingLands(foeDecks.get(i), foeLandCount, false));
+                forge.item.IPaperCard ramp = foeRamp == null ? null : FModel.getMagicDb().getCommonCards().getCard(foeRamp);
+                if (ramp != null) ai.addExtraCardsInCommandZone(List.of(ramp));
+                else System.err.println("Delve: foe ramp card missing: " + foeRamp);
+            }
             players.add(ai);
         }
         players.add(human);

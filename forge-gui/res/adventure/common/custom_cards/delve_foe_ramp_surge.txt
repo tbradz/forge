@@ -1,0 +1,7 @@
+Name:Delve Foe Ramp Surge
+ManaCost:no cost
+Types:Artifact
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | CheckSVar$ RampTurn | SVarCompare$ EQ0 | IsPresent$ Land.YouCtrl | PresentCompare$ LT7 | Execute$ TrigRamp | TriggerDescription$ Foe mana: each turn, this foe gains a tapped basic land of its colors (up to seven lands).
+SVar:TrigRamp:DB$ CopyPermanent | Choices$ Land.basic+YouCtrl | ChoiceTitle$ Choose a land to grow | TokenTapped$ True
+SVar:RampTurn:Count$YourTurns/Mod.1
+Oracle:Foe mana: each turn, this foe gains a tapped basic land of its colors (up to seven lands).
