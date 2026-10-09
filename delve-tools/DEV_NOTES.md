@@ -140,6 +140,12 @@
 - Castle: nights use the town set and are closed before the first clear; 1v1/pods open; booster prizes are town boosters,
   or the pack price in gold before any clear. Tavern patrons: `townOrFirst()`. Pip's shop rumor follows the town set.
 
+## Crash fix: achievement popup after a win (2026-10-08)
+- Forge awards achievements after games; in Adventure mode GuiMobile shows them on the map stage, which pauses the map
+  player. Delve has no map player, so the first won Delve fight that earned an achievement crashed (NPE in
+  GameStage.startPause). Upstream edits: GuiMobile.showImageDialog skips the popup when there's no map player
+  (achievement still recorded); GameStage.startPause tolerates a null player.
+
 ## Attune v2: real lands (2026-10-08, after Tyler's first playtest)
 - Tyler: mana should show as lands on the battlefield, not in the command zone; turn 1 must not allow 2+2 mana.
 - You start each fight with 3 basic lands on the battlefield: one per deck colour (most pips first), extra = Wastes
