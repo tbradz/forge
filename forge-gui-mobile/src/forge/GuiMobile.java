@@ -167,6 +167,9 @@ public class GuiMobile implements IGuiBase {
     @Override
     public void showImageDialog(final ISkinImage image, final String message, final String title) {
         if (Forge.isMobileAdventureMode) {
+            // Delve has no Adventure map player to pause for this popup (it crashed after a win, 2026-10-08):
+            // the achievement is still recorded, only the popup is skipped
+            if (MapStage.getInstance().getPlayerSprite() == null) return;
             FThreads.invokeInEdtNowOrLater(() -> MapStage.getInstance().showImageDialog("Achievement Earned\n"+message, (FBufferedImage)image, null));
             return;
         }

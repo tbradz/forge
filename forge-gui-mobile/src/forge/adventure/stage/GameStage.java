@@ -311,7 +311,8 @@ public abstract class GameStage extends Stage {
     public void startPause(float i, Runnable runnable) {
         onEndAction = runnable;
         animationTimeout = i;
-        player.setMovementDirection(Vector2.Zero);
+        if (player != null) // Delve scenes have no map player
+            player.setMovementDirection(Vector2.Zero);
     }
 
     public boolean isPaused() {
