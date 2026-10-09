@@ -1,9 +1,0 @@
-Name:Delve Foe Mana
-ManaCost:no cost
-Types:Artifact
-T:Mode$ NewGame | TriggerZones$ Command | Static$ True | Execute$ Grow | TriggerDescription$ At the beginning of the game, you get a Foe Mana Source.
-T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Command | Static$ True | CheckSVar$ Sources | SVarCompare$ LT7 | Execute$ Grow | TriggerDescription$ At the beginning of your upkeep, if you have fewer than seven, you get another Foe Mana Source.
-SVar:Grow:DB$ Effect | Name$ Foe Mana Source | Abilities$ FoeMana | Duration$ Permanent
-SVar:FoeMana:AB$ Mana | Cost$ 0 | Produced$ Any | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add one mana of any color. Activate only once each turn.
-SVar:Sources:Count$ValidCommand Card.namedFoe Mana Source+YouOwn
-Oracle:Delve foe mana: no lands. You start with one Foe Mana Source and get another at each of your upkeeps, up to seven. Each adds one mana of any color once each turn.

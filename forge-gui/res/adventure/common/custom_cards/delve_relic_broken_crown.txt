@@ -1,8 +1,4 @@
 Name:Delve Relic Broken Crown
 ManaCost:no cost
 Types:Artifact
-T:Mode$ NewGame | TriggerZones$ Command | Static$ True | Execute$ Spark1 | TriggerDescription$ At the beginning of the game, you get two extra Mana Sparks. (Your opening hand has one fewer card.)
-SVar:Spark1:DB$ Effect | Name$ Mana Spark | Abilities$ SparkMana | Duration$ Permanent | SubAbility$ Spark2
-SVar:Spark2:DB$ Effect | Name$ Mana Spark | Abilities$ SparkMana | Duration$ Permanent
-SVar:SparkMana:AB$ Mana | Cost$ 0 | Produced$ C | ActivationZone$ Command | ActivationLimit$ 1 | SpellDescription$ Add {C}. Activate only once each turn.
-Oracle:Broken Crown: you start every fight with two extra Mana Sparks, but one fewer card in your opening hand.
+Oracle:Broken Crown: you start every fight with two extra lands (colorless), but one fewer card in your opening hand.

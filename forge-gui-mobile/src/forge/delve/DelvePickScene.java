@@ -182,7 +182,9 @@ public class DelvePickScene extends DelveScene {
         String count = maxPick > 1 ? "  (" + selected.size() + "/" + maxPick + ")" : "";
         // recreate rather than setText so the centred layout is recomputed
         if (headerLabel != null) headerLabel.remove();
-        headerLabel = label("[%110]" + header + count, 0, 6, W, 20, Align.center);
+        String full = header + count; // long headers shrink so they stay on one line (about 60 / 75 / 90 characters)
+        String size = full.length() > 75 ? "[%75]" : full.length() > 60 ? "[%90]" : "[%110]";
+        headerLabel = label(size + full, 8, 6, W - 16, 20, Align.center);
         if (confirm != null)
             confirm.setDisabled(selected.size() < minPick);
     }

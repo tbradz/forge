@@ -15,7 +15,7 @@ public enum DelveBoon {
     SECOND_CHANCE("Second Chance", "One free Reroll of a card offer this run."),
     SCOUT("Scout's Eye", "Merchants stock one extra card this run."),
     SHARP_START("Sharp Start", "Your first foe starts with 4 less life."),
-    DEEP_WELL("Deep Well", "An extra Mana Spark in every fight this run (+1 mana each turn).");
+    DEEP_WELL("Deep Well", "The first land you Attune each fight enters untapped.");
 
     public final String title, description;
 

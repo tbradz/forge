@@ -74,6 +74,8 @@ public class DelveDuelScene extends DuelScene {
     // Pai Gow: 3-card piles as opening hands, 5 life, unlimited mana, no library
     static final int PAI_GOW_LIFE = 5;
     private boolean paiGow;
+    /** Attune runs: how many lands the foe starts with (normal 3, elite 4, boss 5) */
+    private int foeLandCount = 3;
     private int paiGowFirst; // 0 = coin flip, 1 = you, 2 = the opponent
     private boolean lastDraw;
 
@@ -99,6 +101,7 @@ public class DelveDuelScene extends DuelScene {
                 node.type == DelveRun.NodeType.BOSS, onFinished);
         this.perk = node.perk;
         this.perk2 = node.perk2;
+        this.foeLandCount = node.type == DelveRun.NodeType.BOSS ? 5 : node.type == DelveRun.NodeType.ELITE ? 4 : 3;
         this.run = run;
         this.lifeCap = run.maxLife();
         // the opening fights get a careless opponent; everyone else plays Forge's best AI (difficulty can change this)
@@ -246,11 +249,8 @@ public class DelveDuelScene extends DuelScene {
             ai.setStartingLife(enemyLife);
             if (i == 0 && perk != null) applyPerk(ai, foeDecks.get(i));
             if (paiGow) applyPaiGow(ai, foeDecks.get(i).getMain().countAll(), paiGowFirst == 2);
-            if (run != null && run.channel) { // no lands: a mana source a turn, up to seven
-                forge.item.IPaperCard foeMana = FModel.getMagicDb().getCommonCards().getCard("Delve Foe Mana");
-                if (foeMana != null) ai.addExtraCardsInCommandZone(new ArrayList<>(List.of(foeMana)));
-                else System.err.println("Delve: foe mana card missing");
-            }
+            if (run != null && run.channel) // Attune runs: foes start with fixed lands of their colours (3, elites 4, bosses 5)
+                ai.addExtraCardsOnBattlefield(startingLands(foeDecks.get(i), foeLandCount, false));
             players.add(ai);
         }
         players.add(human);
@@ -347,15 +347,43 @@ public class DelveDuelScene extends DuelScene {
             forge.item.IPaperCard mana = FModel.getMagicDb().getCommonCards().getCard("Delve Mana Rules");
             if (mana != null) cmd.add(mana);
             else System.err.println("Delve: mana rules card missing");
-            if (run.boon == DelveBoon.DEEP_WELL) { // the boon is a Mana Crystal for the whole run
-                forge.item.IPaperCard well = DelveRelic.MANA_CRYSTAL.card();
+            if (run.boon == DelveBoon.DEEP_WELL) { // the first attuned land each fight enters untapped
+                forge.item.IPaperCard well = FModel.getMagicDb().getCommonCards().getCard("Delve Boon Deep Well");
                 if (well != null) cmd.add(well);
             }
+            // three lands to start, one per deck colour (colourless filler); relics add more
+            int n = 3 + (run.has(DelveRelic.MANA_CRYSTAL) ? 1 : 0) + (run.has(DelveRelic.BROKEN_CROWN) ? 2 : 0);
+            human.addExtraCardsOnBattlefield(startingLands(run.deck, n, true));
         }
         if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);
         if (run.has(DelveRelic.LUCKY_COIN)) human.setStartingHand(human.getStartingHand() + 1);
         if (run.has(DelveRelic.BROKEN_CROWN)) human.setStartingHand(human.getStartingHand() - 1);
         // (a free basic in play at the start was tried 2026-10-04 and dropped: too strong, Tyler)
+    }
+
+    /**
+     * Starting lands for a land-free (Attune) deck: one basic of each of the deck's colours, most-used colour first;
+     * any extra lands are Wastes ({@code colourlessFill}, the player) or more of the deck's colours (foes).
+     */
+    static List<forge.item.IPaperCard> startingLands(Deck deck, int n, boolean colourlessFill) {
+        int[] pips = new int[5];
+        for (forge.item.PaperCard pc : deck.getMain().toFlatList()) {
+            if (pc.getRules().getType().isLand()) continue;
+            int[] counts = pc.getRules().getManaCost().getColorShardCounts(); // WUBRGC
+            for (int i = 0; i < 5; i++) pips[i] += counts[i];
+        }
+        List<Integer> colours = new ArrayList<>();
+        for (int i = 0; i < 5; i++) if (pips[i] > 0) colours.add(i);
+        colours.sort((a, b) -> pips[b] - pips[a]);
+        String[] basics = {"Plains", "Island", "Swamp", "Mountain", "Forest"};
+        List<forge.item.IPaperCard> out = new ArrayList<>();
+        for (int k = 0; k < n; k++) {
+            String name = k < colours.size() ? basics[colours.get(k)]
+                    : colourlessFill || colours.isEmpty() ? "Wastes" : basics[colours.get(k % colours.size())];
+            forge.item.IPaperCard land = FModel.getMagicDb().getCommonCards().getCard(name);
+            if (land != null) out.add(land);
+        }
+        return out;
     }
 
     /** The perk cards start in the boss's command zone; Rampant also starts with a land in play. */

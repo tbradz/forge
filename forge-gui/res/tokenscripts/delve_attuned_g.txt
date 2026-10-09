@@ -1,0 +1,4 @@
+Name:Attuned Forest
+ManaCost:no cost
+Types:Land Forest
+Oracle:({T}: Add {G}.) A card you Attuned.

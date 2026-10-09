@@ -2,4 +2,4 @@ Name:Delve Relic Prism Lens
 ManaCost:no cost
 Types:Artifact
 S:Mode$ ManaConvert | EffectZone$ Command | ValidPlayer$ You | ManaConversion$ Colorless->AnyColor | Description$ You may spend colorless mana as though it were mana of any color.
-Oracle:Prism Lens: you may spend colorless mana (like your Mana Sparks) as though it were mana of any color.
+Oracle:Prism Lens: you may spend colorless mana as though it were mana of any color.

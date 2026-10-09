@@ -1,0 +1,4 @@
+Name:Attuned Mountain
+ManaCost:no cost
+Types:Land Mountain
+Oracle:({T}: Add {R}.) A card you Attuned.

@@ -1,0 +1,4 @@
+Name:Attuned Plains
+ManaCost:no cost
+Types:Land Plains
+Oracle:({T}: Add {W}.) A card you Attuned.

@@ -1,0 +1,4 @@
+Name:Attuned Swamp
+ManaCost:no cost
+Types:Land Swamp
+Oracle:({T}: Add {B}.) A card you Attuned.

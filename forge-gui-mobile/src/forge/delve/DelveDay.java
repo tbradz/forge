@@ -502,9 +502,8 @@ public class DelveDay {
         forge.card.ICardFace back = pc.getRules().getOtherPart(); // a spell with a land on its back (modal double-faced)
         if (back != null && back.getType().isLand()) return true;
         String o = oracle(pc);
-        return o.contains("land card") || o.contains("basic land") || o.contains("lands you control") || o.contains("landfall")
-                || o.contains("land you control") || o.contains("a land enters") || o.contains("sacrifice a land")
-                || o.contains("number of lands") || o.contains("additional land") || o.contains("domain");
+        // attuned lands are real lands (landfall, land counts work); only cards that need land *cards* are useless
+        return o.contains("land card") || o.contains("additional land") || o.contains("play lands");
     }
 
     /** A copy of {@code deck} with no lands and no land-dependent cards (Channel runs' foes). */
@@ -791,12 +790,10 @@ public class DelveDay {
     /** Archetypes this set supports: enough payoffs overall and enough fitting cards in one colour pair. */
     public List<DelveArchetype> viableArchetypes() {
         if (viable != null) return viable;
-        boolean channel = DelveModes.channelMana();
         List<PaperCard> pool = deckablePool();
         List<DelveArchetype> ok = new ArrayList<>();
         java.util.Map<DelveArchetype, Integer> support = new java.util.HashMap<>();
         for (DelveArchetype a : DelveArchetype.values()) {
-            if (channel && a == DelveArchetype.LANDFALL) continue; // needs its own land pile first (design doc)
             int payoffs = 0;
             for (PaperCard pc : pool) if (a.payoff(pc)) payoffs++;
             int inColours = 0;
@@ -807,7 +804,6 @@ public class DelveDay {
         if (ok.size() < 3) { // a thin set: the best-supported of the rest fill in
             List<DelveArchetype> rest = new ArrayList<>(List.of(DelveArchetype.values()));
             rest.removeAll(ok);
-            if (channel) rest.remove(DelveArchetype.LANDFALL);
             rest.sort((x, y) -> support.get(y) - support.get(x));
             for (DelveArchetype a : rest) if (ok.size() < 3) ok.add(a);
         }

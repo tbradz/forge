@@ -145,7 +145,14 @@ public final class DelveShots {
             List<PaperCard> faces = new ArrayList<>();
             for (DelveDay.ArchetypeDeck o : offers) faces.add(o.face);
             DelvePickScene.instance().show("Choose your archetype", faces, 1, 1, null,
-                    pc -> { for (DelveDay.ArchetypeDeck o : offers) if (o.face.equals(pc)) return o.deck.getName(); return ""; }, x -> { });
+                    pc -> { for (DelveDay.ArchetypeDeck o : offers) if (o.face.equals(pc))
+                        return "[%80]" + o.archetype.title + "  " + DelveGateScene.colourInitials(o.deck); return ""; }, x -> { });
+        });
+        add("archetype_deck", 3f, () -> {
+            List<DelveDay.ArchetypeDeck> offers = DelveDay.today().archetypeOffers(new Random(1), true);
+            DelveDay.ArchetypeDeck longest = offers.get(0);
+            for (DelveDay.ArchetypeDeck o : offers) if (o.archetype.description.length() > longest.archetype.description.length()) longest = o;
+            DelveGateScene.instance().showDeck(DelveDay.today(), longest, "");
         });
         add("map", 3f, () -> {
             DelveDay day = DelveDay.today();
@@ -246,7 +253,8 @@ public final class DelveShots {
             run.compact = true;
             String relics = System.getProperty("delve.shots.relics", "MANA_CRYSTAL,DEEP_RESERVES,ATTUNEMENT_SIGIL");
             for (String r : relics.split(",")) if (DelveRelic.byName(r.trim()) != null) run.relics.add(DelveRelic.byName(r.trim()));
-            System.out.println("DelveShots channel: relics " + run.relics);
+            run.boon = DelveBoon.parse(System.getProperty("delve.shots.boon", ""));
+            System.out.println("DelveShots channel: relics " + run.relics + ", boon " + run.boon);
             DelveRun.Node node = null;
             for (List<DelveRun.Node> layer : run.layers)
                 for (DelveRun.Node n : layer) if (node == null && n.type == DelveRun.NodeType.FIGHT) node = n;
@@ -304,6 +312,8 @@ public final class DelveShots {
             Thread.sleep(1500);
             log("phase " + g.getPhaseHandler().getPhase() + ", hand: " + names(me.getCardsIn(forge.game.zone.ZoneType.Hand)));
             log("command zone: " + names(me.getCardsIn(forge.game.zone.ZoneType.Command)));
+            log("my lands: " + names(me.getCardsIn(forge.game.zone.ZoneType.Battlefield)) + " | foe lands: "
+                    + names(me.getOpponents().get(0).getCardsIn(forge.game.zone.ZoneType.Battlefield)));
             log("foe command zone: " + names(me.getOpponents().get(0).getCardsIn(forge.game.zone.ZoneType.Command)));
             // channel the first card that has a Channel ability
             forge.game.spellability.SpellAbility channel = null;
@@ -319,7 +329,8 @@ public final class DelveShots {
             log("after attune, command zone: " + names(me.getCardsIn(forge.game.zone.ZoneType.Command))
                     + " | hand " + me.getCardsIn(forge.game.zone.ZoneType.Hand).size() + " (Sigil should draw: same size as before)");
             log("graveyard: " + names(me.getCardsIn(forge.game.zone.ZoneType.Graveyard)));
-            log("pool after attune: " + me.getManaPool().totalMana() + " (Expedition Map adds 1)");
+            log("pool after attune: " + me.getManaPool().totalMana() + " (Expedition Map adds 1); battlefield: "
+                    + names(me.getCardsIn(forge.game.zone.ZoneType.Battlefield)));
             for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Hand)) // Prism Lens / Mana Prism: what's affordable
                 for (forge.game.spellability.SpellAbility sa : c.getAllPossibleAbilities(me, true))
                     if (sa.isSpell()) {

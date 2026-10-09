@@ -110,7 +110,20 @@ public class DelveGateScene extends DelveScene {
         List<PaperCard> faces = new ArrayList<>();
         for (DelveDay.ArchetypeDeck o : offers) faces.add(o.face);
         DelvePickScene.instance().show("Choose your archetype", faces, 1, 1, null,
-                pc -> offerFor(offers, pc).deck.getName(), picked -> showDeck(day, offerFor(offers, picked.get(0)), ""));
+                pc -> "[%80]" + offerFor(offers, pc).archetype.title + "  " + colourInitials(offerFor(offers, pc).deck),
+                picked -> showDeck(day, offerFor(offers, picked.get(0)), ""));
+    }
+
+    /** "W/G" style colour letters of a deck's spells (short enough for a card-width button). */
+    static String colourInitials(Deck deck) {
+        byte mask = 0;
+        for (PaperCard pc : deck.getMain().toFlatList()) mask |= pc.getRules().getColorIdentity().getColor();
+        StringBuilder sb = new StringBuilder();
+        String wubrg = "WUBRG";
+        for (int i = 0; i < 5; i++)
+            if ((mask & forge.card.ColorSet.fromNames(new char[]{wubrg.charAt(i)}).getColor()) != 0)
+                sb.append(sb.length() > 0 ? "/" : "").append(wubrg.charAt(i));
+        return sb.toString();
     }
 
     private static DelveDay.ArchetypeDeck offerFor(List<DelveDay.ArchetypeDeck> offers, PaperCard face) {
@@ -119,7 +132,7 @@ public class DelveGateScene extends DelveScene {
     }
 
     /** Show the run's starting deck (spells by mana value) and what the archetype does, then into the dungeon. */
-    private void showDeck(DelveDay day, DelveDay.ArchetypeDeck offer, String prefix) {
+    void showDeck(DelveDay day, DelveDay.ArchetypeDeck offer, String prefix) {
         Deck deck = offer.deck;
         List<PaperCard> view = new ArrayList<>();
         for (PaperCard pc : deck.getMain().toFlatList())
@@ -127,8 +140,10 @@ public class DelveGateScene extends DelveScene {
         view.sort(java.util.Comparator.comparingInt(pc -> pc.getRules().getManaCost().getCMC()));
         int lands = 0;
         for (PaperCard pc : deck.getMain().toFlatList()) if (pc.getRules().getType().isBasicLand()) lands++;
-        DelvePickScene.instance().show(prefix + deck.getName() + ": " + offer.archetype.description + "  (" + (deck.getMain().countAll() - lands)
-                        + " spells + " + lands + " lands)", view, 0, 0, "Into the dungeon", x -> begin(day, deck, offer.archetype));
+        String size = lands > 0 ? (deck.getMain().countAll() - lands) + " spells + " + lands + " lands"
+                : deck.getMain().countAll() + " cards";
+        DelvePickScene.instance().show(prefix + deck.getName() + " (" + size + "): " + offer.archetype.description,
+                view, 0, 0, "Into the dungeon", x -> begin(day, deck, offer.archetype));
     }
 
     /** The picks plus {@code lands} basic lands split by the colored mana symbols in the picks. */

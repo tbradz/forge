@@ -1,0 +1,4 @@
+Name:Attuned Island
+ManaCost:no cost
+Types:Land Island
+Oracle:({T}: Add {U}.) A card you Attuned.

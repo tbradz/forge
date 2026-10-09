@@ -140,6 +140,19 @@
 - Castle: nights use the town set and are closed before the first clear; 1v1/pods open; booster prizes are town boosters,
   or the pack price in gold before any clear. Tavern patrons: `townOrFirst()`. Pip's shop rumor follows the town set.
 
+## Attune v2: real lands (2026-10-08, after Tyler's first playtest)
+- Tyler: mana should show as lands on the battlefield, not in the command zone; turn 1 must not allow 2+2 mana.
+- You start each fight with 3 basic lands on the battlefield: one per deck colour (most pips first), extra = Wastes
+  (`DelveDuelScene.startingLands`). Mana Crystal +1, Broken Crown +2 (code, not their cards).
+- Attune (`delve_mana_rules.txt`, `ST$ Token`) creates a **tapped** "Attuned <basic type>" land token
+  (`res/tokenscripts/delve_attuned_[wubrgc].txt`): turn 1 = 3 mana, then +1 a turn as you Attune. Landfall now works
+  (attuned lands enter the battlefield), so the Landfall archetype is back; only cards needing land *cards* are filtered.
+- Enemies: fixed basics of their colours on the battlefield: 3 (fights), 4 (elites), 5 (bosses) (`foeLandCount`).
+  Mana Sparks, the Foe Mana card and command-zone sources are gone.
+- Deep Well boon was too strong (+1 mana every turn): now "the first land you Attune each fight enters untapped".
+- Archetype pick buttons show "Title W/G"; long pick-screen headers shrink to one line.
+- The forge-ai command-zone mana patch stays (harmless; Pai Gow-style effects may still use it).
+
 ## Mana relics and the Attune rename (2026-10-08)
 - "Channel" renamed **Attune** in all player-facing text (Magic's own Channel keyword shows up on Neon Dynasty cards).
   Internal names stay (option `channelMana`, run flag `channel`) so saves keep working.
