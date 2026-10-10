@@ -49,8 +49,9 @@ Tyler wants Delve moved to a better-looking engine. `Forge Fork/delve-godot-test
 game in Godot 4.7 with Forge headless underneath: town, dungeon, Castle (incl. Commander pods), shops, sleeves, music.
 Its ported scenes live in package `forge.delve` inside that repo's bridge and call this repo's Delve classes from
 `delve.jar`, so rules changes here reach it after a rebuild + install. README there has the protocol and self-test.
-It opens on a title screen (saves, a Dev save with 50,000 gold). Art is still Delve's approved art; a visual
-revamp is next and needs Tyler's approval. The libGDX Delve stays playable meanwhile. Details: DEV_NOTES "Delve on Godot".
+It opens on a title screen (saves, a Dev save with 50,000 gold). New hi-res pixel art (CC0 packs: heroes, foes, a
+walkable town street, themed backdrops, duel face-off) sits behind Your House > Options > Art, awaiting Tyler's review;
+`delve-godot-test/PROGRESS.md` is the work log. The libGDX Delve stays playable meanwhile. Details: DEV_NOTES "Delve on Godot".
 
 ## Design in progress (2026-10-07)
 `delve-tools/DESIGN-archetypes-and-house.md`: archetype decks instead of Jumpstart half-decks, cards/packs only

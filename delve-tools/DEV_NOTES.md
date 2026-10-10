@@ -163,8 +163,14 @@
 - Title screen (`GodotTown.title`, Tyler asked for menus to test things): Continue, Saves (play/delete via `DelveSaves`), New
   save (sets, difficulty), Dev save (50,000 gold, optionally `devUnlockAllTiers`), Quit. The town's Menu button returns to it.
   Saves are the Godot runtime's own, not Delve's.
-- Art: only approved Delve art so far (Tyler's overnight choice). Tyler expected new graphics, a new intro and a different
-  dungeon look; that visual revamp is the next phase, and new art waits for his approval.
+- Art: new hi-res pixel art (2026-10-10, Tyler: new characters, town graphics, "etc etc"; he chose hi-res pixel art and
+  OK'd downloading free packs). Behind a switch, Your House > Options > Art: New / Classic (on by default; classic stays).
+  Only CC0 / free-commercial packs (`delve-godot-test/art/CREDITS.md`; originals in `Forge Fork/art-review/new-sprites`).
+  `tools/pack_sprites.py` packs 57 characters into `art/sprites/new` (hero choice of 16, foes matched to Adventure
+  enemies by sprite path in `delvebridge.NewArt`, townsfolk, pets); `tools/make_town.py` builds the side-scrolling
+  town street (click a building, your hero walks to it); `tools/make_backdrops.py` builds one side-view backdrop per
+  dungeon theme. Duels open with a face-off (hero walks in) and the sprites attack/flinch/fall with life changes.
+  Work log for the long session: `delve-godot-test/PROGRESS.md`. Still awaiting Tyler's review.
 - Not ported: manual mana payment, spell animations.
 - Self-test: bridge `. 47801` from `%LOCALAPPDATA%\DelveGodotTestSelf`, Godot `--autotest=dir --ticks=N --prefer=A|B`;
   `-Ddelve.godot.autowin=true` skips duels to walk the screens.
