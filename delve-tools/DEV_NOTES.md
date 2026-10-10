@@ -171,7 +171,7 @@
   town street (click a building, your hero walks to it); `tools/make_backdrops.py` builds one side-view backdrop per
   dungeon theme. Duels open with a face-off (hero walks in) and the sprites attack/flinch/fall with life changes.
   Work log for the long session: `delve-godot-test/PROGRESS.md`. Still awaiting Tyler's review.
-- Not ported: manual mana payment, spell animations.
+- Manual mana payment works (click lands while paying; Forge's pay input takes the click); the table says so. Not ported: spell animations.
 - Self-test: bridge `. 47801` from `%LOCALAPPDATA%\DelveGodotTestSelf`, Godot `--autotest=dir --ticks=N --prefer=A|B`;
   `-Ddelve.godot.autowin=true` skips duels to walk the screens.
 
