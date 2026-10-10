@@ -422,7 +422,7 @@ public class DelveMapScene extends DelveScene {
             default:
         }
         if (node.enemy == null) return; // any other room without a foe: never treat it as a fight
-        String what = node.type == NodeType.BOSS ? "the boss" : node.type == NodeType.ELITE ? "an elite" : "a fight";
+        String what = node.type == NodeType.BOSS ? "the boss fight" : node.type == NodeType.ELITE ? "an elite fight" : "a fight";
         confirm(node.enemy.getName(), "Enter " + what + " against " + node.enemy.getName() + ".\n"
                         + "They start at " + run.foeLife(node) + " life"
                         + (run.nextFoeLife < 0 ? " (blessed: " + run.nextFoeLife + ")" : run.nextFoeLife > 0 ? " (cursed: +" + run.nextFoeLife + ")" : "")
