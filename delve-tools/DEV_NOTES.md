@@ -174,6 +174,9 @@
 - Manual mana payment works (click lands while paying; Forge's pay input takes the click); the table says so. Spell effects (new art): cast, creature death, hit (tools/make_fx.py).
 - Self-test: bridge `. 47801` from `%LOCALAPPDATA%\DelveGodotTestSelf`, Godot `--autotest=dir --ticks=N --prefer=A|B`;
   `-Ddelve.godot.autowin=true` skips duels to walk the screens.
+  (`-Ddelve.godot.autowin.rate=0.85` default; the autotest player loses real duels early, so long bug hunts use autowin.)
+- Godot polish (2026-10-10): command-zone rule cards are dark plaques tinted by kind (Foe red, Relic gold, rules blue);
+  fight-dialog portraits fill their frame; NewArt maps Adventure's three elemental-sprite merfolk to merfolk art.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
