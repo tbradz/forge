@@ -160,7 +160,12 @@
   Godot (a column per opponent); Forge plays on after the human loses, so a watcher ends the game then.
 - Music: each screen names an Adventure playlist folder (town, cave, castle, match, boss); Godot crossfades. Forge's duel
   sounds reach Godot through `HeadlessGui.createAudioClip`.
-- Not ported: Delve's save slots (Tyler: saves don't matter yet), manual mana payment, spell animations.
+- Title screen (`GodotTown.title`, Tyler asked for menus to test things): Continue, Saves (play/delete via `DelveSaves`), New
+  save (sets, difficulty), Dev save (50,000 gold, optionally `devUnlockAllTiers`), Quit. The town's Menu button returns to it.
+  Saves are the Godot runtime's own, not Delve's.
+- Art: only approved Delve art so far (Tyler's overnight choice). Tyler expected new graphics, a new intro and a different
+  dungeon look; that visual revamp is the next phase, and new art waits for his approval.
+- Not ported: manual mana payment, spell animations.
 - Self-test: bridge `. 47801` from `%LOCALAPPDATA%\DelveGodotTestSelf`, Godot `--autotest=dir --ticks=N --prefer=A|B`;
   `-Ddelve.godot.autowin=true` skips duels to walk the screens.
 
