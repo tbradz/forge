@@ -74,9 +74,8 @@ public class DelveDuelScene extends DuelScene {
     // Pai Gow: 3-card piles as opening hands, 5 life, unlimited mana, no library
     static final int PAI_GOW_LIFE = 5;
     private boolean paiGow;
-    /** Attune runs: how many lands the foe starts with, and its ramp card (see foeMana) */
-    private int foeLandCount = 3;
-    private String foeRamp;
+    /** Attune runs: the foe's starting lands and ramp card (see DelveMatchSetup.foeMana) */
+    private DelveMatchSetup.FoeMana foeMana;
     private int paiGowFirst; // 0 = coin flip, 1 = you, 2 = the opponent
     private boolean lastDraw;
 
@@ -88,44 +87,14 @@ public class DelveDuelScene extends DuelScene {
 
     /** Prepare a dungeon duel. Call before Forge.switchScene(DelveDuelScene.instance()). */
     public void setup(DelveRun run, DelveRun.Node node, BiConsumer<Boolean, Integer> onFinished) {
-        int depth = DelveMapGen.depth(run, run.step);
-        DelveDifficulty diff = DelveDifficulty.current();
-        DelveDay.Tier tier = node.type == DelveRun.NodeType.BOSS ? DelveDay.Tier.BOSS
-                : node.type == DelveRun.NodeType.ELITE ? DelveDay.Tier.ELITE
-                : diff.fightDeck(depth == 0 ? DelveDay.Tier.EARLY : depth == 2 ? DelveDay.Tier.LATE : DelveDay.Tier.FIGHT);
-        Deck enemyDeck = run.day.enemyDeck(node.enemy, tier); // era cards in the enemy's colors
-        if (run.channel) enemyDeck = DelveDay.landless(enemyDeck); // Channel runs: foes get Delve Foe Mana instead
-        int foeLife = run.foeLife(node);
-        run.nextFoeLife = 0; // blessings and curses last for one fight
-        int life = run.life + (run.has(DelveRelic.IRON_BUCKLER) ? 4 : 0);
-        setup(run.deck, life, node.enemy, enemyDeck, foeLife, 1,
-                node.type == DelveRun.NodeType.BOSS, onFinished);
+        DelveMatchSetup.Fight f = DelveMatchSetup.fight(run, node); // the rules live there (shared with the Godot bridge)
+        setup(run.deck, f.playerLife, node.enemy, f.enemyDeck, f.enemyLife, 1, f.boss, onFinished);
         this.perk = node.perk;
         this.perk2 = node.perk2;
-        foeMana(node.type, depth);
+        this.foeMana = f.foeMana;
         this.run = run;
         this.lifeCap = run.maxLife();
-        // the opening fights get a careless opponent; everyone else plays Forge's best AI (difficulty can change this)
-        this.aiProfile = diff.fightAi(depth == 0, node.type == DelveRun.NodeType.FIGHT);
-    }
-
-    /**
-     * Attune runs: foes can't Attune, so they start with lands by role and depth and gain more on a schedule
-     * (Tyler 2026-10-08: starter foes low, the boss the most). Fights start with 2 lands in the first third of
-     * the dungeon and 3 after, gaining one every third turn (up to 5); elites start with 3 (4 in the last third),
-     * gaining one every second turn (up to 6); bosses start with 3 and gain one every turn (up to 7).
-     */
-    private void foeMana(DelveRun.NodeType type, int depth) {
-        if (type == DelveRun.NodeType.BOSS) {
-            foeLandCount = 3;
-            foeRamp = "Delve Foe Ramp Surge";
-        } else if (type == DelveRun.NodeType.ELITE) {
-            foeLandCount = depth >= 2 ? 4 : 3;
-            foeRamp = "Delve Foe Ramp Steady";
-        } else {
-            foeLandCount = depth == 0 ? 2 : 3;
-            foeRamp = "Delve Foe Ramp Slow";
-        }
+        this.aiProfile = f.aiProfile;
     }
 
     /**
@@ -165,6 +134,7 @@ public class DelveDuelScene extends DuelScene {
         this.commander = commander;
         this.perk = null;
         this.perk2 = null;
+        this.foeMana = null;
         this.run = null;
         this.lifeCap = DelveRun.MAX_LIFE;
         this.aiProfile = "Default";
@@ -242,7 +212,7 @@ public class DelveDuelScene extends DuelScene {
         human.setPlayer(me);
         human.setTeamNumber(0);
         human.setStartingLife(startingLife);
-        if (run != null) applyRelics(human);
+        if (run != null) DelveMatchSetup.applyRelics(run, human);
         if (paiGow) applyPaiGow(human, playerDeck.getMain().countAll(), paiGowFirst == 1);
 
         List<RegisteredPlayer> players = new ArrayList<>();
@@ -267,14 +237,10 @@ public class DelveDuelScene extends DuelScene {
             ai.setPlayer(aiLobby);
             ai.setTeamNumber(i + 1); // free-for-all: everyone on their own team
             ai.setStartingLife(enemyLife);
-            if (i == 0 && perk != null) applyPerk(ai, foeDecks.get(i));
+            if (i == 0 && perk != null) DelveMatchSetup.applyPerk(ai, perk, perk2, foeDecks.get(i));
             if (paiGow) applyPaiGow(ai, foeDecks.get(i).getMain().countAll(), paiGowFirst == 2);
-            if (run != null && run.channel) { // Attune runs: foes start with lands of their colours and ramp (foeMana)
-                ai.addExtraCardsOnBattlefield(startingLands(foeDecks.get(i), foeLandCount, false));
-                forge.item.IPaperCard ramp = foeRamp == null ? null : FModel.getMagicDb().getCommonCards().getCard(foeRamp);
-                if (ramp != null) ai.addExtraCardsInCommandZone(List.of(ramp));
-                else System.err.println("Delve: foe ramp card missing: " + foeRamp);
-            }
+            if (run != null && run.channel && foeMana != null) // Attune runs: foes start with lands of their colours and ramp
+                DelveMatchSetup.applyFoeMana(ai, foeDecks.get(i), foeMana);
             players.add(ai);
         }
         players.add(human);
@@ -346,95 +312,6 @@ public class DelveDuelScene extends DuelScene {
     /** Override the win/lose screen's return button text (call after setup). */
     public void setReturnLabel(String label) {
         this.returnLabel = label;
-    }
-
-    /** Relic cards start in your command zone; Lucky Coin adds a card to your opening hand. */
-    private void applyRelics(RegisteredPlayer human) {
-        List<forge.item.IPaperCard> cmd = new ArrayList<>();
-        for (DelveRelic r : run.relics) {
-            forge.item.IPaperCard c = r.card();
-            if (c != null) cmd.add(c);
-            else if (r.cardName != null) System.err.println("Delve: relic card missing: " + r.cardName);
-        }
-        // dungeon fights: you're always on the play (Tyler; Castle/Tavern/prerelease games keep the coin flip).
-        // Power Play is a Conspiracy, so it lives in the variant card database (Pai Gow uses it the same way).
-        forge.item.IPaperCard powerPlay = FModel.getMagicDb().getVariantCards().getCard("Power Play");
-        if (powerPlay == null) powerPlay = FModel.getMagicDb().getCommonCards().getCard("Power Play");
-        if (powerPlay != null) cmd.add(powerPlay);
-        else System.err.println("Delve: Power Play missing; the dungeon's starting player falls back to a coin flip");
-        if (run.compact) { // a 20-card deck can run dry in a long game: skip draws from an empty library
-            forge.item.IPaperCard rules = FModel.getMagicDb().getCommonCards().getCard("Delve Compact Rules");
-            if (rules != null) cmd.add(rules);
-            else System.err.println("Delve: Compact rules card missing");
-        }
-        if (run.channel) { // no lands: Mana Sparks and Attune
-            forge.item.IPaperCard mana = FModel.getMagicDb().getCommonCards().getCard("Delve Mana Rules");
-            if (mana != null) cmd.add(mana);
-            else System.err.println("Delve: mana rules card missing");
-            if (run.boon == DelveBoon.DEEP_WELL) { // the first attuned land each fight enters untapped
-                forge.item.IPaperCard well = FModel.getMagicDb().getCommonCards().getCard("Delve Boon Deep Well");
-                if (well != null) cmd.add(well);
-            }
-            // three lands to start, one per deck colour (colourless filler); relics add more
-            int n = 3 + (run.has(DelveRelic.MANA_CRYSTAL) ? 1 : 0) + (run.has(DelveRelic.BROKEN_CROWN) ? 2 : 0);
-            human.addExtraCardsOnBattlefield(startingLands(run.deck, n, true));
-        }
-        if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);
-        if (run.has(DelveRelic.LUCKY_COIN)) human.setStartingHand(human.getStartingHand() + 1);
-        if (run.has(DelveRelic.BROKEN_CROWN)) human.setStartingHand(human.getStartingHand() - 1);
-        // (a free basic in play at the start was tried 2026-10-04 and dropped: too strong, Tyler)
-    }
-
-    /**
-     * Starting lands for a land-free (Attune) deck: one basic of each of the deck's colours, most-used colour first;
-     * any extra lands are Wastes ({@code colourlessFill}, the player) or more of the deck's colours (foes).
-     */
-    static List<forge.item.IPaperCard> startingLands(Deck deck, int n, boolean colourlessFill) {
-        int[] pips = new int[5];
-        for (forge.item.PaperCard pc : deck.getMain().toFlatList()) {
-            if (pc.getRules().getType().isLand()) continue;
-            int[] counts = pc.getRules().getManaCost().getColorShardCounts(); // WUBRGC
-            for (int i = 0; i < 5; i++) pips[i] += counts[i];
-        }
-        List<Integer> colours = new ArrayList<>();
-        for (int i = 0; i < 5; i++) if (pips[i] > 0) colours.add(i);
-        colours.sort((a, b) -> pips[b] - pips[a]);
-        String[] basics = {"Plains", "Island", "Swamp", "Mountain", "Forest"};
-        List<forge.item.IPaperCard> out = new ArrayList<>();
-        for (int k = 0; k < n; k++) {
-            String name = k < colours.size() ? basics[colours.get(k)]
-                    : colourlessFill || colours.isEmpty() ? "Wastes" : basics[colours.get(k % colours.size())];
-            forge.item.IPaperCard land = FModel.getMagicDb().getCommonCards().getCard(name);
-            if (land != null) out.add(land);
-        }
-        return out;
-    }
-
-    /** The perk cards start in the boss's command zone; Rampant also starts with a land in play. */
-    private void applyPerk(RegisteredPlayer ai, Deck deck) {
-        if (perk2 != null && perk2.card() != null) {
-            List<forge.item.IPaperCard> extra = new ArrayList<>();
-            extra.add(perk2.card());
-            ai.addExtraCardsInCommandZone(extra);
-        }
-        forge.item.IPaperCard card = perk.card();
-        if (card == null) {
-            System.err.println("Delve: perk card missing: " + perk.cardName);
-            return;
-        }
-        List<forge.item.IPaperCard> cmd = new ArrayList<>();
-        cmd.add(card);
-        ai.addExtraCardsInCommandZone(cmd);
-        if (perk == DelvePerk.RAMPANT) {
-            forge.item.PaperCard land = null;
-            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : deck.getMain())
-                if (e.getKey().getRules().getType().isBasicLand()) { land = e.getKey(); break; }
-            if (land != null) {
-                List<forge.item.IPaperCard> bf = new ArrayList<>();
-                bf.add(land);
-                ai.addExtraCardsOnBattlefield(bf);
-            }
-        }
     }
 
     @Override

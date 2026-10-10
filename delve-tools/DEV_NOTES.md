@@ -146,6 +146,14 @@
   GameStage.startPause). Upstream edits: GuiMobile.showImageDialog skips the popup when there's no map player
   (achievement still recorded); GameStage.startPause tolerates a null player.
 
+## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
+- Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
+  rules moved out of the libGDX screen into `DelveMatchSetup` (no screen code): `fight(run, node)` (enemy deck by tier,
+  life, AI profile, foe mana), `Fight.players(you, foe)`, `rules(run)`, `applyRelics`, `startingLands`, `foeMana`/`applyFoeMana`,
+  `applyPerk`, `depth(run)`. `DelveDuelScene` and the Godot bridge both use it, so they can't drift. `DelveBoon.applyAtStart` is public.
+- Headless use needs `Gdx.files = new Lwjgl3Files()` and `Config.instance().loadResources()` (that also loads Delve's custom cards).
+- Regression-checked with the screenshot tour's `channel_duel` (elite: relic + 4 lands with Mana Crystal; foe 3 lands, perk, Steady ramp).
+
 ## Forge room crash (2026-10-09, Tyler's run)
 - Clicking a Forge room crashed the game (NPE on `node.enemy` in `DelveMapScene.choose`): the room's code (`forgeRoom`) was written on
   2026-10-05 but never hooked to the click, so it fell through to the fight dialog. Now wired, with a guard so no foe-less room is

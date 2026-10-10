@@ -33,7 +33,7 @@ public enum DelveBoon {
     }
 
     /** One-off effects when the run starts (lasting ones are checked where they apply). */
-    void applyAtStart(DelveRun run) {
+    public void applyAtStart(DelveRun run) {
         switch (this) {
             case VIGOR: run.life = run.maxLife(); break;
             case PURSE: run.gainGold(30); break;
