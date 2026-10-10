@@ -146,6 +146,24 @@
   GameStage.startPause). Upstream edits: GuiMobile.showImageDialog skips the popup when there's no map player
   (achievement still recorded); GameStage.startPause tolerates a null player.
 
+## Delve on Godot: the whole game (2026-10-10 overnight, Tyler: "transfer over as much as you can")
+- Repo `Forge Fork/delve-godot-test`; launch `Play Table Test.bat` (bridge on port 47800, runtime `%LOCALAPPDATA%\DelveGodotTest`,
+  its own saves). Everything outside the duel is a full-screen "ask" with a `kind` (menu, talk, cards, map, town, deck),
+  built by `delvebridge.Screen` and drawn by `godot/scripts/screens.gd`.
+- Ports, in package `forge.delve` of that repo (so they reach Delve's package-private methods from delve.jar):
+  `GodotTown` (hub, house, deck builder, Commander deck builder, shop, prerelease/sealed/draft, Pai Gow, tavern, castle
+  nights + Commander pods, outfitter, Bram's tour), `GodotRun` (gate, map, rooms, fights, rewards), `GodotKit` (shared
+  screens, heroes, sounds), `GodotSleeves` (Forge's sleeve sheets cut 360x500 like FSkin, plus Delve's foils).
+- No libGDX in the bridge: hero list read from `world/heroes.json` (HeroListData loads textures), sprite atlases parsed
+  to frame lists, sleeves read with ImageIO, sounds looked up in `res/sound` directly (SoundSystem's lookup finds nothing headless).
+- Duels: `Duel.play` (best-of-N via `continueMatch`; Pai Gow draws end the match). Commander pods use a 4-seat table in
+  Godot (a column per opponent); Forge plays on after the human loses, so a watcher ends the game then.
+- Music: each screen names an Adventure playlist folder (town, cave, castle, match, boss); Godot crossfades. Forge's duel
+  sounds reach Godot through `HeadlessGui.createAudioClip`.
+- Not ported: Delve's save slots (Tyler: saves don't matter yet), manual mana payment, spell animations.
+- Self-test: bridge `. 47801` from `%LOCALAPPDATA%\DelveGodotTestSelf`, Godot `--autotest=dir --ticks=N --prefer=A|B`;
+  `-Ddelve.godot.autowin=true` skips duels to walk the screens.
+
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
   rules moved out of the libGDX screen into `DelveMatchSetup` (no screen code): `fight(run, node)` (enemy deck by tier,

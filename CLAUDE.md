@@ -44,6 +44,13 @@ explicitly moves an idea over. (First entry: archetype characters with fixed sta
   (shop, Pai Gow, Castle nights, Tavern) trades only in cleared sets. Next from the design doc: Wellspring mana + Landfall
   build, then the house. Balance pass after Tyler's playtests.
 
+## Delve on Godot (2026-10-10)
+Tyler wants Delve moved to a better-looking engine. `Forge Fork/delve-godot-test` (its own git repo) now runs the whole
+game in Godot 4.7 with Forge headless underneath: town, dungeon, Castle (incl. Commander pods), shops, sleeves, music.
+Its ported scenes live in package `forge.delve` inside that repo's bridge and call this repo's Delve classes from
+`delve.jar`, so rules changes here reach it after a rebuild + install. README there has the protocol and self-test.
+The libGDX Delve stays playable meanwhile. Details: DEV_NOTES "Delve on Godot".
+
 ## Design in progress (2026-10-07)
 `delve-tools/DESIGN-archetypes-and-house.md`: archetype decks instead of Jumpstart half-decks, cards/packs only
 from cleared sets, land-free "Wellspring" mana and a Landfall build, an upgradable/decoratable house. Proposal
