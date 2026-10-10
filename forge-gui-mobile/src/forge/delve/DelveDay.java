@@ -1071,9 +1071,10 @@ public class DelveDay {
     /** Today's three borrowable Commander decks (same for everyone on a given day). */
     public List<Deck> loanerCommanders() {
         List<Deck> out = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
+        java.util.Set<String> leaders = new java.util.HashSet<>();
+        for (int i = 0; i < 12 && out.size() < 3; i++) { // three different commanders, when the era has them
             Deck d = commanderDeck("loaner" + i, null, false, i);
-            if (d != null) out.add(d);
+            if (d != null && !d.getCommanders().isEmpty() && leaders.add(d.getCommanders().get(0).getName())) out.add(d);
         }
         return out;
     }
