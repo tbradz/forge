@@ -138,4 +138,6 @@ trophy wall for titles, the door for Options, like the Tavern's clickable patron
   colours; sources are not lands; Landfall gets its own land pile; max mana raised by relics/boons/cards. BUILT (base +
   Channel + foe mana). Next: mana relics/boons, temporary mana, the Landfall land pile.
   Tyler's "Delve_Design_Recommendations.docx" (2026-10-08) is the guiding doc for the dungeon from here on.
-- House sizes / rooms / prices:
+- House sizes / rooms / prices (2026-10-11, Tyler: "make those changes to what you think is best"; built in the Godot
+  version): Cottage 6 decks, House 400g (10, trophy wall), Manor 1,200g (16, library = archetype codex), Estate 3,000g
+  (unlimited, grand hall). Regular + Commander decks share the slots; slots only stop new decks. Decorating: not built.

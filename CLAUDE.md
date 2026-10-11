@@ -43,6 +43,7 @@ explicitly moves an idea over. (First entry: archetype characters with fixed sta
 - 2026-10-07: set-themed backdrops shipped (Tyler approved). Archetype decks replaced Jumpstart half-decks; the town
   (shop, Pai Gow, Castle nights, Tavern) trades only in cleared sets. Next from the design doc: Wellspring mana + Landfall
   build, then the house. Balance pass after Tyler's playtests.
+- 2026-10-11: the upgradable house is built in the Godot version (sizes/prices in the design doc's decisions).
 
 ## Delve on Godot (2026-10-10)
 Tyler wants Delve moved to a better-looking engine. `Forge Fork/delve-godot-test` (its own git repo) now runs the whole

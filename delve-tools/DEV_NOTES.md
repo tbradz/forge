@@ -190,6 +190,12 @@
 - Godot interiors (new art): delve-godot-test/tools/make_interiors.py -> art/backdrops/int_*.png, mapped from
   ui/delve/{tavern,shop,outfitter,castle}_bg.png and tavern_fg.png in NewArt.BACKDROPS. Keep the Tavern floor line
   above GodotTown.SPOTS' standing spots if either changes. -Ddelve.godot.evening opens the Tavern at once (self-test).
+- Godot Your House (2026-10-11): levels in GodotTown.HOUSE_NAMES/PRICES/SLOTS, stored as house.<save> in
+  delve-godot.properties (NewArt.houseLevel). New art: a "town" room screen whose options carry "hot" [x,y,w,h] (layout
+  units) from art/backdrops/int_house.json, plus non-clickable "people"; make_interiors.py house(level) draws all four
+  and writes the JSON (move furniture -> the JSON follows). Dungeon atmosphere: Screen.bg flags dungeon backdrops
+  ("atmosphere", torches only on dungeon_bg/path_bg), screens.gd _atmosphere draws fog/flicker/glows.
+  -Ddelve.godot.gold=N tops up gold once (self-test).
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
