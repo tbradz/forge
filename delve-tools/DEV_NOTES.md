@@ -177,6 +177,9 @@
   (`-Ddelve.godot.autowin.rate=0.85` default; the autotest player loses real duels early, so long bug hunts use autowin.)
 - Godot polish (2026-10-10): command-zone rule cards are dark plaques tinted by kind (Foe red, Relic gold, rules blue);
   fight-dialog portraits fill their frame; NewArt maps Adventure's three elemental-sprite merfolk to merfolk art.
+- Godot town (new art): one screen by default (tools/make_square.py -> art/town/square, screens.gd _build_square), the
+  street is Options > Town: Street (NewArt.streetTown). Bram's tour walks the square (GodotTown.tour sends a town screen
+  with "tour" stops; classic art keeps the talk screens). The Outfitter is a building (make_town.py builds it).
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
