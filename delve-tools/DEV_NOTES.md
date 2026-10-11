@@ -180,6 +180,10 @@
 - Godot town (new art): one screen by default (tools/make_square.py -> art/town/square, screens.gd _build_square), the
   street is Options > Town: Street (NewArt.streetTown). Bram's tour walks the square (GodotTown.tour sends a town screen
   with "tour" stops; classic art keeps the talk screens). The Outfitter is a building (make_town.py builds it).
+- Godot square layout: houses on the back row, doors onto the plaza, the Gate out front; square.json "block" boxes and
+  screens.gd _sq_route (shortest way round them) keep people out of buildings and props. Outfitter (Godot only) also sells
+  Pets (follow you on the square) and Portraits (framed hero in the duel's life panel); both kept per save in the bridge's
+  delve-godot.properties (NewArt.PETS / NewArt.PORTRAITS), not in DelveProfile.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
