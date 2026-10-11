@@ -184,6 +184,9 @@
   screens.gd _sq_route (shortest way round them) keep people out of buildings and props. Outfitter (Godot only) also sells
   Pets (follow you on the square) and Portraits (framed hero in the duel's life panel); both kept per save in the bridge's
   delve-godot.properties (NewArt.PETS / NewArt.PORTRAITS), not in DelveProfile.
+- Godot: Outfitter > Card trim (NewArt.TRIMS; GodotGui marks your cards "mine"); footsteps from
+  delve-godot-test/tools/make_sounds.py; foe sprite mapping reviewed (NewArt.RULES, "mapping review" block).
+  Self-test switch -Ddelve.godot.podlife=N starts Commander pods at N life.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
