@@ -196,6 +196,11 @@
   and writes the JSON (move furniture -> the JSON follows). Dungeon atmosphere: Screen.bg flags dungeon backdrops
   ("atmosphere", torches only on dungeon_bg/path_bg), screens.gd _atmosphere draws fog/flicker/glows.
   -Ddelve.godot.gold=N tops up gold once (self-test).
+- Godot Esc menu (2026-10-11): Godot sends {"t":"menu","do":title|concede|options|duel}; Bridge.menu sets
+  Screen.escape and wakes the flow thread's open ask (Bridge.flowAsk). askScreen on the flow thread then runs the
+  options in place (and re-asks) or throws Screen.Escape (extends Error so catch (Exception) lets it through);
+  Duel.play calls Screen.checkEscape after a duel, which the menu concedes first. Screen.where ("title"/"town"/"run")
+  rides on every screen. New flow code that catches Throwable must rethrow Screen.Escape.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
