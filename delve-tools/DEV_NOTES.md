@@ -214,6 +214,8 @@
   button now (Esc / corner Menu). Castle: tools/make_castle.py (far citadel on a crag); gate: tools/make_gate.py.
 - Godot title screen: GodotTown.title/savesMenu/newSave send kind "title" with "page" main|saves|ask (titleScreen,
   titleOpt, titleAsk); godot/scripts/title_view.gd draws them. Saves page answers: i = play slot i, n + i = delete.
+  Page "hero" (chooseHero): answers 0 prev, 1 next, 2 done, (3 cancel), then one per hero. A square building's
+  optional "hit" rect is another click area for it (the Castle's gateway).
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
