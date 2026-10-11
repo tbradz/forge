@@ -187,6 +187,9 @@
 - Godot: Outfitter > Card trim (NewArt.TRIMS; GodotGui marks your cards "mine"); footsteps from
   delve-godot-test/tools/make_sounds.py; foe sprite mapping reviewed (NewArt.RULES, "mapping review" block).
   Self-test switch -Ddelve.godot.podlife=N starts Commander pods at N life.
+- Godot interiors (new art): delve-godot-test/tools/make_interiors.py -> art/backdrops/int_*.png, mapped from
+  ui/delve/{tavern,shop,outfitter,castle}_bg.png and tavern_fg.png in NewArt.BACKDROPS. Keep the Tavern floor line
+  above GodotTown.SPOTS' standing spots if either changes. -Ddelve.godot.evening opens the Tavern at once (self-test).
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
