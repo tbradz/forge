@@ -201,6 +201,17 @@
   options in place (and re-asks) or throws Screen.Escape (extends Error so catch (Exception) lets it through);
   Duel.play calls Screen.checkEscape after a duel, which the menu concedes first. Screen.where ("title"/"town"/"run")
   rides on every screen. New flow code that catches Throwable must rethrow Screen.Escape.
+- Godot evening batch (2026-10-11, Tyler's picks): Curses (DelveCurse: Hardened/Frailty/Greed/Weariness/Darkness,
+  each +gold %; DelveRun.curses saved; chosen after the boon in GodotRun.chooseCurses; -Ddelve.godot.curses=A,B).
+  Permadeath (save option "permadeath"; a lost run, or quitting mid-fight via the "fightOpen" marker, deletes the save
+  in GodotTown.fallen). Landfall pile (custom card "Delve Land Pile" in the command zone on Landfall Attune runs:
+  sorcery-speed, once a turn, tapped Wayfarer basics; DEPLETION caps it) and the merchant's Mana Draught (40g,
+  run.nextFightLands +1 extra starting land next fight). House decor (NewArt.DECOR, 4 slots; props in the house room;
+  Outfitter "Decor" tab, image tiles with "fit"). Ledger (GodotStats: per-save "st.*" counters, 18 achievements
+  "ach.<id>" paid out when you're next in the town hub; the book on the house desk). Collection binder (pages of 18,
+  colour/set filters, sorts). screens.gd: new screens fade in (same kind+title re-sent doesn't), and its own hover
+  zoom (the duel preview sits under screens); autotest --zoomtest hovers the first card. The town has no Menu
+  button now (Esc / corner Menu). Castle: tools/make_castle.py (far citadel on a crag); gate: tools/make_gate.py.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
