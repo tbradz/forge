@@ -1,0 +1,4 @@
+Name:Wayfarer's Plains
+ManaCost:no cost
+Types:Land Plains
+Oracle:({T}: Add {W}.) A land from your land pile.

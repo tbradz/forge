@@ -1,0 +1,4 @@
+Name:Wayfarer's Mountain
+ManaCost:no cost
+Types:Land Mountain
+Oracle:({T}: Add {R}.) A land from your land pile.

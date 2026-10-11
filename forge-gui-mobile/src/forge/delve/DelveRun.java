@@ -81,12 +81,27 @@ public class DelveRun {
     /** Maximum life, including relics, your Castle title (Baron and up: +2) and difficulty. */
     public int maxLife() {
         return MAX_LIFE + (relics.contains(DelveRelic.VITALITY_CHARM) ? 5 : 0) + DelveRenown.runLifeBonus()
-                + DelveDifficulty.current().playerLifeBonus() + (boon == DelveBoon.VIGOR ? 3 : 0);
+                + DelveDifficulty.current().playerLifeBonus() + (boon == DelveBoon.VIGOR ? 3 : 0)
+                - (curses.contains(DelveCurse.FRAILTY) ? 6 : 0);
+    }
+
+    /** Curses taken at the Gate (saved): harder, for more gold. */
+    public final java.util.EnumSet<DelveCurse> curses = java.util.EnumSet.noneOf(DelveCurse.class);
+
+    /** Lands added to your next fight's starting lands (a Mana Draught), then cleared. Saved. */
+    public int nextFightLands = 0;
+
+    /** Gold from a fight or treasure, with the curses' bonus. */
+    public int curseGold(int gold) {
+        int pct = 0;
+        for (DelveCurse c : curses) pct += c.goldPct;
+        return gold * (100 + pct) / 100;
     }
 
     /** A room's foe's starting life: the room's life scaled by difficulty, plus any blessing or curse. */
     public int foeLife(Node node) {
-        return Math.max(1, DelveDifficulty.current().foeLife(node.enemyLife) + nextFoeLife);
+        return Math.max(1, DelveDifficulty.current().foeLife(node.enemyLife) + nextFoeLife
+                + (curses.contains(DelveCurse.HARDENED) ? 5 : 0));
     }
 
     /** Count and up: one free Reroll this run (saved). */

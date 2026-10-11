@@ -1,0 +1,4 @@
+Name:Wayfarer's Island
+ManaCost:no cost
+Types:Land Island
+Oracle:({T}: Add {U}.) A land from your land pile.

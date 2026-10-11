@@ -57,6 +57,10 @@ public final class DelveRunSave {
             p.setProperty("step", Integer.toString(run.step));
             p.setProperty("fightsWon", Integer.toString(run.fightsWon));
             p.setProperty("nextFoeLife", Integer.toString(run.nextFoeLife));
+            p.setProperty("nextFightLands", Integer.toString(run.nextFightLands));
+            StringBuilder cur = new StringBuilder();
+            for (DelveCurse c : run.curses) cur.append(cur.length() > 0 ? "," : "").append(c.name());
+            p.setProperty("curses", cur.toString());
             StringBuilder rel = new StringBuilder();
             for (DelveRelic r : run.relics) rel.append(rel.length() > 0 ? "," : "").append(r.name());
             p.setProperty("relics", rel.toString());
@@ -109,6 +113,8 @@ public final class DelveRunSave {
             run.step = Integer.parseInt(p.getProperty("step", "0"));
             run.fightsWon = Integer.parseInt(p.getProperty("fightsWon", "0"));
             run.nextFoeLife = Integer.parseInt(p.getProperty("nextFoeLife", "0"));
+            run.nextFightLands = Integer.parseInt(p.getProperty("nextFightLands", "0"));
+            run.curses.addAll(DelveCurse.parseAll(p.getProperty("curses", "")));
             for (String r : p.getProperty("relics", "").split(",")) {
                 DelveRelic rel = DelveRelic.byName(r.trim());
                 if (rel != null && !run.relics.contains(rel)) run.relics.add(rel);

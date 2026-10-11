@@ -1,0 +1,4 @@
+Name:Wayfarer's Swamp
+ManaCost:no cost
+Types:Land Swamp
+Oracle:({T}: Add {B}.) A land from your land pile.

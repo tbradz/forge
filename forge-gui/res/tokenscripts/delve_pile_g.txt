@@ -1,0 +1,4 @@
+Name:Wayfarer's Forest
+ManaCost:no cost
+Types:Land Forest
+Oracle:({T}: Add {G}.) A land from your land pile.

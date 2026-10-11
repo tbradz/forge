@@ -157,8 +157,14 @@ public final class DelveMatchSetup {
                 IPaperCard well = FModel.getMagicDb().getCommonCards().getCard("Delve Boon Deep Well");
                 if (well != null) cmd.add(well);
             }
-            // three lands to start, one per deck colour (colourless filler); relics add more
-            int n = 3 + (run.has(DelveRelic.MANA_CRYSTAL) ? 1 : 0) + (run.has(DelveRelic.BROKEN_CROWN) ? 2 : 0);
+            if (run.archetype == DelveArchetype.LANDFALL) { // the Landfall build: a second land a turn from its land pile
+                IPaperCard pile = FModel.getMagicDb().getCommonCards().getCard("Delve Land Pile");
+                if (pile != null) cmd.add(pile);
+                else System.err.println("Delve: land pile card missing");
+            }
+            // three lands to start, one per deck colour (colourless filler); relics and a Mana Draught add more
+            int n = 3 + (run.has(DelveRelic.MANA_CRYSTAL) ? 1 : 0) + (run.has(DelveRelic.BROKEN_CROWN) ? 2 : 0) + run.nextFightLands;
+            run.nextFightLands = 0; // a draught lasts one fight
             human.addExtraCardsOnBattlefield(startingLands(run.deck, n, true));
         }
         if (!cmd.isEmpty()) human.addExtraCardsInCommandZone(cmd);

@@ -1,0 +1,14 @@
+Name:Delve Land Pile
+ManaCost:no cost
+Types:Artifact
+A:AB$ Token | Cost$ 0 | ActivationZone$ Command | SorcerySpeed$ True | IsPresent$ Card.Self+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | CheckSVar$ Used | SVarCompare$ LT6 | TokenScript$ delve_pile_w | TokenOwner$ You | TokenTapped$ True | SubAbility$ PileMark | PrecostDesc$ Land pile (white) — | SpellDescription$ Put a Plains from your land pile onto the battlefield tapped. Once per turn, six per fight.
+A:AB$ Token | Cost$ 0 | ActivationZone$ Command | SorcerySpeed$ True | IsPresent$ Card.Self+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | CheckSVar$ Used | SVarCompare$ LT6 | TokenScript$ delve_pile_u | TokenOwner$ You | TokenTapped$ True | SubAbility$ PileMark | PrecostDesc$ Land pile (blue) — | SpellDescription$ Put an Island from your land pile onto the battlefield tapped. Once per turn, six per fight.
+A:AB$ Token | Cost$ 0 | ActivationZone$ Command | SorcerySpeed$ True | IsPresent$ Card.Self+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | CheckSVar$ Used | SVarCompare$ LT6 | TokenScript$ delve_pile_b | TokenOwner$ You | TokenTapped$ True | SubAbility$ PileMark | PrecostDesc$ Land pile (black) — | SpellDescription$ Put a Swamp from your land pile onto the battlefield tapped. Once per turn, six per fight.
+A:AB$ Token | Cost$ 0 | ActivationZone$ Command | SorcerySpeed$ True | IsPresent$ Card.Self+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | CheckSVar$ Used | SVarCompare$ LT6 | TokenScript$ delve_pile_r | TokenOwner$ You | TokenTapped$ True | SubAbility$ PileMark | PrecostDesc$ Land pile (red) — | SpellDescription$ Put a Mountain from your land pile onto the battlefield tapped. Once per turn, six per fight.
+A:AB$ Token | Cost$ 0 | ActivationZone$ Command | SorcerySpeed$ True | IsPresent$ Card.Self+counters_GE1_CHARGE | PresentZone$ Command | PresentCompare$ EQ0 | CheckSVar$ Used | SVarCompare$ LT6 | TokenScript$ delve_pile_g | TokenOwner$ You | TokenTapped$ True | SubAbility$ PileMark | PrecostDesc$ Land pile (green) — | SpellDescription$ Put a Forest from your land pile onto the battlefield tapped. Once per turn, six per fight.
+SVar:PileMark:DB$ PutCounter | Defined$ Self | CounterType$ CHARGE | CounterNum$ 1 | SubAbility$ PileUse
+SVar:PileUse:DB$ PutCounter | Defined$ Self | CounterType$ DEPLETION | CounterNum$ 1
+SVar:Used:Count$CardCounters.DEPLETION
+T:Mode$ Phase | Phase$ Cleanup | TriggerZones$ Command | Static$ True | Execute$ ResetPile | TriggerDescription$ Your land pile can be used again next turn.
+SVar:ResetPile:DB$ RemoveCounter | Defined$ Self | CounterType$ CHARGE | CounterNum$ All
+Oracle:Landfall runs: you have a land pile of six basic lands. Once during each of your turns (as a sorcery), put one onto the battlefield tapped: a second land a turn for your Landfall cards. (Depletion counters show how many you've used.)
