@@ -212,6 +212,8 @@
   colour/set filters, sorts). screens.gd: new screens fade in (same kind+title re-sent doesn't), and its own hover
   zoom (the duel preview sits under screens); autotest --zoomtest hovers the first card. The town has no Menu
   button now (Esc / corner Menu). Castle: tools/make_castle.py (far citadel on a crag); gate: tools/make_gate.py.
+- Godot title screen: GodotTown.title/savesMenu/newSave send kind "title" with "page" main|saves|ask (titleScreen,
+  titleOpt, titleAsk); godot/scripts/title_view.gd draws them. Saves page answers: i = play slot i, n + i = delete.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
