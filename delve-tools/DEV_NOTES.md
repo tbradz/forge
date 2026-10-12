@@ -215,6 +215,11 @@
 - Godot table combat (2026-10-12): the bridge's snapshot carries "step", "mode" (attack/block, from the human's input
   queue), "can_act", "ready", "blocks"; combat_overlay.gd draws arrows/tags, phase_strip.gd the turn strip, CardNode
   drags when `draggable`. JSON numbers are floats in Godot: convert ids before Array.has(). Autotest `--realcombat`.
+- Godot table, 2026-10-12 (2): phase stops are the bridge's (GodotGui.STOP_MINE / STOP_THEIRS, saved in the runtime
+  folder's delve_stops.properties; isUiSetToSkipPhase reads them; message {"t":"stop","mine","step","on"}); defaults
+  add a stop at your declare-blockers step so you see their blocks before damage. Snapshot "stops", "doomed" and
+  "hits" (forge.ai.ComputerUtilCombat forecast, no tricks), players' "exile". Equipment/auras drawn tucked behind
+  their host (main.gd _attached); graveyard piles open zone_viewer.gd (graveyard/exile tabs).
 - Godot title screen: GodotTown.title/savesMenu/newSave send kind "title" with "page" main|saves|ask (titleScreen,
   titleOpt, titleAsk); godot/scripts/title_view.gd draws them. Saves page answers: i = play slot i, n + i = delete.
   Page "hero" (chooseHero): answers 0 prev, 1 next, 2 done, (3 cancel), then one per hero. A square building's
@@ -261,6 +266,8 @@
 - Enemies: fixed basics of their colours on the battlefield: 3 (fights), 4 (elites), 5 (bosses) (`foeLandCount`).
   Mana Sparks, the Foe Mana card and command-zone sources are gone.
 - Deep Well boon was too strong (+1 mana every turn): now "the first land you Attune each fight enters untapped".
+- 2026-10-12 (Tyler: "Cards used to attune lands should be exiled so you can't bin something that could come back from
+  the graveyard, imagine reanimate"): Attune exiles the card (`AwayX: ChangeZone ... Destination$ Exile`), texts say so.
 - Archetype pick buttons show "Title W/G"; long pick-screen headers shrink to one line.
 - The forge-ai command-zone mana patch stays (harmless; Pai Gow-style effects may still use it).
 
