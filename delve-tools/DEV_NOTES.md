@@ -220,6 +220,9 @@
   add a stop at your declare-blockers step so you see their blocks before damage. Snapshot "stops", "doomed" and
   "hits" (forge.ai.ComputerUtilCombat forecast, no tricks), players' "exile". Equipment/auras drawn tucked behind
   their host (main.gd _attached); graveyard piles open zone_viewer.gd (graveyard/exile tabs).
+- Godot table choices (2026-10-12): ask kinds "arrange" (options + piles[{label,hint,start}]; answer = pile indexes
+  joined by -1) and "amounts" (options with min/max/value, lethal / after_lethal; answer = one value each), drawn by
+  special_ask.gd. Used by GodotGui.order / manipulateCardList (scry) / assignCombatDamage / assignGenericAmount.
 - Godot title screen: GodotTown.title/savesMenu/newSave send kind "title" with "page" main|saves|ask (titleScreen,
   titleOpt, titleAsk); godot/scripts/title_view.gd draws them. Saves page answers: i = play slot i, n + i = delete.
   Page "hero" (chooseHero): answers 0 prev, 1 next, 2 done, (3 cancel), then one per hero. A square building's
