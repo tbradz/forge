@@ -9,9 +9,9 @@ public final class DelveModes {
     private DelveModes() {}
 
     public enum Length {
-        SHORT("Short", "7-9 rooms", 7, 3),
-        STANDARD("Standard", "10-13 rooms", 10, 4),
-        LONG("Long", "14-17 rooms", 14, 4);
+        SHORT("Short", "11 steps", 7, 3),
+        STANDARD("Standard", "15 steps", 10, 4),
+        LONG("Long", "19 steps", 14, 4);
 
         public final String title, rooms;
         /** fewest steps and how many more a floor may roll */
@@ -22,6 +22,11 @@ public final class DelveModes {
             this.rooms = rooms;
             this.min = min;
             this.spread = spread;
+        }
+
+        /** Generator 8+ (the web of paths, Slay the Spire's 15-floor acts): a fixed number of steps before the boss. */
+        public int webSteps() {
+            return this == SHORT ? 11 : this == LONG ? 19 : 15;
         }
 
         static Length parse(String s) {

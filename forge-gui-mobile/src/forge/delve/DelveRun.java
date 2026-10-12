@@ -31,6 +31,14 @@ public class DelveRun {
         public List<PaperCard> stock;            // merchant only, filled on first visit
         public DelvePerk perk;                   // bosses and elites
         public DelvePerk perk2;                  // bosses get a second, milder perk
+        /** Generator 8+ (the web of paths): the lane this room sits in (0 = top), and the rooms of the next step it
+         *  leads to (indexes into that layer). Older maps leave these empty and use {@link #connected}'s rule. */
+        public int lane = -1;
+        public final List<Integer> next = new ArrayList<>();
+        /** Generator 8+: the floor's champion, a tougher elite guarding a second relic. */
+        public boolean champion;
+        /** Generator 8+: the foe waiting in an unknown (?) room, if it turns out to be a fight. */
+        public EnemyData ambush;
         Node(NodeType type, EnemyData enemy, int enemyLife, DelveEvents.Event event) {
             this.type = type;
             this.enemy = enemy;
@@ -195,6 +203,10 @@ public class DelveRun {
      */
     public boolean connected(int s, int j, int k) {
         if (s <= 0) return true; // the entrance reaches every first room
+        if (gen >= 8) { // the web: only the generated paths
+            List<Node> prev = layers.get(s - 1);
+            return j >= 0 && j < prev.size() && prev.get(j).next.contains(k);
+        }
         int n = layers.get(s - 1).size(), m = layers.get(s).size();
         if (gen >= 3 && (m <= 2 || n <= 2)) return true;
         float a = n == 1 ? 0.5f : j / (float) (n - 1), b = m == 1 ? 0.5f : k / (float) (m - 1);
@@ -206,6 +218,37 @@ public class DelveRun {
         if (step == 0) return true;
         int from = step - 1 < chosen.size() ? chosen.get(step - 1) : -1;
         return from < 0 || connected(step, from, k);
+    }
+
+    /**
+     * Generator 8+: what an unknown (?) room turns out to be, like Slay the Spire's: usually an event, sometimes a
+     * fight (10%, +10% for every ? in a row that wasn't one), a merchant (3%) or treasure (2%). Each room's roll is
+     * fixed by the seed, and the run of ?s comes from the rooms you chose, so a saved run resolves the same way.
+     */
+    public NodeType resolveMystery(int s, int k) {
+        int streak = 0; // ?s since the last one that was a fight
+        for (int t = 0; t < s && t < chosen.size(); t++) {
+            int c = chosen.get(t);
+            if (c < 0 || c >= layers.get(t).size() || layers.get(t).get(c).type != NodeType.EVENT) continue;
+            streak = mysteryRoll(t, c, streak) == NodeType.FIGHT ? 0 : streak + 1;
+        }
+        return mysteryRoll(s, k, streak);
+    }
+
+    private NodeType mysteryRoll(int s, int k, int streak) {
+        Node n = layers.get(s).get(k);
+        int roll = new Random(seed * 977 + s * 131L + k).nextInt(100);
+        int fight = n.ambush == null || s == 0 ? 0 : 10 + 10 * streak;
+        if (roll < fight) return NodeType.FIGHT;
+        if (roll < fight + 3) return NodeType.MERCHANT;
+        if (roll < fight + 5) return NodeType.TREASURE;
+        return NodeType.EVENT;
+    }
+
+    /** The fight an unknown room turned into: its waiting foe, at the life a fight at that depth has. */
+    public Node ambushNode(int s, int k) {
+        Node n = layers.get(s).get(k);
+        return new Node(NodeType.FIGHT, n.ambush, DelveMapGen.fightLife(this, s), null);
     }
 
     public List<Node> nextChoices() {

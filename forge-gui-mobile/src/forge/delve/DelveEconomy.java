@@ -36,6 +36,10 @@ public final class DelveEconomy {
             case ELITE: return old ? GEN1_ELITE : ELITE_GOLD;
             default:
                 int lo = old ? GEN1_FIGHT_MIN : FIGHT_GOLD_MIN, hi = old ? GEN1_FIGHT_MAX : FIGHT_GOLD_MAX;
+                if (gen >= 8) { // the web: about half the rooms are fights, so each pays less (run totals stay put)
+                    lo = 9;
+                    hi = 14;
+                }
                 return lo + rng.nextInt(hi - lo + 1);
         }
     }

@@ -219,6 +219,11 @@
 - 2026-10-12: Godot runs have no boon or curse step by default: GodotRun.boonsOn/cursesOn need GodotRun.beaten()
   (every tier cleared) and the save options "boons"/"curses" (Your House > Options). Deep Well's card now needs
   Count$YourTurns GE3 and only Attuned tokens; DelveBoon text matches.
+- 2026-10-12: Dungeon map generator 8 (DelveMapGen.buildWeb, Slay the Spire style): 5 lanes, 5 non-crossing paths,
+  Node.lane/next/champion/ambush; DelveRun.connected uses Node.next for gen 8; resolveMystery/ambushNode turn ? rooms
+  into fights/merchants/treasure; Length.webSteps() 11/15/19; fight gold 9-14. Old saved runs keep their generator.
+  The Godot bridge draws the web (lanes, info, route highlights) and merges Rest+Forge into a campfire. The libGDX
+  map scene still draws gen 8 maps by layer index (up to 5 rooms a step) and treats ? rooms as plain events.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
