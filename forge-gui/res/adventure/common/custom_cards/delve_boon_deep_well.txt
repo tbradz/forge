@@ -1,7 +1,7 @@
 Name:Delve Boon Deep Well
 ManaCost:no cost
 Types:Artifact
-T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Land.token+YouCtrl | TriggerZones$ Command | Static$ True | IsPresent$ Card.Self+counters_EQ0_LORE | PresentZone$ Command | Execute$ Untap | TriggerDescription$ The first land you Attune each fight enters untapped.
+T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Land.token+YouCtrl+namedAttuned Plains,Land.token+YouCtrl+namedAttuned Island,Land.token+YouCtrl+namedAttuned Swamp,Land.token+YouCtrl+namedAttuned Mountain,Land.token+YouCtrl+namedAttuned Forest,Land.token+YouCtrl+namedAttuned Wastes | TriggerZones$ Command | Static$ True | IsPresent$ Card.Self+counters_EQ0_LORE | PresentZone$ Command | CheckSVar$ Count$YourTurns | SVarCompare$ GE3 | Execute$ Untap | TriggerDescription$ From your third turn on, the first land you Attune each fight enters untapped.
 SVar:Untap:DB$ Untap | Defined$ TriggeredCard | SubAbility$ Used
 SVar:Used:DB$ PutCounter | Defined$ Self | CounterType$ LORE | CounterNum$ 1
-Oracle:Deep Well: the first land you Attune each fight enters untapped.
+Oracle:Deep Well: from your third turn on, the first land you Attune each fight enters untapped.

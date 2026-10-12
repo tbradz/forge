@@ -216,6 +216,9 @@
   titleOpt, titleAsk); godot/scripts/title_view.gd draws them. Saves page answers: i = play slot i, n + i = delete.
   Page "hero" (chooseHero): answers 0 prev, 1 next, 2 done, (3 cancel), then one per hero. A square building's
   optional "hit" rect is another click area for it (the Castle's gateway).
+- 2026-10-12: Godot runs have no boon or curse step by default: GodotRun.boonsOn/cursesOn need GodotRun.beaten()
+  (every tier cleared) and the save options "boons"/"curses" (Your House > Options). Deep Well's card now needs
+  Count$YourTurns GE3 and only Attuned tokens; DelveBoon text matches.
 
 ## Godot table: shared duel rules (2026-10-10, Tyler: "move Delve's rules over")
 - Tyler liked the Godot table test (`Forge Fork/delve-godot-test`, its own repo; Forge runs headless as a bridge). The duel
