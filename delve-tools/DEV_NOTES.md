@@ -212,6 +212,9 @@
   colour/set filters, sorts). screens.gd: new screens fade in (same kind+title re-sent doesn't), and its own hover
   zoom (the duel preview sits under screens); autotest --zoomtest hovers the first card. The town has no Menu
   button now (Esc / corner Menu). Castle: tools/make_castle.py (far citadel on a crag); gate: tools/make_gate.py.
+- Godot table combat (2026-10-12): the bridge's snapshot carries "step", "mode" (attack/block, from the human's input
+  queue), "can_act", "ready", "blocks"; combat_overlay.gd draws arrows/tags, phase_strip.gd the turn strip, CardNode
+  drags when `draggable`. JSON numbers are floats in Godot: convert ids before Array.has(). Autotest `--realcombat`.
 - Godot title screen: GodotTown.title/savesMenu/newSave send kind "title" with "page" main|saves|ask (titleScreen,
   titleOpt, titleAsk); godot/scripts/title_view.gd draws them. Saves page answers: i = play slot i, n + i = delete.
   Page "hero" (chooseHero): answers 0 prev, 1 next, 2 done, (3 cancel), then one per hero. A square building's
